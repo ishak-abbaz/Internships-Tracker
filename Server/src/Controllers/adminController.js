@@ -1,4 +1,3 @@
-
 const User = require('../Models/userModel');
 
 // Create new user
@@ -21,29 +20,30 @@ exports.CreateUser = async (req, res) => {
 
 exports.FindUsers_byID = async (req,res) => {
 
-try{
+  try{
 
-const { id } = req.params;
+    const { id } = req.params;
 
-if (!id) return res.status(400).json({ msg: 'ID is required' });
+    if (!id) return res.status(400).json({ msg: 'ID is required' });
 
-const user = await User.findOne({ _id : id});
-if (!user) return res.status(400).json({ msg: 'User Does not Exist' });
+    const user = await User.findOne({ _id : id});
+    if (!user) return res.status(400).json({ msg: 'User Does not Exist' });
 
-res.status(200).json({
- msg: 'User Exist',
-user: {
-    id: user._id,
-    full_name: user.full_name,
-    email: user.email,
-    user_role: user.user_role
-},
+    res.status(200).json({
+      msg: 'User Exist',
+      user: {
+        id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        user_role: user.user_role
+      }
 
-});
+    });
 
-}catch(err){
+  }catch(err){
+    
     res.status(500).json({ msg: 'Sreach failed', error: err.message });
 
-}
+  }
 }
 

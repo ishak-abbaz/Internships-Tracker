@@ -22,8 +22,8 @@ const internSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  corporate_work_id: {
-    type: String,
+  work_id: {
+    type: Number,
     trim: true,
     unique: true,
     sparse: true,
@@ -32,7 +32,7 @@ const internSchema = new mongoose.Schema({
   id_photo_url: {
     type: String,
     trim: true,
-    default: null
+    default: '/uploads/default-intern-photo.png'
   }
 });
 

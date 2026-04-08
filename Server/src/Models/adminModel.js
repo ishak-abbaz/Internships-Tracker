@@ -2,12 +2,12 @@ const mongoose = require('mongoose');
 const User = require('./userModel');
 
 const adminSchema = new mongoose.Schema({
-  organization_name: {
-    type: String,
-    trim: true,
-    maxlength: 255,
-    default: null
-  },
+  // organization_name: {
+  //   type: String,
+  //   trim: true,
+  //   maxlength: 255,
+  //   default: null
+  // },
   admin_scope: {
     type: String,
     enum: ['hr', 'university'],

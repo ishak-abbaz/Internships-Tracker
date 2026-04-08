@@ -30,8 +30,8 @@ const user = new mongoose.Schema({
   },
   user_role: {
     type: String,
-    enum: ['student', 'Admin', 'Mentor'],
-    default: 'student',
+    enum: ['Student', 'Admin', 'Mentor'],
+    default: 'Student',
     required: true, // NOT NULL
   },
   account_status: {

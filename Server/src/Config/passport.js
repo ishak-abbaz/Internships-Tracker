@@ -1,7 +1,4 @@
-
-
 const passport = require('passport'); //  gérer l’authentification dans l’application.
-
 
 const GoogleStrategy = require('passport-google-oauth20').Strategy; //  On importe la stratégie Google OAuth 2.0 que Passport utilise pour se connecter via un compte Google.
 
@@ -14,7 +11,6 @@ passport.use(new GoogleStrategy({
 },
 
 // Receives their profile info from Google:
-
 async (accessToken, refreshToken, profile, done) => {
 // profile : The Google profile info of the user
 
@@ -30,9 +26,7 @@ async (accessToken, refreshToken, profile, done) => {
      const emailUser = await User.findOne({ email });
     if (emailUser) {
       return done(null, false, { message: 'Email already exists' });
-    }
-
-    
+    }    
     
       const user = await User.create({
         googleId: profile.id,
@@ -50,10 +44,12 @@ async (accessToken, refreshToken, profile, done) => {
         reset_code: null,
         reset_code_expires_at: null,
       });
-    
 
     return done(null, user); // Logs them into my app
+  
   } catch (err) {
+  
     return done(err, null);
+  
   }
 }));

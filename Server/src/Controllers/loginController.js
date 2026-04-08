@@ -1,4 +1,3 @@
-
 const User = require('../Models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -7,30 +6,25 @@ const secretKey = process.env.JWT_SECRET;
 const { generateVerificationToken, sendVerificationEmail } = require('../utils/sendEmail'); // STEP 2: Import email utilities
 const { sendPasswordResetEmail } = require('../utils/sendEmail');
 
-
-
-
-
 // Login Controller
-
 exports.login = async (req, res) => {
   try {
 
     const { email, password } = req.body;
 
- // 1. Check user
+    // 1. Check user
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ msg: 'Invalid email' });
 
-// 2. Check password
+    // 2. Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid password' });
 
 
-// 3. Check Email_verification
+    // 3. Check Email_verification
     if (!user.is_email_verified) return res.status(403).json({ msg: 'Please verify your email first' });
     
-// 4. Generate JWT
+    // 4. Generate JWT
     const token = jwt.sign(
       {
         id: user._id,
@@ -51,7 +45,6 @@ exports.login = async (req, res) => {
     // this will Send the JWT token securely as a cookie to the client (Postman or browser).
     // So Postman/browser will automatically save it
 
-
     // . Return response
     res.status(200).json({
       msg: 'Login successful',
@@ -69,10 +62,7 @@ exports.login = async (req, res) => {
   }
 };
 
-
-
 // STEP 5: Email Verification controller of the email verification route:
-
 // Verifies the user’s email using a token (usually from a link they clicked in their inbox).
 
 exports.verifyEmail = async (req, res) => {
@@ -106,15 +96,8 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
-
-
-
 // STEP 6: Resend Verification Email Controller of the Resend email verification route:
-
 // Resends a new verification email if the user hasn’t verified their account yet.
-
-
-
 
 exports.resendVerificationEmail = async (req, res) => {
   try {
@@ -150,10 +133,6 @@ exports.resendVerificationEmail = async (req, res) => {
   }
 };
 
-
-
-
-
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
@@ -170,7 +149,6 @@ exports.forgotPassword = async (req, res) => {
   res.json({ msg: 'Reset link sent to email', token });
 };
 
-
 exports.resetPassword = async (req, res) => {
   const { token } = req.params;    // resetPassword/abc123(Token) INSTEAD OF verify-email?token=abc123
   const { newPassword } = req.body;
@@ -181,8 +159,6 @@ exports.resetPassword = async (req, res) => {
   });
 
   if (!user) return res.status(400).json({ msg: 'Invalid or expired token' });
-
-
 
   user.password = await bcrypt.hash(newPassword, 12);
   user.reset_Password_Token = undefined;
