@@ -37,8 +37,8 @@ const registerRoutes = require('./Routes/registerRoutes');
 app.use('/api/register', registerRoutes);
 
 // Admin Routes :
-const AdminRoutes = require('./Routes/adminRoutes');
-app.use('/api/admin',AdminRoutes);
+const adminRoutes = require('./Routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 3000; // Uses .env value like PORT=5000 if it exists Otherwise defaults to 3000
