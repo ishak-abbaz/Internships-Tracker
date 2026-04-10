@@ -8,11 +8,15 @@ const secretKey = process.env.JWT_SECRET;
 
 exports.protect = async (req, res, next) => {
   try {
-    const token = req.cookies.jwt; //  Get token from cookie
-
-    if (!token) {
+    // Get token from Authorization header (for mobile apps like Flutter)
+    // Format: Authorization: Bearer <token>
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ msg: 'Access denied. No token provided.' });
     }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET); // or your secretKey
@@ -30,9 +34,6 @@ exports.protect = async (req, res, next) => {
 };
 
 
-
-
-
 exports.restrictTo = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.user_role)) {
@@ -41,9 +42,4 @@ exports.restrictTo = (...allowedRoles) => {
     next();
   };
 };
-
-
-// those function i use them like this :
-
-// router.get('/dashboard', protect, restrictTo('student', 'Parent'), dashboardController.view);
 
