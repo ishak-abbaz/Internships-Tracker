@@ -4,7 +4,6 @@ const User = require('../Models/userModel');
 const { generateVerificationToken, sendVerificationEmail } = require('../utils/sendEmail');
 
 const VALID_ROLES = ['Student', 'Mentor', 'Admin'];
-const INTERN_ROLE = 'Student';
 
 const buildError = (message, status = 500) => {
   const err = new Error(message);
@@ -23,14 +22,14 @@ const sanitizeUser = (user) => ({
   created_at: user.created_at,
   updated_at: user.updated_at
 });
-
+// Method used to sanitize data got from user
 const validateObjectId = (id, entityName = 'User') => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw buildError(`Invalid ${entityName} ID`, 400);
   }
 };
 
-const createUser = async ({ full_name, email, password, phone_number, user_role }) => {
+const createUser = async ({ full_name, email, password, phone_number, user_role = 'Student' }) => {
   if (!full_name || !email || !password || !phone_number || !user_role) {
     throw buildError('Please provide all required fields', 400);
   }
@@ -65,22 +64,12 @@ const createUser = async ({ full_name, email, password, phone_number, user_role 
 
   return sanitizeUser(newUser);
 };
-// TODO: Checkout for duplication creation methods
-const createIntern = async ({ full_name, email, password, phone_number }) => {
-  return createUser({
-    full_name,
-    email,
-    password,
-    phone_number,
-    user_role: INTERN_ROLE
-  });
-};
 
 const listInterns = async ({ page = 1, limit = 10, search = '' } = {}) => {
   const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
 
-  const query = { user_role: INTERN_ROLE };
+  const query = { user_role: "Student" };
 
   const normalizedSearch = String(search || '').trim();
   if (normalizedSearch) {
@@ -112,7 +101,7 @@ const listInterns = async ({ page = 1, limit = 10, search = '' } = {}) => {
 const getInternById = async (internId) => {
   validateObjectId(internId, 'Intern');
 
-  const intern = await User.findOne({ _id: internId, user_role: INTERN_ROLE });
+  const intern = await User.findOne({ _id: internId, user_role: "Student" });
   if (!intern) {
     throw buildError('Intern not found', 404);
   }
@@ -123,19 +112,18 @@ const getInternById = async (internId) => {
 const updateInternById = async (internId, payload = {}) => {
   validateObjectId(internId, 'Intern');
 
-  const intern = await User.findOne({ _id: internId, user_role: INTERN_ROLE });
+  const intern = await User.findOne({ _id: internId, user_role: "Student" });
   if (!intern) {
     throw buildError('Intern not found', 404);
   }
 
   const updatableFields = [
     'full_name',
-    'email',
     'phone_number',
     'account_status',
     'is_email_verified'
   ];
-
+  // Checkout this for any sql injection attack possible
   for (const field of updatableFields) {
     if (payload[field] !== undefined) {
       intern[field] = payload[field];
@@ -150,7 +138,6 @@ const updateInternById = async (internId, payload = {}) => {
     }
     intern.email = normalizedEmail;
   }
-
   if (payload.password !== undefined) {
     intern.password = await bcrypt.hash(payload.password, 12);
   }
@@ -162,7 +149,7 @@ const updateInternById = async (internId, payload = {}) => {
 const deleteInternById = async (internId) => {
   validateObjectId(internId, 'Intern');
 
-  const intern = await User.findOneAndDelete({ _id: internId, user_role: INTERN_ROLE });
+  const intern = await User.findOneAndDelete({ _id: internId, user_role: "Student" });
   if (!intern) {
     throw buildError('Intern not found', 404);
   }
@@ -172,7 +159,6 @@ const deleteInternById = async (internId) => {
 
 module.exports = {
   createUser,
-  createIntern,
   listInterns,
   getInternById,
   updateInternById,
