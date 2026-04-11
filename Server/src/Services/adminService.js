@@ -60,7 +60,7 @@ const createUser = async ({ full_name, email, password, phone_number, user_role 
   });
 
   await newUser.save();
-  await sendVerificationEmail(newUser.email, newUser.full_name, emailToken);
+  // await sendVerificationEmail(newUser.email, newUser.full_name, emailToken);
 
   return sanitizeUser(newUser);
 };
