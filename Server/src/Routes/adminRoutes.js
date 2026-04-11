@@ -8,5 +8,6 @@ router.get('/api/v1/admin/interns/:internId', getInternById);
 router.put('/api/v1/admin/interns/:internId', updateInternById);
 router.post('/api/v1/admin/interns/:internId/approve', approveIntern);
 router.delete('/api/v1/admin/interns/:internId', deleteInternById);
+router.post('/api/v1/admin/validate/:userId', validateRegistration);
 
 module.exports = router;

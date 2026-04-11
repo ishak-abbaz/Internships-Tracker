@@ -136,3 +136,57 @@ exports.deleteInternById = async (req, res) => {
     });
   }
 };
+
+/**
+ * Approve an intern registration
+ * POST /api/admin/interns/:internId/approve
+ */
+exports.approveIntern = async (req, res) => {
+  try {
+    const { internId } = req.params;
+
+    const approvedIntern = await adminService.updateInternById(internId, { 
+      account_status: 'approved' 
+    });
+
+    res.status(200).json({
+      success: true,
+      msg: 'Intern approved successfully.',
+      data: approvedIntern
+    });
+  } catch (err) {
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      success: false,
+      msg: err.message || 'Failed to approve intern',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
+    });
+  }
+};
+
+/**
+ * Reject an intern registration
+ * POST /api/admin/interns/:internId/reject
+ */
+exports.rejectIntern = async (req, res) => {
+  try {
+    const { internId } = req.params;
+
+    const rejectedIntern = await adminService.updateInternById(internId, { 
+      account_status: 'rejected' 
+    });
+
+    res.status(200).json({
+      success: true,
+      msg: 'Intern rejected successfully.',
+      data: rejectedIntern
+    });
+  } catch (err) {
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      success: false,
+      msg: err.message || 'Failed to reject intern',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
+    });
+  }
+};
