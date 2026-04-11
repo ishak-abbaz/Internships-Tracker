@@ -17,6 +17,6 @@ const mentorSchema = new mongoose.Schema({
 
 mentorSchema.index({ department_id: 1 });
 
-const Mentor = User.discriminator('Mentor', mentorSchema);
+const Mentor = User.discriminator('Mentor', mentorSchema, 'Mentor');
 
 module.exports = Mentor;

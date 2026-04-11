@@ -27,14 +27,17 @@ exports.listPendingInterns = async (req, res) => {
  */
 exports.createUser = async (req, res) => {
   try {
-    const { full_name, email, password, phone_number, user_role } = req.body;
+    const { full_name, email, password, phone_number, user_role, department_id, specialization, admin_scope } = req.body;
 
     const user = await adminService.createUser({
       full_name,
       email,
       password,
       phone_number,
-      user_role
+      user_role,
+      department_id,
+      specialization,
+      admin_scope
     });
 
     res.status(201).json({
@@ -194,7 +197,7 @@ exports.rejectIntern = async (req, res) => {
     const { internId } = req.params;
 
     const rejectedIntern = await adminService.updateInternById(internId, { 
-      account_status: 'rejected' 
+      account_status: 'declined' 
     });
 
     res.status(200).json({
@@ -207,6 +210,112 @@ exports.rejectIntern = async (req, res) => {
     res.status(statusCode).json({
       success: false,
       msg: err.message || 'Failed to reject intern',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
+    });
+  }
+};
+
+/**
+ * List all mentors with pagination and search
+ * GET /api/admin/mentors
+ */
+exports.listMentors = async (req, res) => {
+  try {
+    const { page, limit, search } = req.query;
+
+    const result = await adminService.listMentors({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+      search: search || ''
+    });
+
+    res.status(200).json({
+      success: true,
+      msg: 'Mentors fetched successfully.',
+      data: result.data,
+      pagination: result.pagination
+    });
+  } catch (err) {
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      success: false,
+      msg: err.message || 'Failed to fetch mentors',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
+    });
+  }
+};
+
+/**
+ * Get a specific mentor by ID
+ * GET /api/admin/mentors/:mentorId
+ */
+exports.getMentor = async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+
+    const mentor = await adminService.getMentorById(mentorId);
+
+    res.status(200).json({
+      success: true,
+      msg: 'Mentor fetched successfully.',
+      data: mentor
+    });
+  } catch (err) {
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      success: false,
+      msg: err.message || 'Failed to fetch mentor',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
+    });
+  }
+};
+
+/**
+ * Update a mentor by ID
+ * PUT /api/admin/mentors/:mentorId
+ */
+exports.updateMentor = async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+    const payload = req.body;
+
+    const updatedMentor = await adminService.updateMentorById(mentorId, payload);
+
+    res.status(200).json({
+      success: true,
+      msg: 'Mentor updated successfully.',
+      data: updatedMentor
+    });
+  } catch (err) {
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      success: false,
+      msg: err.message || 'Failed to update mentor',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
+    });
+  }
+};
+
+/**
+ * Delete a mentor by ID
+ * DELETE /api/admin/mentors/:mentorId
+ */
+exports.deleteMentor = async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+
+    const deletedMentor = await adminService.deleteMentorById(mentorId);
+
+    res.status(200).json({
+      success: true,
+      msg: 'Mentor deleted successfully.',
+      data: deletedMentor
+    });
+  } catch (err) {
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      success: false,
+      msg: err.message || 'Failed to delete mentor',
       error: process.env.NODE_ENV === 'development' ? err : undefined
     });
   }

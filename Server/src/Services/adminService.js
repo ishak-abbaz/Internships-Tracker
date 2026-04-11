@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const User = require('../Models/userModel');
+const Intern = require('../Models/internModel');
+const Mentor = require('../Models/mentorModel');
+const Admin = require('../Models/adminModel');
 const { generateVerificationToken, sendVerificationEmail } = require('../utils/sendEmail');
 
 const VALID_ROLES = ['Student', 'Mentor', 'Admin'];
@@ -11,17 +14,40 @@ const buildError = (message, status = 500) => {
   return err;
 };
 
-const sanitizeUser = (user) => ({
-  id: user._id,
-  full_name: user.full_name,
-  email: user.email,
-  phone_number: user.phone_number,
-  user_role: user.user_role,
-  account_status: user.account_status,
-  is_email_verified: user.is_email_verified,
-  created_at: user.created_at,
-  updated_at: user.updated_at
-});
+const sanitizeUser = (user) => {
+  const sanitized = {
+    id: user._id,
+    full_name: user.full_name,
+    email: user.email,
+    phone_number: user.phone_number,
+    user_role: user.user_role,
+    account_status: user.account_status,
+    is_email_verified: user.is_email_verified,
+    created_at: user.created_at,
+    updated_at: user.updated_at
+  };
+
+  // Add role-specific fields
+  if (user.user_role === 'Student') {
+    sanitized.university_id = user.university_id || null;
+    sanitized.department_id = user.department_id || null;
+    sanitized.mentor_id = user.mentor_id || null;
+    sanitized.is_validated_by_admin = user.is_validated_by_admin || false;
+    sanitized.work_id = user.work_id || null;
+    sanitized.id_photo_url = user.id_photo_url || '/uploads/default-intern-photo.png';
+  }
+
+  if (user.user_role === 'Mentor') {
+    sanitized.department_id = user.department_id;
+    sanitized.specialization = user.specialization;
+  }
+
+  if (user.user_role === 'Admin') {
+    sanitized.admin_scope = user.admin_scope || 'hr';
+  }
+
+  return sanitized;
+};
 // Method used to sanitize data got from user
 const validateObjectId = (id, entityName = 'User') => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -29,13 +55,33 @@ const validateObjectId = (id, entityName = 'User') => {
   }
 };
 
-const createUser = async ({ full_name, email, password, phone_number, user_role = 'Student' }) => {
-  if (!full_name || !email || !password || !phone_number || !user_role) {
+const createUser = async ({ full_name, email, password, phone_number, user_role = 'Student', department_id = null, specialization = null, admin_scope = null }) => {
+  
+    if (!full_name || !email || !password || !phone_number || !user_role) {
     throw buildError('Please provide all required fields', 400);
   }
 
   if (!VALID_ROLES.includes(user_role)) {
     throw buildError('Invalid user role', 400);
+  }
+
+  // Validate role-specific fields
+  if (user_role === 'Mentor') {
+    if (!department_id || !specialization) {
+      throw buildError('Mentor requires department_id and specialization', 400);
+    }
+    if (!mongoose.Types.ObjectId.isValid(department_id)) {
+      throw buildError('Invalid department_id', 400);
+    }
+  }
+
+  if (user_role === 'Admin') {
+    if (!admin_scope) {
+      throw buildError('Admin requires admin_scope (hr or university)', 400);
+    }
+    if (!['hr', 'university'].includes(admin_scope)) {
+      throw buildError('admin_scope must be either "hr" or "university"', 400);
+    }
   }
 
   const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
@@ -47,7 +93,7 @@ const createUser = async ({ full_name, email, password, phone_number, user_role 
   const emailToken = generateVerificationToken();
   const emailTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  const newUser = new User({
+  const newUserData = {
     full_name: full_name.trim(),
     email: email.toLowerCase().trim(),
     phone_number,
@@ -56,8 +102,30 @@ const createUser = async ({ full_name, email, password, phone_number, user_role 
     email_verification_token: emailToken,
     email_verification_expires: emailTokenExpiry,
     is_email_verified: false,
-    account_status: user_role === 'Admin' ? 'approved' : 'pending'
-  });
+    account_status: user_role === 'Admin' || user_role === 'Mentor' ? 'approved' : 'pending'
+  };
+
+  // Add role-specific fields
+  if (user_role === 'Mentor') {
+    newUserData.department_id = department_id;
+    newUserData.specialization = specialization;
+  }
+
+  if (user_role === 'Admin') {
+    newUserData.admin_scope = admin_scope;
+  }
+
+  // Create user with appropriate model based on role
+  let newUser;
+  if (user_role === 'Mentor') {
+    newUser = new Mentor(newUserData);
+  } else if (user_role === 'Admin') {
+    newUser = new Admin(newUserData);
+  } else if (user_role === 'Student') {
+    newUser = new Intern(newUserData);
+  } else {
+    newUser = new User(newUserData);
+  }
 
   await newUser.save();
   // await sendVerificationEmail(newUser.email, newUser.full_name, emailToken);
@@ -122,7 +190,11 @@ const updateInternById = async (internId, payload = {}) => {
     'phone_number',
     'account_status',
     'is_email_verified',
-    'is_validated_by_admin'
+    'is_validated_by_admin',
+    'department_id',
+    'mentor_id',
+    'university_id',
+    'work_id'
   ];
   // Checkout this for any sql injection attack possible
   for (const field of updatableFields) {
@@ -164,6 +236,100 @@ const deleteInternById = async (internId) => {
   return sanitizeUser(intern);
 };
 
+const listMentors = async ({ page = 1, limit = 10, search = '' } = {}) => {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
+
+  const query = { user_role: "Mentor" };
+
+  const normalizedSearch = String(search || '').trim();
+  if (normalizedSearch) {
+    query.$or = [
+      { full_name: { $regex: normalizedSearch, $options: 'i' } },
+      { email: { $regex: normalizedSearch, $options: 'i' } }
+    ];
+  }
+
+  const [mentors, total] = await Promise.all([
+    User.find(query)
+      .sort({ created_at: -1 })
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit),
+    User.countDocuments(query)
+  ]);
+
+  return {
+    data: mentors.map(sanitizeUser),
+    pagination: {
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit)
+    }
+  };
+};
+
+const getMentorById = async (mentorId) => {
+  validateObjectId(mentorId, 'Mentor');
+
+  const mentor = await User.findOne({ _id: mentorId, user_role: "Mentor" });
+  if (!mentor) {
+    throw buildError('Mentor not found', 404);
+  }
+
+  return sanitizeUser(mentor);
+};
+
+const updateMentorById = async (mentorId, payload = {}) => {
+  validateObjectId(mentorId, 'Mentor');
+
+  const mentor = await User.findOne({ _id: mentorId, user_role: "Mentor" });
+  if (!mentor) {
+    throw buildError('Mentor not found', 404);
+  }
+
+  const updatableFields = [
+    'full_name',
+    'phone_number',
+    'account_status',
+    'is_email_verified',
+    'is_validated_by_admin'
+  ];
+
+  for (const field of updatableFields) {
+    if (payload[field] !== undefined) {
+      mentor[field] = payload[field];
+    }
+  }
+
+  if (payload.email !== undefined) {
+    const normalizedEmail = String(payload.email).toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail, _id: { $ne: mentorId } });
+    if (existingUser) {
+      throw buildError('Email already registered', 409);
+    }
+    mentor.email = normalizedEmail;
+  }
+
+  if (payload.password !== undefined) {
+    mentor.password = await bcrypt.hash(payload.password, 12);
+  }
+
+  await mentor.save();
+  return sanitizeUser(mentor);
+};
+
+const deleteMentorById = async (mentorId) => {
+  validateObjectId(mentorId, 'Mentor');
+
+  const mentor = await User.findOneAndDelete({ _id: mentorId, user_role: "Mentor" });
+  if (!mentor) {
+    throw buildError('Mentor not found', 404);
+  }
+
+  return sanitizeUser(mentor);
+};
+
 module.exports = {
   createUser,
   listInterns,
@@ -171,5 +337,9 @@ module.exports = {
   updateInternById,
   approveIntern,
   deleteInternById,
+  listMentors,
+  getMentorById,
+  updateMentorById,
+  deleteMentorById,
   sanitizeUser
 };

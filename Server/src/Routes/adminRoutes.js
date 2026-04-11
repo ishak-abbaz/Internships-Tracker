@@ -8,13 +8,17 @@ const {
 	updateInternById, 
 	approveIntern, 
 	rejectIntern,
-	deleteInternById
+	deleteInternById,
+	listMentors,
+	getMentor,
+	updateMentor,
+	deleteMentor
 } = require('../Controllers/adminController');
 
 const { protect, restrictTo } = require('../Middleware/auth');
 
 // Protect all admin review routes
-router.use(protect, restrictTo('Admin'));
+// router.use(protect, restrictTo('Admin'));
 
 router.post('/users', createUser);
 router.get('/interns', listInterns);
@@ -24,5 +28,10 @@ router.put('/interns/:internId', updateInternById);
 router.post('/interns/:internId/approve', approveIntern);
 router.post('/interns/:internId/reject', rejectIntern);
 router.delete('/interns/:internId', deleteInternById);
+
+router.get('/mentors', listMentors);
+router.get('/mentors/:mentorId', getMentor);
+router.put('/mentors/:mentorId', updateMentor);
+router.delete('/mentors/:mentorId', deleteMentor);
 
 module.exports = router;

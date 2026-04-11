@@ -39,6 +39,6 @@ const internSchema = new mongoose.Schema({
 internSchema.index({ mentor_id: 1 });
 internSchema.index({ department_id: 1 });
 
-const Intern = User.discriminator('Intern', internSchema, 'student');
+const Intern = User.discriminator('Intern', internSchema, 'Student');
 
 module.exports = Intern;
