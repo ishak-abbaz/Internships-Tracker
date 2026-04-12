@@ -28,7 +28,6 @@ exports.listPendingInterns = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { full_name, email, password, phone_number, user_role, department_id, specialization, admin_scope } = req.body;
-
     const user = await adminService.createUser({
       full_name,
       email,

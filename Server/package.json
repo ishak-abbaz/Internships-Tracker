@@ -23,7 +23,7 @@
     "supertest": "^7.1.1"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
   "name": "server",

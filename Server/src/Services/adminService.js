@@ -19,7 +19,6 @@ const sanitizeUser = (user) => {
     id: user._id,
     full_name: user.full_name,
     email: user.email,
-    phone_number: user.phone_number,
     user_role: user.user_role,
     account_status: user.account_status,
     is_email_verified: user.is_email_verified,
@@ -55,9 +54,9 @@ const validateObjectId = (id, entityName = 'User') => {
   }
 };
 
-const createUser = async ({ full_name, email, password, phone_number, user_role = 'Student', department_id = null, specialization = null, admin_scope = null }) => {
+const createUser = async ({ full_name, email, password, user_role = 'Student', department_id = null, specialization = null, admin_scope = null }) => {
   
-    if (!full_name || !email || !password || !phone_number || !user_role) {
+    if (!full_name || !email || !password || !user_role) {
     throw buildError('Please provide all required fields', 400);
   }
 
@@ -96,7 +95,6 @@ const createUser = async ({ full_name, email, password, phone_number, user_role 
   const newUserData = {
     full_name: full_name.trim(),
     email: email.toLowerCase().trim(),
-    phone_number,
     password: hashedPassword,
     user_role,
     email_verification_token: emailToken,
@@ -187,7 +185,6 @@ const updateInternById = async (internId, payload = {}) => {
 
   const updatableFields = [
     'full_name',
-    'phone_number',
     'account_status',
     'is_email_verified',
     'is_validated_by_admin',
@@ -290,7 +287,6 @@ const updateMentorById = async (mentorId, payload = {}) => {
 
   const updatableFields = [
     'full_name',
-    'phone_number',
     'account_status',
     'is_email_verified',
     'is_validated_by_admin'
