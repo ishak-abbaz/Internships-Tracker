@@ -1,0 +1,543 @@
+================================================================================
+                    INTERNSHIP TRACKER API - ALL REQUESTS
+================================================================================
+
+IMPORTANT: Replace these IDs in all requests before testing:
+- internId: 60d5ec49c1234567890abcde
+- mentorId: 60d5ec49c1234567890abcdf
+- attendanceId: 60d5ec49c1234567890abce0
+- evaluationId: 60d5ec49c1234567890abce1
+
+Get real IDs from your database or copy from response of create requests.
+
+================================================================================
+                          ATTENDANCE ENDPOINTS
+================================================================================
+
+1. CREATE ATTENDANCE (MARK PRESENT)
+================================================================================
+POST http://localhost:3000/api/v1/mentors/attendance
+Content-Type: application/json
+
+Body (raw):
+{
+  "internId": "60d5ec49c1234567890abcde",
+  "mentorId": "60d5ec49c1234567890abcdf",
+  "attendanceDate": "2026-04-11",
+  "status": "present",
+  "notes": "Student was on time and participated well"
+}
+
+Expected Response (201):
+{
+  "msg": "Attendance marked successfully",
+  "data": {
+    "id": "60d5ec49c1234567890abce0",
+    "intern_id": "60d5ec49c1234567890abcde",
+    "mentor_id": "60d5ec49c1234567890abcdf",
+    "attendance_date": "2026-04-11T00:00:00.000Z",
+    "status": "present",
+    "notes": "Student was on time and participated well",
+    "marked_by_mentor_id": "60d5ec49c1234567890abcdf",
+    "created_at": "2026-04-11T10:30:00.000Z",
+    "updated_at": "2026-04-11T10:30:00.000Z"
+  }
+}
+
+================================================================================
+
+5. GET ATTENDANCE BY ID
+================================================================================
+GET http://localhost:3000/api/v1/mentors/attendance/id/60d5ec49c1234567890abce0
+
+No body required
+
+================================================================================
+
+6. GET ATTENDANCE BY DATE
+================================================================================
+GET http://localhost:3000/api/v1/mentors/attendance/date/2026-04-11
+
+No body required
+
+================================================================================
+
+7. GET ALL ATTENDANCE FOR INTERN (PAGINATED)
+================================================================================
+GET http://localhost:3000/api/v1/mentors/attendance/intern/60d5ec49c1234567890abcde?limit=10&page=1
+
+Query Parameters:
+- limit: 10
+- page: 1
+
+No body required
+
+================================================================================
+
+8. GET ATTENDANCE STATISTICS
+================================================================================
+GET http://localhost:3000/api/v1/mentors/attendance/stats/60d5ec49c1234567890abcde
+
+Expected Response (200):
+{
+  "msg": "Attendance statistics retrieved successfully",
+  "data": {
+    "total": 20,
+    "byStatus": [
+      {
+        "status": "present",
+        "count": 15,
+        "percentage": 75
+      },
+      {
+        "status": "late",
+        "count": 3,
+        "percentage": 15
+      },
+      {
+        "status": "absent",
+        "count": 2,
+        "percentage": 10
+      }
+    ],
+    "generatedAt": "2026-04-11T10:30:00.000Z"
+  }
+}
+
+================================================================================
+
+9. UPDATE ATTENDANCE (CHANGE STATUS)
+================================================================================
+PUT http://localhost:3000/api/v1/mentors/attendance/60d5ec49c1234567890abce0
+Content-Type: application/json
+
+Body (raw):
+{
+  "status": "excused",
+  "notes": "Student had medical emergency"
+}
+
+Note: Only status and notes can be updated. Cannot change intern_id, mentor_id, attendance_date, marked_by_mentor_id
+
+================================================================================
+
+10. UPDATE ATTENDANCE (CHANGE NOTES ONLY)
+================================================================================
+PUT http://localhost:3000/api/v1/mentors/attendance/60d5ec49c1234567890abce0
+Content-Type: application/json
+
+Body (raw):
+{
+  "notes": "Updated note: Student sent leave application"
+}
+
+================================================================================
+
+11. CLEAR ATTENDANCE NOTES
+================================================================================
+PUT http://localhost:3000/api/v1/mentors/attendance/60d5ec49c1234567890abce0
+Content-Type: application/json
+
+Body (raw):
+{
+  "notes": ""
+}
+
+================================================================================
+
+12. DELETE ATTENDANCE RECORD
+================================================================================
+DELETE http://localhost:3000/api/v1/mentors/attendance/60d5ec49c1234567890abce0
+
+No body required
+
+Expected Response (200):
+{
+  "msg": "Attendance record deleted successfully",
+  "data": {
+    "msg": "Attendance record deleted successfully",
+    "deletedRecordId": "60d5ec49c1234567890abce0",
+    "deletedAt": "2026-04-11T10:30:00.000Z"
+  }
+}
+
+================================================================================
+                        EVALUATION ENDPOINTS
+================================================================================
+
+1. CREATE EVALUATION (WEEK 1)
+================================================================================
+POST http://localhost:3000/api/v1/evaluations
+Content-Type: application/json
+
+Body (raw):
+{
+  "internId": "60d5ec49c1234567890abcde",
+  "mentorId": "60d5ec49c1234567890abcdf",
+  "weekLabel": "Week 1",
+  "overallMark": 85,
+  "feedback": "Student shows good understanding of core concepts. Needs improvement in time management and documentation."
+}
+
+Expected Response (201):
+{
+  "msg": "Evaluation created successfully",
+  "data": {
+    "id": "60d5ec49c1234567890abce1",
+    "intern_id": "60d5ec49c1234567890abcde",
+    "mentor_id": "60d5ec49c1234567890abcdf",
+    "week_label": "Week 1",
+    "overall_mark": 85,
+    "feedback": "Student shows good understanding of core concepts...",
+    "evaluated_at": "2026-04-11T10:30:00.000Z",
+    "created_at": "2026-04-11T10:30:00.000Z",
+    "updated_at": "2026-04-11T10:30:00.000Z"
+  }
+}
+
+================================================================================
+
+4. GET ALL EVALUATIONS (PAGINATED)
+================================================================================
+GET http://localhost:3000/api/v1/evaluations?limit=10&page=1
+
+Query Parameters:
+- limit: 10
+- page: 1
+
+No body required
+
+================================================================================
+
+5. GET EVALUATION BY ID
+================================================================================
+GET http://localhost:3000/api/v1/evaluations/id/60d5ec49c1234567890abce1
+
+No body required
+
+================================================================================
+
+6. SEARCH EVALUATIONS BY INTERN NAME
+================================================================================
+GET http://localhost:3000/api/v1/evaluations/search/name/Ahmed?limit=10&page=1
+
+Query Parameters:
+- limit: 10
+- page: 1
+
+No body required
+
+================================================================================
+
+7. GET ALL EVALUATIONS FOR SPECIFIC INTERN
+================================================================================
+GET http://localhost:3000/api/v1/evaluations/intern/60d5ec49c1234567890abcde?limit=10&page=1
+
+Query Parameters:
+- limit: 10
+- page: 1
+
+Expected Response (200):
+{
+  "msg": "Intern evaluations retrieved successfully",
+  "data": {
+    "data": [
+      {
+        "id": "...",
+        "week_label": "Week 1",
+        "overall_mark": 85,
+        "feedback": "..."
+      },
+      {
+        "id": "...",
+        "week_label": "Week 2",
+        "overall_mark": 92,
+        "feedback": "..."
+      }
+    ],
+    "total": 3,
+    "page": 1,
+    "limit": 10,
+    "pages": 1
+  }
+}
+
+================================================================================
+
+8. GET ALL EVALUATIONS BY MENTOR
+================================================================================
+GET http://localhost:3000/api/v1/evaluations/mentor/60d5ec49c1234567890abcdf?limit=10&page=1
+
+Query Parameters:
+- limit: 10
+- page: 1
+
+No body required
+
+================================================================================
+
+9. GET EVALUATION STATISTICS FOR INTERN
+================================================================================
+GET http://localhost:3000/api/v1/evaluations/stats/60d5ec49c1234567890abcde
+
+Expected Response (200):
+{
+  "msg": "Evaluation statistics retrieved successfully",
+  "data": {
+    "averageMark": 85,
+    "highestMark": 92,
+    "lowestMark": 78,
+    "totalEvaluations": 3
+  }
+}
+
+================================================================================
+
+10. UPDATE EVALUATION (CHANGE MARK)
+================================================================================
+PUT http://localhost:3000/api/v1/evaluations/60d5ec49c1234567890abce1
+Content-Type: application/json
+
+Body (raw):
+{
+  "overallMark": 88
+}
+
+================================================================================
+
+15. DELETE EVALUATION
+================================================================================
+DELETE http://localhost:3000/api/v1/evaluations/60d5ec49c1234567890abce1
+
+No body required
+
+Expected Response (200):
+{
+  "msg": "Evaluation record deleted successfully",
+  "data": {
+    "msg": "Evaluation record deleted successfully"
+  }
+}
+
+================================================================================
+                        ERROR TEST CASES
+================================================================================
+
+TEST 1: INVALID ATTENDANCE STATUS
+================================================================================
+POST http://localhost:3000/api/v1/mentors/attendance
+Content-Type: application/json
+
+Body (raw):
+{
+  "internId": "60d5ec49c1234567890abcde",
+  "mentorId": "60d5ec49c1234567890abcdf",
+  "attendanceDate": "2026-04-11",
+  "status": "invalid_status",
+  "notes": "This should fail"
+}
+
+Expected Response (400):
+{
+  "msg": "Status must be one of: present, absent, late, excused",
+  "error": "Status must be one of: present, absent, late, excused"
+}
+
+================================================================================
+
+TEST 2: INVALID MARK (OUT OF RANGE)
+================================================================================
+POST http://localhost:3000/api/v1/evaluations
+Content-Type: application/json
+
+Body (raw):
+{
+  "internId": "60d5ec49c1234567890abcde",
+  "mentorId": "60d5ec49c1234567890abcdf",
+  "weekLabel": "Week 1",
+  "overallMark": 150,
+  "feedback": "This should fail"
+}
+
+Expected Response (400):
+{
+  "msg": "Overall mark must be a number between 0 and 100",
+  "error": "Overall mark must be a number between 0 and 100"
+}
+
+================================================================================
+
+TEST 3: MISSING REQUIRED FIELDS
+================================================================================
+POST http://localhost:3000/api/v1/evaluations
+Content-Type: application/json
+
+Body (raw):
+{
+  "internId": "60d5ec49c1234567890abcde"
+}
+
+Expected Response (400):
+{
+  "msg": "Please provide all required fields: internId, mentorId, overallMark",
+  "error": "Please provide all required fields: internId, mentorId, overallMark"
+}
+
+================================================================================
+
+TEST 4: DUPLICATE ATTENDANCE (SAME DATE)
+================================================================================
+POST http://localhost:3000/api/v1/mentors/attendance
+Content-Type: application/json
+
+Body (raw):
+{
+  "internId": "60d5ec49c1234567890abcde",
+  "mentorId": "60d5ec49c1234567890abcdf",
+  "attendanceDate": "2026-04-11",
+  "status": "present",
+  "notes": "Duplicate entry"
+}
+
+Expected Response (409):
+{
+  "msg": "Attendance already recorded for this intern on this date. Delete and recreate if changes needed.",
+  "error": "Attendance already recorded for this intern on this date. Delete and recreate if changes needed."
+}
+
+================================================================================
+
+TEST 5: INVALID OBJECTID FORMAT
+================================================================================
+GET http://localhost:3000/api/v1/mentors/attendance/id/invalid-id
+
+Expected Response (400):
+{
+  "msg": "Invalid Attendance ID",
+  "error": "Invalid Attendance ID"
+}
+
+================================================================================
+
+TEST 6: NOT FOUND
+================================================================================
+GET http://localhost:3000/api/v1/evaluations/id/60d5ec49c1234567890abcde
+
+(if ID doesn't exist in database)
+
+Expected Response (404):
+{
+  "msg": "Evaluation record not found",
+  "error": "Evaluation record not found"
+}
+
+================================================================================
+                      VALID VALUES REFERENCE
+================================================================================
+
+ATTENDANCE STATUS (must match exactly):
+- "present"
+- "absent"
+- "late"
+- "excused"
+
+MARK RANGE (inclusive):
+- 0 to 100
+
+DATE FORMAT:
+- "2026-04-11" (YYYY-MM-DD)
+
+PAGINATION:
+- ?limit=10&page=1
+- limit: 1-100 (default: 50)
+- page: 1+ (default: 1)
+
+================================================================================
+                    RECOMMENDED TEST SEQUENCE
+================================================================================
+
+ATTENDANCE FLOW:
+1. POST Create (present) → Save ID from response
+2. GET by ID → Verify created data
+3. GET by date → Check in date list
+4. GET for intern → Verify pagination working
+5. GET stats → Check breakdown by status
+6. PUT Update status → Change to "late"
+7. PUT Update notes → Add text
+8. DELETE → Remove record
+
+EVALUATION FLOW:
+1. POST Create Week 1 → Save ID
+2. POST Create Week 2 → Different week
+3. POST Create Week 3 → Different week
+4. GET all → Verify pagination
+5. GET by ID → Check specific evaluation
+6. GET search by name → Find intern by name
+7. GET for intern → All three evaluations
+8. GET stats → Average, highest, lowest marks
+9. PUT Update mark → Change score
+10. DELETE → Remove one evaluation
+
+================================================================================
+                        IMMUTABLE FIELDS
+================================================================================
+
+ATTENDANCE (Cannot be changed via UPDATE):
+- intern_id (who was marked)
+- mentor_id (which mentor assigned)
+- attendance_date (the date)
+- marked_by_mentor_id (audit trail - who marked it)
+
+If you need to change these: DELETE and CREATE new record
+
+EVALUATION (Cannot be changed via UPDATE):
+- intern_id (who was evaluated)
+- mentor_id (who did the evaluating)
+
+CAN UPDATE: weekLabel, overallMark, feedback
+
+================================================================================
+                    BASE URL & VARIABLES
+================================================================================
+
+Base URL: http://localhost:3000/api/v1
+
+Variables to replace in all requests:
+- INTERN_ID: 60d5ec49c1234567890abcde (replace with real intern's ID)
+- MENTOR_ID: 60d5ec49c1234567890abcdf (replace with real mentor's ID)
+- ATTENDANCE_ID: 60d5ec49c1234567890abce0 (from create response)
+- EVALUATION_ID: 60d5ec49c1234567890abce1 (from create response)
+
+How to get real IDs:
+- Create a student and copy their _id
+- Create a mentor and copy their _id
+- Use those in all requests
+
+================================================================================
+                        HOW TO USE THIS FILE
+================================================================================
+
+Option 1: Postman
+- Copy each request section
+- Paste into Postman
+- Update IDs
+- Click Send
+
+Option 2: cURL in Terminal
+- Copy the curl command format
+- Replace IDs
+- Paste in terminal
+
+Option 3: VS Code REST Client
+- Create .http file
+- Copy requests
+- Click "Send Request"
+
+Option 4: Insomnia/Thunder Client
+- Import the format
+- Update variables
+- Test each endpoint
+
+================================================================================
+End of File
+================================================================================
