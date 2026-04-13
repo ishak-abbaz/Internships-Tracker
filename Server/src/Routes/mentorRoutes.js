@@ -23,10 +23,10 @@ router.get('/attendance/date/:attendanceDate', getAttendanceByDate);
 
 // Get attendance for specific intern
 router.get('/attendance/intern/:internId', getInternAttendances);
-
+console.log("before get attendance for specific intern route");
 // Get attendance statistics for an intern
 router.get('/attendance/stats/:internId', getAttendanceStats);
-
+console.log("after get attendance for specific intern route");
 // Update attendance record
 router.put('/attendance/:attendanceId', updateAttendance);
 

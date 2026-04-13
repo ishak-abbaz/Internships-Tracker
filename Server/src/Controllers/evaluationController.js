@@ -189,7 +189,6 @@ exports.getEvaluationStats = async (req, res) => {
     const { internId } = req.params;
 
     const stats = await evaluationService.getEvaluationStats(internId);
-
     res.status(200).json({
       msg: 'Evaluation statistics retrieved successfully',
       data: stats

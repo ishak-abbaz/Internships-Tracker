@@ -35,11 +35,14 @@ app.use('/api/v1/admin', adminRoutes);
 
 // Mentor Routes :
 const mentorRoutes = require('./Routes/mentorRoutes');
-app.use('/api/v1/mentor', mentorRoutes);
+app.use('/api/v1/mentors', mentorRoutes);
 
 // Evaluation Routes :
 const evaluationRoutes = require('./Routes/evaluationRoutes');
-app.use('/api/v1/evaluation', evaluationRoutes);
+app.use('/api/v1/evaluations', evaluationRoutes);
+
+// const adminDepartementRoutes = require('./Routes/AdminDepartementRoutes');
+// app.use('/api/v1/admin/departments', adminDepartementRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 3000; // Uses .env value like PORT=5000 if it exists Otherwise defaults to 3000

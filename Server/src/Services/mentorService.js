@@ -310,7 +310,7 @@ exports.getAttendanceStats = async (internId) => {
     validateObjectId(internId, 'Intern');
 
     const stats = await Attendance.aggregate([
-      { $match: { intern_id: mongoose.Types.ObjectId(internId) } },
+      { $match: { intern_id: new mongoose.Types.ObjectId(internId) } },
       {
         $group: {
           _id: '$status',
