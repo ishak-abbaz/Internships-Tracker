@@ -21,10 +21,16 @@ const internAssignmentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  subject: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 255
+  },
   status: {
     type: String,
     enum: ['pending', 'active', 'completed'],
-    default: 'active'
+    default: 'pending'
   },
   start_date: {
     type: Date,

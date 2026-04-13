@@ -3,10 +3,13 @@
 ================================================================================
 
 IMPORTANT: Replace these IDs in all requests before testing:
-- internId: 60d5ec49c1234567890abcde
-- mentorId: 60d5ec49c1234567890abcdf
+- internId/studentId: 69db67c510beece3a928a4c3
+- mentorId: 69da4ef18c7722705d3fa15e
+- departmentId: 69da2a9c3d67a977f330f31a
 - attendanceId: 60d5ec49c1234567890abce0
 - evaluationId: 60d5ec49c1234567890abce1
+
+NOTE: Get your Admin ID from database or use an admin account token
 
 Get real IDs from your database or copy from response of create requests.
 
@@ -162,7 +165,7 @@ Expected Response (200):
 }
 
 ================================================================================
-                        EVALUATION ENDPOINTS
+                      EVALUATION ENDPOINTS
 ================================================================================
 
 1. CREATE EVALUATION (WEEK 1)
@@ -194,6 +197,295 @@ Expected Response (201):
     "updated_at": "2026-04-11T10:30:00.000Z"
   }
 }
+
+================================================================================
+                    INTERNSHIP ASSIGNMENT ENDPOINTS
+================================================================================
+
+1. CREATE INTERNSHIP ASSIGNMENT (ASSIGN INTERN TO MENTOR & DEPARTMENT)
+================================================================================
+POST http://localhost:3000/api/v1/mentors/internships
+Content-Type: application/json
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+Body (raw):
+{
+  "intern_id": "69db67c510beece3a928a4c3",
+  "mentor_id": "69da4ef18c7722705d3fa15e",
+  "department_id": "69da2a9c3d67a977f330f31a",
+  "subject": "Backend API Development",
+  "start_date": "2026-04-13",
+  "end_date": "2026-06-13",
+  "status": "active"
+}
+
+IMPORTANT - Status Handling:
+- If you DON'T provide 'status', it will be AUTO-CALCULATED based on dates:
+  * If start_date is in the FUTURE → status: "pending"
+  * If start_date is TODAY or PAST, and end_date is in FUTURE → status: "active"
+  * If end_date is in the PAST → status: "completed"
+  
+- If you DO provide 'status' (optional), it will use the value you set
+- Valid status values: "pending", "active", "completed"
+
+Example without status (auto-calculated):
+{
+  "intern_id": "69db67c510beece3a928a4c3",
+  "mentor_id": "69da4ef18c7722705d3fa15e",
+  "department_id": "69da2a9c3d67a977f330f31a",
+  "subject": "Backend API Development",
+  "start_date": "2026-06-01",
+  "end_date": "2026-08-01"
+}
+Result: status will be "pending" (start_date is in future)
+
+Expected Response (201):
+{
+  "msg": "Internship assignment created successfully",
+  "assignment": {
+    "_id": "newAssignmentId",
+    "intern_id": {
+      "_id": "69db67c510beece3a928a4c3",
+      "full_name": "Ahmed Ali",
+      "email": "ahmed@university.com",
+      "university_id": "2023001"
+    },
+    "mentor_id": {
+      "_id": "69da4ef18c7722705d3fa15e",
+      "full_name": "Dr. Sara",
+      "email": "sara@company.com",
+      "specialization": "Backend Development"
+    },
+    "department_id": {
+      "_id": "69da2a9c3d67a977f330f31a",
+      "name": "Development",
+      "code": "DEV"
+    },
+    "subject": "Backend API Development",
+    "status": "active",
+    "start_date": "2026-04-13T00:00:00.000Z",
+    "end_date": "2026-06-13T00:00:00.000Z",
+    "assigned_by_admin_id": {
+      "_id": "adminId",
+      "full_name": "Admin User",
+      "email": "admin@company.com"
+    },
+    "created_at": "2026-04-13T10:30:00.000Z",
+    "updated_at": "2026-04-13T10:30:00.000Z"
+  }
+}
+
+================================================================================
+
+2. GET ALL INTERNSHIP ASSIGNMENTS (ADMIN ONLY)
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+No body required
+
+Optional Query Parameters:
+- status: active, pending, completed
+- mentor_id: 69da4ef18c7722705d3fa15e
+- department_id: 69da2a9c3d67a977f330f31a
+
+Example with filters:
+GET http://localhost:3000/api/v1/mentors/internships?status=active&mentor_id=69da4ef18c7722705d3fa15e
+
+Expected Response (200):
+{
+  "msg": "Internship assignments fetched successfully",
+  "count": 2,
+  "assignments": [ ... ]
+}
+
+================================================================================
+
+3. GET ALL ACTIVE INTERNSHIP ASSIGNMENTS (ADMIN ONLY)
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships/active/
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+No body required
+
+Expected Response (200):
+{
+  "msg": "Active internship assignments fetched successfully",
+  "count": 3,
+  "assignments": [ ... ]
+}
+
+================================================================================
+
+4. GET INTERNSHIP ASSIGNMENT BY ID
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships/ASSIGNMENT_ID
+Authorization: Bearer YOUR_TOKEN
+
+Replace ASSIGNMENT_ID with the ID returned from create request
+
+Expected Response (200):
+{
+  "msg": "Internship assignment fetched successfully",
+  "assignment": { ... }
+}
+
+================================================================================
+
+5. GET ALL ASSIGNMENTS FOR A SPECIFIC INTERN
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships/intern/69db67c510beece3a928a4c3/assignments
+Authorization: Bearer YOUR_TOKEN
+
+Expected Response (200):
+{
+  "msg": "Intern assignments fetched successfully",
+  "count": 2,
+  "assignments": [ ... ]
+}
+
+================================================================================
+
+6. GET ACTIVE ASSIGNMENT FOR A SPECIFIC INTERN
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships/intern/69db67c510beece3a928a4c3/active
+Authorization: Bearer YOUR_TOKEN
+
+Expected Response (200):
+{
+  "msg": "Active internship assignment fetched successfully",
+  "assignment": { ... }
+}
+
+================================================================================
+
+7. GET ALL ASSIGNMENTS FOR A SPECIFIC MENTOR
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships/mentor/69da4ef18c7722705d3fa15e/assignments
+Authorization: Bearer YOUR_MENTOR_OR_ADMIN_TOKEN
+
+Expected Response (200):
+{
+  "msg": "Mentor assignments fetched successfully",
+  "count": 5,
+  "assignments": [ ... ]
+}
+
+================================================================================
+
+8. GET MENTOR'S OWN INTERNS (SHORTCUT - MENTOR ONLY)
+================================================================================
+GET http://localhost:3000/api/v1/mentors/internships/my-interns
+Authorization: Bearer YOUR_MENTOR_TOKEN
+
+No body required - Uses logged-in mentor's ID automatically
+
+Expected Response (200):
+{
+  "msg": "Mentor assignments fetched successfully",
+  "count": 3,
+  "assignments": [ ... ]
+}
+
+================================================================================
+
+9. UPDATE INTERNSHIP ASSIGNMENT (ADMIN ONLY)
+================================================================================
+PATCH http://localhost:3000/api/v1/mentors/internships/update/ASSIGNMENT_ID
+Content-Type: application/json
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+Body (raw - provide at least one field):
+{
+  "subject": "Frontend Development",
+  "status": "completed",
+  "start_date": "2026-04-20",
+  "end_date": "2026-06-20"
+}
+
+Replace ASSIGNMENT_ID with the assignment ID
+
+Updateable fields:
+- mentor_id: Change mentoring assignment
+- department_id: Change department assignment
+- subject: Update the assignment subject
+- status: pending, active, completed
+- start_date: Update start date
+- end_date: Update end date
+
+AUTO-STATUS RECALCULATION:
+- If you update dates WITHOUT providing a status → status will be auto-updated based on new dates
+- If you update dates AND provide a status → your status value will be used
+- This prevents status from becoming stale when dates change
+
+Example (status will auto-recalculate):
+{
+  "start_date": "2026-07-01",
+  "end_date": "2026-08-01"
+}
+Result: If today is April 13, 2026, status becomes "pending" (start is in future)
+
+Expected Response (200):
+{
+  "msg": "Internship assignment updated successfully",
+  "assignment": { ... }
+}
+
+================================================================================
+
+10. DELETE INTERNSHIP ASSIGNMENT (ADMIN ONLY)
+================================================================================
+DELETE http://localhost:3000/api/v1/mentors/internships/ASSIGNMENT_ID
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+Replace ASSIGNMENT_ID with the assignment ID
+
+No body required
+
+Expected Response (200):
+{
+  "msg": "Internship assignment deleted successfully",
+  "assignment": {
+    "_id": "ASSIGNMENT_ID",
+    "intern_id": "69db67c510beece3a928a4c3",
+    "mentor_id": "69da4ef18c7722705d3fa15e",
+    "department_id": "69da2a9c3d67a977f330f31a",
+    ...
+  }
+}
+
+================================================================================
+                      TEST WORKFLOW (RECOMMENDED ORDER)
+================================================================================
+
+1. First, create an internship assignment (Step 1)
+   - Copy the returned assignment ID
+
+2. Get all active internships (Step 3)
+   - Verify your new assignment appears
+
+3. Get the specific assignment by ID (Step 4)
+   - Use the ID from step 1
+
+4. Get assignments for the intern (Step 5)
+   - Use intern_id: 69db67c510beece3a928a4c3
+
+5. Get active assignment for intern (Step 6)
+   - Use same intern_id
+
+6. Get assignments for the mentor (Step 7)
+   - Use mentor_id: 69da4ef18c7722705d3fa15e
+
+7. Update the assignment (Step 9)
+   - Change status to "completed"
+   - Use ID from step 1
+
+8. Verify update by getting the assignment again (Step 4)
+
+9. Delete the assignment (Step 10)
+   - Use ID from step 1
+
+================================================================================
 
 ================================================================================
 

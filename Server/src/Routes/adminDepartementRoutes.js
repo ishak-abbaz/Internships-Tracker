@@ -7,7 +7,7 @@ const {
 	getDepartmentById,
 	updateDepartment,
 	deleteDepartment
-} = require('../Controllers/AdminDepartementController');
+} = require('../Controllers/adminDepartementController');
 
 const { protect, restrictTo } = require('../Middleware/auth');
 
