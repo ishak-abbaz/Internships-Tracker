@@ -41,8 +41,9 @@ app.use('/api/v1/mentors', mentorRoutes);
 const evaluationRoutes = require('./Routes/evaluationRoutes');
 app.use('/api/v1/evaluations', evaluationRoutes);
 
-// const adminDepartementRoutes = require('./Routes/AdminDepartementRoutes');
-// app.use('/api/v1/admin/departments', adminDepartementRoutes);
+// Admin Department Routes :
+const AdminDepartementRoutes = require('./Routes/AdminDepartementRoutes');
+app.use('/api/v1/admin/departments', AdminDepartementRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 3000; // Uses .env value like PORT=5000 if it exists Otherwise defaults to 3000
