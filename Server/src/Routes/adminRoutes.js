@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { 
-	createUser, 
+
+const {createUser, 
 	listInterns, 
 	listPendingInterns, 
 	getInternById, 
@@ -12,7 +12,11 @@ const {
 	listMentors,
 	getMentor,
 	updateMentor,
-	deleteMentor
+	deleteMentor,
+	listPendingRegistrations,
+	getRegistrationById,
+	approveRegistration,
+	declineRegistration
 } = require('../Controllers/adminController');
 
 const { protect, restrictTo } = require('../Middleware/auth');
@@ -33,5 +37,11 @@ router.get('/mentors', listMentors);
 router.get('/mentors/:mentorId', getMentor);
 router.patch('/mentors/:mentorId', updateMentor);
 router.delete('/mentors/:mentorId', deleteMentor);
+
+// Registration review CRUD (Admin only)
+router.get('/registrations/pending', listPendingRegistrations);
+router.get('/registrations/:id', getRegistrationById);
+router.patch('/registrations/:id/approve', approveRegistration);
+router.patch('/registrations/:id/decline', declineRegistration);
 
 module.exports = router;

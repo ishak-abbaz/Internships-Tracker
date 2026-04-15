@@ -1,4 +1,4 @@
-const mentorModuleService = require('../Services/mentorModuleService');
+const mentorModuleService = require('../Services/trainingModuleService');
 
 // ==================== TRAINING MODULE CONTROLLERS ====================
 
