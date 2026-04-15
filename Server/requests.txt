@@ -488,6 +488,286 @@ Expected Response (200):
 ================================================================================
 
 ================================================================================
+                    TRAINING MODULE ENDPOINTS
+================================================================================
+
+1. CREATE TRAINING MODULE (MENTOR ONLY)
+================================================================================
+POST http://localhost:3000/api/v1/mentors/training-modules
+Content-Type: application/json
+Authorization: Bearer YOUR_MENTOR_TOKEN
+
+Body (raw):
+{
+  "title": "Node.js REST API Development",
+  "description": "Learn how to build scalable REST APIs using Node.js and Express. This module covers best practices for API design, authentication, and error handling.",
+  "url": "https://example.com/training/nodejs-rest-api",
+  "departmentCode": "DEV"
+}
+
+Expected Response (201):
+{
+  "msg": "Training module created successfully",
+  "data": {
+    "_id": "60d5ec49c1234567890abcf0",
+    "title": "Node.js REST API Development",
+    "description": "Learn how to build scalable REST APIs using Node.js and Express...",
+    "url": "https://example.com/training/nodejs-rest-api",
+    "department_code": "DEV",
+    "created_by_mentor_id": "60d5ec49c1234567890abcdf",
+    "is_active": true,
+    "created_at": "2026-04-14T10:30:00.000Z",
+    "updated_at": "2026-04-14T10:30:00.000Z"
+  }
+}
+
+Note: 
+- Only Mentors can create training modules
+- Department code will be automatically converted to uppercase
+- Each title must be unique per department
+
+================================================================================
+
+2. GET ALL TRAINING MODULES (ADMIN ONLY)
+================================================================================
+GET http://localhost:3000/api/v1/mentors/training-modules
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+Query Parameters (optional):
+- activeOnly: true or false (default: false)
+
+Example with filters:
+GET http://localhost:3000/api/v1/mentors/training-modules?activeOnly=true
+
+Expected Response (200):
+{
+  "msg": "Training modules retrieved successfully",
+  "count": 5,
+  "data": [
+    {
+      "_id": "60d5ec49c1234567890abcf0",
+      "title": "Node.js REST API Development",
+      "description": "Learn how to build scalable REST APIs...",
+      "url": "https://example.com/training/nodejs-rest-api",
+      "department_code": "DEV",
+      "created_by_mentor_id": "60d5ec49c1234567890abcdf",
+      "is_active": true,
+      "created_at": "2026-04-14T10:30:00.000Z",
+      "updated_at": "2026-04-14T10:30:00.000Z"
+    },
+    ...
+  ]
+}
+
+================================================================================
+
+3. GET TRAINING MODULE BY ID
+================================================================================
+GET http://localhost:3000/api/v1/mentors/training-modules/60d5ec49c1234567890abcf0
+
+No body required
+
+Expected Response (200):
+{
+  "msg": "Training module retrieved successfully",
+  "data": {
+    "_id": "60d5ec49c1234567890abcf0",
+    "title": "Node.js REST API Development",
+    "description": "Learn how to build scalable REST APIs using Node.js and Express...",
+    "url": "https://example.com/training/nodejs-rest-api",
+    "department_code": "DEV",
+    "created_by_mentor_id": {
+      "_id": "60d5ec49c1234567890abcdf",
+      "full_name": "Dr. Sara",
+      "email": "sara@company.com"
+    },
+    "is_active": true,
+    "created_at": "2026-04-14T10:30:00.000Z",
+    "updated_at": "2026-04-14T10:30:00.000Z"
+  }
+}
+
+================================================================================
+
+4. GET ALL TRAINING MODULES BY DEPARTMENT
+================================================================================
+GET http://localhost:3000/api/v1/mentors/training-modules/department/DEV
+
+Query Parameters (optional):
+- activeOnly: true or false (default: true)
+
+Example with filters:
+GET http://localhost:3000/api/v1/mentors/training-modules/department/DEV?activeOnly=true
+
+Expected Response (200):
+{
+  "msg": "Training modules retrieved successfully",
+  "count": 3,
+  "data": [
+    {
+      "_id": "60d5ec49c1234567890abcf0",
+      "title": "Node.js REST API Development",
+      "description": "...",
+      "url": "https://example.com/training/nodejs-rest-api",
+      "department_code": "DEV",
+      "created_by_mentor_id": "60d5ec49c1234567890abcdf",
+      "is_active": true,
+      "created_at": "2026-04-14T10:30:00.000Z",
+      "updated_at": "2026-04-14T10:30:00.000Z"
+    },
+    ...
+  ]
+}
+
+Note: By default, only active modules are returned (activeOnly=true)
+
+================================================================================
+
+5. GET MENTOR'S OWN TRAINING MODULES (MENTOR ONLY)
+================================================================================
+GET http://localhost:3000/api/v1/mentors/training-modules/my-modules
+Authorization: Bearer YOUR_MENTOR_TOKEN
+
+Query Parameters (optional):
+- activeOnly: true or false (default: false)
+
+Example with filters:
+GET http://localhost:3000/api/v1/mentors/training-modules/my-modules?activeOnly=true
+
+Expected Response (200):
+{
+  "msg": "Your training modules retrieved successfully",
+  "count": 2,
+  "data": [
+    {
+      "_id": "60d5ec49c1234567890abcf0",
+      "title": "Node.js REST API Development",
+      "description": "...",
+      "url": "https://example.com/training/nodejs-rest-api",
+      "department_code": "DEV",
+      "created_by_mentor_id": "60d5ec49c1234567890abcdf",
+      "is_active": true,
+      "created_at": "2026-04-14T10:30:00.000Z",
+      "updated_at": "2026-04-14T10:30:00.000Z"
+    },
+    ...
+  ]
+}
+
+Note: Returns modules created by the authenticated mentor only
+
+================================================================================
+
+6. UPDATE TRAINING MODULE (MENTOR ONLY)
+================================================================================
+Patch http://localhost:3000/api/v1/mentors/training-modules/60d5ec49c1234567890abcf0
+Content-Type: application/json
+Authorization: Bearer YOUR_MENTOR_TOKEN
+
+Body (raw - provide at least one field):
+{
+  "title": "Advanced Node.js REST API Development",
+  "description": "Updated description with more advanced topics...",
+  "url": "https://example.com/training/nodejs-advanced-api",
+  "is_active": false
+}
+
+Updateable fields:
+- title: New module title
+- description: New description
+- url: New training URL
+- is_active: Enable/disable the module (true/false)
+
+Expected Response (200):
+{
+  "msg": "Training module updated successfully",
+  "data": {
+    "_id": "60d5ec49c1234567890abcf0",
+    "title": "Advanced Node.js REST API Development",
+    "description": "Updated description with more advanced topics...",
+    "url": "https://example.com/training/nodejs-advanced-api",
+    "department_code": "DEV",
+    "created_by_mentor_id": "60d5ec49c1234567890abcdf",
+    "is_active": false,
+    "created_at": "2026-04-14T10:30:00.000Z",
+    "updated_at": "2026-04-14T11:00:00.000Z"
+  }
+}
+
+Note: Only the mentor who created the module can update it
+
+================================================================================
+
+7. DELETE TRAINING MODULE (MENTOR ONLY)
+================================================================================
+DELETE http://localhost:3000/api/v1/mentors/training-modules/60d5ec49c1234567890abcf0
+Authorization: Bearer YOUR_MENTOR_TOKEN
+
+No body required
+
+Expected Response (200):
+{
+  "msg": "Training module deleted successfully",
+  "data": {
+    "_id": "60d5ec49c1234567890abcf0",
+    "title": "Node.js REST API Development",
+    "description": "...",
+    "url": "https://example.com/training/nodejs-rest-api",
+    "department_code": "DEV",
+    "created_by_mentor_id": "60d5ec49c1234567890abcdf",
+    "is_active": true,
+    "created_at": "2026-04-14T10:30:00.000Z",
+    "updated_at": "2026-04-14T11:00:00.000Z"
+  }
+}
+
+Note: Only the mentor who created the module can delete it
+
+================================================================================
+                  TRAINING MODULE TEST WORKFLOW (RECOMMENDED ORDER)
+================================================================================
+
+PREREQUISITE SETUP:
+- Have a valid mentor account and token
+- Have a valid admin account and token
+
+TEST SEQUENCE:
+
+1. Create a training module (Step 1)
+   - Use mentor token
+   - Copy the returned module ID
+
+2. Get the module by ID (Step 3)
+   - Verify created data matches
+
+3. Get all modules by department (Step 4)
+   - Filter by the department code used
+   - Verify your module appears
+
+4. Get mentor's own modules (Step 5)
+   - Use mentor token
+   - Verify your module appears in the list
+
+5. Update the module (Step 6)
+   - Change title, description, or set is_active to false
+   - Verify changes were applied
+
+6. Get the module again (Step 3)
+   - Verify the updates persisted
+
+7. Get all modules as admin (Step 2)
+   - Use admin token
+   - Verify pagination and filters work
+
+8. Delete the module (Step 7)
+   - Use the module ID from step 1
+   - Verify deletion succeeded
+
+9. Verify deletion (Step 3)
+   - Try to get the deleted module by ID
+   - Should return 404 error
+
+================================================================================
 
 4. GET ALL EVALUATIONS (PAGINATED)
 ================================================================================
