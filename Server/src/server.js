@@ -67,7 +67,15 @@ app.use('/api/v1/admin/departments', adminDepartementRoutes);
 
 // Internships Routes :
 const internshipRoutes = require('./Routes/internshipRoutes');
-app.use('/api/v1/mentors/internships', internshipRoutes);
+app.use('/api/v1/admin/internships', internshipRoutes);
+
+// Admin office routes (policy + schedules uploads)
+const adminOfficeRoutes = require('./Routes/AdminOfficeRoutes');
+app.use('/api/v1/admin/office', adminOfficeRoutes);
+
+// Intern routes (student self-service views)
+const internRoutes = require('./Routes/internRoutes');
+app.use('/api/v1/intern', internRoutes);
 
 // Start Server
 

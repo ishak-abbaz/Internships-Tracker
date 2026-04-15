@@ -1,45 +1,46 @@
-// const mongoose = require('mongoose');
+const User = require('../Models/userModel');
+const Department = require('../Models/departmentModel');
 const {
   createInternshipAssignment,
   getAllInternshipAssignments,
-  getAllActiveInternships,
   getInternshipAssignmentById,
-  getAssignmentsByInternId,
-  getAssignmentsByMentorId,
   updateInternshipAssignment,
-  deleteInternshipAssignment,
-  getActiveAssignmentForIntern
+  deleteInternshipAssignment
 } = require('../Services/internshipService');
 
 // Create new internship assignment (Admin only)
 exports.createInternship = async (req, res) => {
   try {
+    const { intern_id } = req.params;
     const {
-      intern_id,
-      mentor_id,
-      department_id,
-      subject,
-      start_date,
-      end_date,
-      status
+      mentor_name,
+      department_code
     } = req.body;
 
     // Validate required fields
-    if (!intern_id || !mentor_id || !department_id || !subject) {
+    if (!intern_id || !mentor_name || !department_code) {
       return res.status(400).json({
-        msg: 'Please provide all required fields: intern_id, mentor_id, department_id, and subject'
+        msg: 'Please provide all required fields: intern_id (in URL), mentor_name, and department_code'
       });
+    }
+
+    // Find Department by Code
+    const department = await Department.findOne({ code: department_code.toUpperCase() });
+    if (!department) {
+      return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
+    }
+
+    // Find Mentor by full name
+    const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
+    if (!mentor) {
+      return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
     }
 
     const assignment = await createInternshipAssignment({
       intern_id,
-      mentor_id,
-      department_id,
-      subject,
-      assigned_by_admin_id: req.user.id,
-      start_date,
-      end_date,
-      status
+      mentor_id: mentor._id,
+      department_id: department._id,
+      assigned_by_admin_id: req.user.id
     });
 
     res.status(201).json({
@@ -60,9 +61,6 @@ exports.getAllInternships = async (req, res) => {
     const filters = {};
 
     // Optional query filters
-    if (req.query.status) {
-      filters.status = req.query.status;
-    }
     if (req.query.mentor_id) {
       filters.mentor_id = req.query.mentor_id;
     }
@@ -145,46 +143,36 @@ exports.getMentorAssignments = async (req, res) => {
   }
 };
 
-// Get active assignment for a specific intern
-exports.getInternActiveAssignment = async (req, res) => {
-  try {
-    const { intern_id } = req.params;
-
-    const assignment = await getActiveAssignmentForIntern(intern_id);
-
-    res.status(200).json({
-      msg: 'Active internship assignment fetched successfully',
-      assignment
-    });
-  } catch (err) {
-    res.status(err.status || 500).json({
-      msg: err.message || 'Failed to fetch active internship assignment',
-      error: err.message
-    });
-  }
-};
-
 // Update internship assignment (Admin only)
 exports.updateInternship = async (req, res) => {
   try {
     const { id } = req.params;
-    const { mentor_id, department_id, subject, status, start_date, end_date } = req.body;
+    const { mentor_name, department_code } = req.body;
 
     // Validate that at least one field is provided
-    if (!mentor_id && !department_id && !subject && !status && start_date === undefined && end_date === undefined) {
+    if (!mentor_name && !department_code) {
       return res.status(400).json({
-        msg: 'Provide at least one field to update (mentor_id, department_id, subject, status, start_date, or end_date)'
+        msg: 'Provide at least one field to update (mentor_name or department_code)'
       });
     }
 
     const updateData = {};
-    if (mentor_id) updateData.mentor_id = mentor_id;
-    if (department_id) updateData.department_id = department_id;
-    if (subject) updateData.subject = subject;
-    if (status) updateData.status = status;
-    if (start_date !== undefined) updateData.start_date = start_date;
-    if (end_date !== undefined) updateData.end_date = end_date;
-
+    if (mentor_name) {
+      const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
+      if (!mentor) {
+        return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
+      }
+      updateData.mentor_id = mentor._id;
+    }
+    
+    if (department_code) {
+      const department = await Department.findOne({ code: department_code.toUpperCase() });
+      if (!department) {
+        return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
+      }
+      updateData.department_id = department._id;
+    }
+    
     const assignment = await updateInternshipAssignment(id, updateData);
 
     res.status(200).json({
@@ -218,20 +206,3 @@ exports.deleteInternship = async (req, res) => {
   }
 };
 
-// Get all active internship assignments (Admin only)
-exports.getAllActiveInternships = async (req, res) => {
-  try {
-    const assignments = await getAllActiveInternships();
-
-    res.status(200).json({
-      msg: 'Active internship assignments fetched successfully',
-      count: assignments.length,
-      assignments
-    });
-  } catch (err) {
-    res.status(err.status || 500).json({
-      msg: err.message || 'Failed to fetch active internship assignments',
-      error: err.message
-    });
-  }
-};

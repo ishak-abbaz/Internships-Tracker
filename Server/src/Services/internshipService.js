@@ -15,40 +15,13 @@ const validateObjectId = (id, entityName = 'ID') => {
   }
 };
 
-// Auto-determine assignment status based on dates
-const determineStatus = (startDate, endDate) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
-  
-  if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(0, 0, 0, 0);
-    if (end < today) return 'completed';
-  }
-  
-  if (start > today) return 'pending';
-  return 'active';
-};
-
 // Create new internship assignment
 exports.createInternshipAssignment = async ({
   intern_id,
   mentor_id,
   department_id,
-  subject,
-  assigned_by_admin_id,
-  start_date,
-  end_date,
-  status
+  assigned_by_admin_id
 }) => {
-  // Validate subject
-  if (!subject || !subject.trim()) {
-    throw buildError('Subject is required and cannot be empty', 400);
-  }
-
   // Validate all IDs
   validateObjectId(intern_id, 'Intern ID');
   validateObjectId(mentor_id, 'Mentor ID');
@@ -90,23 +63,10 @@ exports.createInternshipAssignment = async ({
 
   // Check if intern already has an active assignment
   const existingAssignment = await InternAssignment.findOne({
-    intern_id,
-    status: 'active'
+    intern_id
   });
   if (existingAssignment) {
     throw buildError('Intern already has an active assignment', 400);
-  }
-
-  // Determine status
-  let finalStatus = status;
-  if (!finalStatus) {
-    // If not provided by admin, calculate based on dates
-    finalStatus = determineStatus(start_date || new Date(), end_date);
-  } else {
-    // Validate if provided
-    if (!['pending', 'active', 'completed'].includes(finalStatus)) {
-      throw buildError('Invalid status. Must be pending, active, or completed', 400);
-    }
   }
 
   // Create assignment
@@ -114,11 +74,7 @@ exports.createInternshipAssignment = async ({
     intern_id,
     mentor_id,
     department_id,
-    subject,
-    assigned_by_admin_id,
-    start_date: start_date || new Date(),
-    end_date: end_date || null,
-    status: finalStatus
+    assigned_by_admin_id
   });
 
   // Populate references
@@ -137,9 +93,6 @@ exports.getAllInternshipAssignments = async (filters = {}) => {
   const query = {};
 
   // Optional filters
-  if (filters.status) {
-    query.status = filters.status;
-  }
   if (filters.mentor_id) {
     validateObjectId(filters.mentor_id, 'Mentor ID');
     query.mentor_id = filters.mentor_id;
@@ -230,37 +183,6 @@ exports.updateInternshipAssignment = async (id, updateData) => {
     assignment.department_id = updateData.department_id;
   }
 
-  if (updateData.status) {
-    if (!['pending', 'active', 'completed'].includes(updateData.status)) {
-      throw buildError('Invalid status. Must be pending, active, or completed', 400);
-    }
-    assignment.status = updateData.status;
-  }
-
-  if (updateData.subject !== undefined) {
-    if (!updateData.subject || !updateData.subject.trim()) {
-      throw buildError('Subject cannot be empty', 400);
-    }
-    assignment.subject = updateData.subject;
-  }
-
-  // Handle date updates and recalculate status if dates change
-  const startDateChanged = updateData.start_date !== undefined;
-  const endDateChanged = updateData.end_date !== undefined;
-
-  if (startDateChanged) {
-    assignment.start_date = updateData.start_date;
-  }
-
-  if (endDateChanged) {
-    assignment.end_date = updateData.end_date;
-  }
-
-  // If dates changed but status not explicitly set, recalculate status
-  if ((startDateChanged || endDateChanged) && !updateData.status) {
-    assignment.status = determineStatus(assignment.start_date, assignment.end_date);
-  }
-
   await assignment.save();
 
   // Populate and return
@@ -284,35 +206,4 @@ exports.deleteInternshipAssignment = async (id) => {
   }
 
   return assignment;
-};
-
-// Get active assignments for an intern
-exports.getActiveAssignmentForIntern = async (intern_id) => {
-  validateObjectId(intern_id, 'Intern ID');
-
-  const assignment = await InternAssignment.findOne({
-    intern_id,
-    status: 'active'
-  })
-    .populate('mentor_id', 'full_name email specialization')
-    .populate('department_id', 'name code')
-    .populate('assigned_by_admin_id', 'full_name email');
-
-  if (!assignment) {
-    throw buildError('No active assignment found for this intern', 404);
-  }
-
-  return assignment;
-};
-
-// Get all active internship assignments (Admin only)
-exports.getAllActiveInternships = async () => {
-  const assignments = await InternAssignment.find({ status: 'active' })
-    .populate('intern_id', 'full_name email university_id')
-    .populate('mentor_id', 'full_name email specialization')
-    .populate('department_id', 'name code')
-    .populate('assigned_by_admin_id', 'full_name email')
-    .sort({ created_at: -1 });
-
-  return assignments;
 };
