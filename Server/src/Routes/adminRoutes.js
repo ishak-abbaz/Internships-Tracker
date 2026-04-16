@@ -15,8 +15,6 @@ const {createUser,
 	deleteMentor,
 	listPendingRegistrations,
 	getRegistrationById,
-	approveRegistration,
-	declineRegistration
 } = require('../Controllers/adminController');
 
 const { protect, restrictTo } = require('../Middleware/auth');
@@ -41,7 +39,5 @@ router.delete('/mentors/:mentorId', deleteMentor);
 // Registration review CRUD (Admin only)
 router.get('/registrations/pending', listPendingRegistrations);
 router.get('/registrations/:id', getRegistrationById);
-router.patch('/registrations/:id/approve', approveRegistration);
-router.patch('/registrations/:id/decline', declineRegistration);
 
 module.exports = router;
