@@ -1,6 +1,8 @@
 const User = require('../Models/userModel');
 const Intern = require('../Models/internModel');
 const mongoose = require('mongoose');
+const adminService = require('../Services/adminService');
+
 
 const generateNextWorkId = async () => {
   const START_WORK_ID = 100001;
