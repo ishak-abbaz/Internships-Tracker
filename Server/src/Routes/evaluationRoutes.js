@@ -3,7 +3,6 @@ const router = express.Router();
 const {
   createEvaluation,
   getEvaluationById,
-  getEvaluationByName,
   getInternEvaluations,
   getMentorEvaluations,
   updateEvaluation,
@@ -36,7 +35,7 @@ router.get('/mentor/:mentorId', getMentorEvaluations);
 router.get('/stats/:internId', getEvaluationStats);
 
 // Update evaluation record
-router.put('/:evaluationId', updateEvaluation);
+router.patch('/:evaluationId', updateEvaluation);
 
 // Delete evaluation record
 router.delete('/:evaluationId', deleteEvaluation);
