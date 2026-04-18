@@ -1,2594 +1,1107 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:math' as math;
-import 'dart:ui';
-
 import 'theme.dart';
-import 'admin_dashboard.dart';
-import 'mentor_dashboard.dart';
-import 'intern_dashboard.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Entry point
+//  Shared Data Store  (single source of truth)
 // ─────────────────────────────────────────────────────────────────────────────
+class AppData {
+  static final List<Map<String, dynamic>> departments = [
+    {'id':'d1','name':'Computer Science','icon':Icons.computer_rounded,'specialties':[
+      {'id':'s1','name':'Artificial Intelligence','years':[
+        {'label':'Licence 1','groups':['G01','G02']},
+        {'label':'Licence 2','groups':['G01','G02']},
+        {'label':'Licence 3','groups':['G01','G02','G03']},
+        {'label':'Master 1','groups':['G01','G02']},
+        {'label':'Master 2','groups':['G01']},
+      ]},
+      {'id':'s2','name':'Software Engineering','years':[
+        {'label':'Licence 1','groups':['G01','G02']},
+        {'label':'Licence 3','groups':['G01','G02']},
+        {'label':'Master 1','groups':['G01']},
+        {'label':'Master 2','groups':['G01']},
+      ]},
+    ]},
+    {'id':'d2','name':'Cybersecurity','icon':Icons.security_rounded,'specialties':[
+      {'id':'s3','name':'Network Security','years':[
+        {'label':'Licence 3','groups':['G01','G02']},
+        {'label':'Master 1','groups':['G01']},
+        {'label':'Master 2','groups':['G01']},
+      ]},
+    ]},
+    {'id':'d3','name':'Data Science','icon':Icons.analytics_rounded,'specialties':[
+      {'id':'s4','name':'Machine Learning','years':[
+        {'label':'Master 1','groups':['G01','G02']},
+        {'label':'Master 2','groups':['G01']},
+      ]},
+    ]},
+  ];
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF070D09),
-  ));
-  runApp(const ProLinkApp());
+  // Key = "specId|yearLabel|group"  →  list of sessions
+  static final Map<String, List<Map<String, String>>> schedules = {
+    's1|Master 1|G01':[
+      {'day':'Sunday',   'time':'08:00–10:00','subject':'Deep Learning',     'room':'Lab 05','teacher':'Dr. Rahmani'},
+      {'day':'Sunday',   'time':'10:00–12:00','subject':'Computer Vision',   'room':'Room 12','teacher':'Prof. Zenati'},
+      {'day':'Monday',   'time':'08:00–10:00','subject':'NLP Fundamentals',  'room':'Lab 03','teacher':'Dr. Rahmani'},
+      {'day':'Tuesday',  'time':'14:00–16:00','subject':'Research Methods',  'room':'Room 08','teacher':'Prof. Zenati'},
+      {'day':'Wednesday','time':'08:00–10:00','subject':'Reinforcement L.',  'room':'Lab 05','teacher':'Dr. Rahmani'},
+    ],
+    's1|Master 1|G02':[
+      {'day':'Sunday', 'time':'10:00–12:00','subject':'Deep Learning',   'room':'Lab 06','teacher':'Dr. Rahmani'},
+      {'day':'Monday', 'time':'10:00–12:00','subject':'NLP Fundamentals','room':'Lab 04','teacher':'M. Loukil'},
+      {'day':'Tuesday','time':'08:00–10:00','subject':'Computer Vision', 'room':'Room 14','teacher':'Prof. Zenati'},
+    ],
+    's2|Licence 3|G01':[
+      {'day':'Sunday',  'time':'08:00–10:00','subject':'Advanced CSS',   'room':'Lab 01','teacher':'Prof. Zenati'},
+      {'day':'Monday',  'time':'10:00–12:00','subject':'React Framework','room':'Lab 02','teacher':'M. Loukil'},
+      {'day':'Thursday','time':'14:00–16:00','subject':'Databases II',   'room':'Room 05','teacher':'Prof. Zenati'},
+    ],
+    's3|Master 1|G01':[
+      {'day':'Sunday',   'time':'08:00–10:00','subject':'Cryptography',  'room':'Lab 09','teacher':'M. Loukil'},
+      {'day':'Tuesday',  'time':'10:00–12:00','subject':'Ethical Hacking','room':'Lab 09','teacher':'M. Loukil'},
+      {'day':'Wednesday','time':'14:00–16:00','subject':'Forensics',      'room':'Room 11','teacher':'Dr. Rahmani'},
+    ],
+  };
+
+  static final List<Map<String, String>> interns = [
+    {'name':'Lina Bouzid', 'dept':'AI', 'nr':'20203501','status':'Active', 'email':'lina.bouzid@university.edu','mentor':'Dr. Rahmani'},
+    {'name':'Omar Khelil', 'dept':'Web','nr':'20203502','status':'Active', 'email':'omar.khelil@university.edu','mentor':'Prof. Zenati'},
+    {'name':'Yassine Ben', 'dept':'Mob','nr':'20203503','status':'Pending','email':'yassine.ben@university.edu','mentor':''},
+    {'name':'Ahmed Rayan', 'dept':'Cyb','nr':'20203504','status':'Active', 'email':'ahmed.rayan@university.edu','mentor':'M. Loukil'},
+    {'name':'Sophia Lee',  'dept':'SE', 'nr':'20203505','status':'Active', 'email':'sophia.lee@university.edu','mentor':'Dr. Rahmani'},
+  ];
+
+  static final List<Map<String, dynamic>> mentors = [
+    {'name':'Dr. Amine Rahmani','specialty':'Machine Learning','interns':5,'email':'rahmani.a@univ-constantine2.dz','dept':'CS','phone':'0661 00 11 22'},
+    {'name':'Prof. Sarah Zenati','specialty':'Software Eng',  'interns':3,'email':'s.zenati@univ-constantine2.dz','dept':'SE','phone':'0661 00 33 44'},
+    {'name':'M. Karim Loukil',  'specialty':'Cybersecurity', 'interns':8,'email':'k.loukil@univ-constantine2.dz','dept':'Sec','phone':'0661 00 55 66'},
+  ];
+
+  static final List<Map<String, String>> pendingRequests = [
+    {'name':'Lina Bouzid','dept':'AI Department',       'email':'lina.bouzid@university.edu'},
+    {'name':'Omar Khelil','dept':'Web Dev',             'email':'omar.khelil@university.edu'},
+    {'name':'James Smith','dept':'Business Admin',      'email':'james.smith@university.edu'},
+    {'name':'Sophia Lee', 'dept':'Software Engineering','email':'sophia.lee@university.edu'},
+    {'name':'Ahmed Rayan','dept':'Cybersecurity',       'email':'ahmed.rayan@university.edu'},
+  ];
 }
 
-class AdminDashboard extends StatelessWidget {
+// ═════════════════════════════════════════════════════════════════════════════
+//  ADMIN DASHBOARD — Home
+// ═════════════════════════════════════════════════════════════════════════════
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      // ── THE THREE LINES MENU (DRAWER) - Unchanged ──
-      drawer: Drawer(
-        backgroundColor: AppColors.surface,
-        child: Column(
-          children: [
-            const DrawerHeader(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.hub_rounded, color: AppColors.greenLight, size: 50),
-                    SizedBox(height: 10),
-                    Text("ADMIN PORTAL", style: TextStyle(color: Colors.white, fontSize: 12, letterSpacing: 1.2)),
-                  ],
-                ),
-              ),
-            ),
-
-            // 1. Core Navigation
-            _drawerTile(context, Icons.dashboard, "Dashboard", () => Navigator.pop(context)),
-
-            _drawerTile(context, Icons.business, "Departments", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageDepartmentsPage()));
-            }),
-
-            // 2. Academic & Scheduling
-            _drawerTile(context, Icons.calendar_today, "Schedules", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleManagementPage()));
-            }),
-
-            // NEW: Policy & Documents Screen
-            _drawerTile(context, Icons.menu_book_rounded, "Policy Handbooks", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const PolicyManagementPage()));
-            }),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Divider(color: AppColors.border),
-            ),
-
-            // 3. User Management
-            _drawerTile(context, Icons.people, "Manage Interns", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageInternsPage()));
-            }),
-
-            _drawerTile(context, Icons.school, "Manage Mentors", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageMentorsPage()));
-            }),
-
-            // 4. System & Exit
-            _drawerTile(context, Icons.settings, "Settings", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminSettingsPage()));
-            }),
-
-            const Spacer(),
-            _drawerTile(context, Icons.analytics_outlined, "Reports & Analytics", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen()));
-            }),
-
-            _drawerTile(
-                context,
-                Icons.logout,
-                "Logout",
-                    () => Navigator.pushReplacementNamed(context, '/login'),
-                color: Colors.redAccent
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text("Admin Central", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. TOP SEARCH BAR (From Photo 1)
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search",
-                hint: "Search Intern Records...",
-                icon: Icons.search,
-              ),
-            ),
-            const SizedBox(height: 25),
-
-            // 2. PENDING VALIDATIONS SECTION
-            const Text("Pending Intern Validations",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Review and approve new student registrations.",
-                style: TextStyle(color: AppColors.grey.withOpacity(0.7), fontSize: 13)),
-            const SizedBox(height: 15),
-            _invitationCard(context, "Lina Bouzid", "AI Department"),
-            _invitationCard(context, "Omar Khelil", "Web Dev"),
-
-            Center(
-              child: TextButton(
-                  onPressed: () {
-                    // Navigates to the new list page
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AllRequestsPage())
-                    );
-                  },
-                  child: const Text("View All Requests", style: TextStyle(color: AppColors.greenLight))
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 3. ASSIGNMENTS SECTION (The Stats Grid from Photo 1)
-            // 3. ASSIGNMENTS SECTION
-            const Text("Assignments",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-
-            Row(
-              children: [
-                Expanded(
-                    child: _buildSmallStatCard(
-                        "Active Interns",
-                        "128",
-                        AppColors.greenLight,
-                        Icons.groups_rounded // Icon for interns
-                    )
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _buildSmallStatCard(
-                        "Unassigned",
-                        "12",
-                        AppColors.red,
-                        Icons.person_off_rounded // Icon for unassigned
-                    )
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: const Text("Quick Assign Intern"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor : AppColors.green,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // 4. RESOURCE CENTER (From Photo 1)
-            const Text("Resource Center",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            _buildResourceTile("Office Schedule", "Uploaded (v2.1)", Icons.check_circle, AppColors.greenLight),
-            _buildResourceTile("Policy Handbook", "Missing", Icons.error_outline, AppColors.red),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- HELPER METHODS (These fix your "Method Not Found" errors) ---
-
-  Widget _buildSmallStatCard(String title, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card, // Matches your dark theme
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row with Number and Icon
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(value,
-                  style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.bold)),
-              Icon(icon, color: color.withOpacity(0.4), size: 20), // Subtle icon
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResourceTile(String title, String status, IconData icon, Color statusColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.description, color: Colors.white, size: 24),
-        ),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Row(
-          children: [
-            Icon(icon, size: 14, color: statusColor),
-            const SizedBox(width: 5),
-            Text(status, style: TextStyle(color: statusColor, fontSize: 12)),
-          ],
-        ),
-        trailing: const Icon(Icons.file_download_outlined, color: AppColors.grey),
-      ),
-    );
-  }
-
-  Widget _drawerTile(BuildContext context, IconData icon, String title, VoidCallback onTap, {Color color = Colors.white}) {
-    return ListTile(
-      leading: Icon(icon, color: color == Colors.white ? AppColors.greenLight : color, size: 22),
-      title: Text(
-        title,
-        style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500),
-      ),
-      onTap: onTap,
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: AppColors.greenLight.withOpacity(0.1),
-    );
-  }
-
-  Widget _invitationCard(BuildContext context, String name, String dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border)
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: AppColors.surface, child: Text(name[0], style: const TextStyle(color: AppColors.greenLight))),
-          const SizedBox(width: 15),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-                  ]
-              )
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ReviewRequestPage(name: name, department: dept)));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("Review"),
-          )
-        ],
-      ),
-    );
-  }}
-
-  Widget _drawerTile(BuildContext context, IconData icon, String title, VoidCallback onTap, {Color color = Colors.white}) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title, style: TextStyle(color: color)),
-      onTap: onTap,
-    );
-  }
-
-  Widget _invitationCard(BuildContext context, String name, String dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border)
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: AppColors.surface, child: Text(name[0])),
-          const SizedBox(width: 15),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-                  ]
-              )
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Navigate to the Review Request Page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReviewRequestPage(name: name, department: dept),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green),
-            child: const Text("Accept"),
-          )
-        ],
-      ),
-    );
-  }
-  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: color, size: 28),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          Text(title, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
-
-  @override
-  State<ReportsScreen> createState() => _ReportsScreenState();
+  @override State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _ReportsScreenState extends State<ReportsScreen> {
-  // --- MOCK DATA FOR ATTENDANCE ---
-  final List<Map<String, dynamic>> attendanceData = [
-    {"name": "Ahmed Benali", "dept": "AI", "present": "95%", "status": "Excellent"},
-    {"name": "Sara Zeghidi", "dept": "Web", "present": "82%", "status": "Good"},
-    {"name": "Mourad Kasmi", "dept": "Cyber", "present": "60%", "status": "Warning"},
-  ];
+class _AdminDashboardState extends State<AdminDashboard> {
+  final _searchCtrl = TextEditingController();
+  String _q = '';
 
-  // --- MOCK DATA FOR EVALUATIONS ---
-  final List<Map<String, dynamic>> evaluationData = [
-    {"intern": "Ahmed Benali", "mentor": "Dr. Rahmani", "score": 18.5, "comment": "Highly Proactive"},
-    {"intern": "Sara Zeghidi", "mentor": "Prof. Zenati", "score": 14.0, "comment": "Good progress"},
-  ];
+  List<Map<String, String>> get _fi => _q.isEmpty ? [] :
+  AppData.interns.where((i) => i['name']!.toLowerCase().contains(_q) || i['dept']!.toLowerCase().contains(_q) || i['nr']!.contains(_q)).toList();
+
+  List<Map<String, dynamic>> get _fm => _q.isEmpty ? [] :
+  AppData.mentors.where((m) => m['name'].toString().toLowerCase().contains(_q) || m['specialty'].toString().toLowerCase().contains(_q)).toList();
+
+  @override void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  void _go(Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => page));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text("University Reports"),
-        backgroundColor: Colors.transparent,
-        actions: [
-          // THE EXPORT BUTTON
-          TextButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Generating PDF/Excel Report..."), backgroundColor: AppColors.green),
-              );
-            },
-            icon: const Icon(Icons.download_rounded, color: AppColors.greenLight),
-            label: const Text("Export", style: TextStyle(color: AppColors.greenLight)),
-          ),
+      drawer: _drawer(context),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, centerTitle: true,
+          title: const Text('Admin Central', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // Search
+        TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+            onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
+            decoration: proLinkInputDecoration(label: 'Search', hint: 'Interns, mentors, departments…', icon: Icons.search).copyWith(
+                suffixIcon: _q.isNotEmpty ? IconButton(icon: const Icon(Icons.close, color: AppColors.grey, size: 18),
+                    onPressed: () { _searchCtrl.clear(); setState(() => _q = ''); }) : null)),
+
+        if (_q.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          if (_fi.isEmpty && _fm.isEmpty) _noResults(),
+          if (_fi.isNotEmpty) ...[_rHead('Interns', Icons.badge_rounded, AppColors.teal), ..._fi.map(_iTile)],
+          if (_fm.isNotEmpty) ...[const SizedBox(height: 8), _rHead('Mentors', Icons.school_rounded, AppColors.greenLight), ..._fm.map(_mTile)],
+          const SizedBox(height: 14), const Divider(color: AppColors.divider),
+        ],
+        const SizedBox(height: 20),
+
+        // Stats
+        Row(children: [
+          Expanded(child: _chip('Active', '${AppData.interns.where((i)=>i['status']=='Active').length}', AppColors.greenLight, Icons.groups_rounded)),
+          const SizedBox(width: 8),
+          Expanded(child: _chip('Pending', '${AppData.pendingRequests.length}', AppColors.orange, Icons.pending_actions_rounded)),
+          const SizedBox(width: 8),
+          Expanded(child: _chip('Mentors', '${AppData.mentors.length}', AppColors.gold, Icons.school_rounded)),
+          const SizedBox(width: 8),
+          Expanded(child: _chip('Depts', '${AppData.departments.length}', AppColors.teal, Icons.business_rounded)),
+        ]),
+        const SizedBox(height: 24),
+
+        // Pending validations
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text('Pending Validations', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+          _badge('${AppData.pendingRequests.length}', AppColors.orange),
+        ]),
+        const SizedBox(height: 6),
+        Text('Review and approve new registrations.', style: TextStyle(color: AppColors.grey.withOpacity(0.7), fontSize: 13, fontFamily: 'Poppins')),
+        const SizedBox(height: 14),
+        ...AppData.pendingRequests.take(2).map((r) => _invCard(r['name']!, r['dept']!)),
+        Center(child: TextButton(onPressed: () => _go(const AllRequestsPage()),
+            child: const Text('View All Requests', style: TextStyle(color: AppColors.greenLight, fontFamily: 'Poppins')))),
+        const SizedBox(height: 20),
+
+        // Quick actions
+        const Text('Quick Actions', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(child: _actBtn('Assign Intern', Icons.person_add_alt_1_rounded, AppColors.green,    () => _go(const ManageInternsPage()))),
           const SizedBox(width: 10),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionHeader("Attendance Summary"),
-            _buildAttendanceTable(),
-            const SizedBox(height: 30),
-            _sectionHeader("Evaluation Summaries"),
-            _buildEvaluationList(),
-          ],
-        ),
-      ),
+          Expanded(child: _actBtn('Add Mentor',   Icons.school_rounded,           AppColors.teal,     () => _go(const ManageMentorsPage()))),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: _actBtn('Schedules',    Icons.calendar_today_rounded,   AppColors.gold,     () => _go(const ScheduleManagementPage()))),
+          const SizedBox(width: 10),
+          Expanded(child: _actBtn('Departments',  Icons.business_rounded,         AppColors.teal,     () => _go(const ManageDepartmentsPage()))),
+        ]),
+        const SizedBox(height: 28),
+
+        // Resource center
+        const Text('Resource Center', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+        const SizedBox(height: 14),
+        _resTile('Office Schedule',   'Uploaded (v2.1)', Icons.check_circle,  AppColors.greenLight),
+        _resTile('Policy Handbook',   'Missing',          Icons.error_outline, AppColors.red),
+        _resTile('Intern Guidelines', 'Uploaded (v1.0)', Icons.check_circle,  AppColors.greenLight),
+        const SizedBox(height: 20),
+      ])),
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(title, style: const TextStyle(color: AppColors.gold, fontSize: 16, fontWeight: FontWeight.bold)),
-    );
-  }
+  Widget _noResults() => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+    child: Row(children: [const Icon(Icons.search_off, color: AppColors.grey, size: 20), const SizedBox(width: 12),
+      Text('No results for "$_q"', style: const TextStyle(color: AppColors.grey, fontFamily: 'Poppins'))]),
+  );
 
-  // --- ATTENDANCE TABLE ---
-  Widget _buildAttendanceTable() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: DataTable(
-        columnSpacing: 15,
-        headingRowColor: MaterialStateProperty.all(AppColors.surface),
-        columns: const [
-          DataColumn(label: Text("Intern", style: TextStyle(color: AppColors.grey))),
-          DataColumn(label: Text("Dept", style: TextStyle(color: AppColors.grey))),
-          DataColumn(label: Text("Present", style: TextStyle(color: AppColors.grey))),
-          DataColumn(label: Text("Status", style: TextStyle(color: AppColors.grey))),
-        ],
-        rows: attendanceData.map((data) => DataRow(
-          cells: [
-            DataCell(Text(data['name'], style: const TextStyle(color: Colors.white, fontSize: 12))),
-            DataCell(Text(data['dept'], style: const TextStyle(color: Colors.white, fontSize: 12))),
-            DataCell(Text(data['present'], style: const TextStyle(color: AppColors.greenLight, fontSize: 12))),
-            DataCell(Text(data['status'], style: TextStyle(
-                color: data['status'] == 'Warning' ? Colors.redAccent : Colors.white,
-                fontSize: 11, fontWeight: FontWeight.bold
-            ))),
-          ],
-        )).toList(),
-      ),
-    );
-  }
+  Widget _rHead(String t, IconData ic, Color c) => Padding(padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [Icon(ic, color: c, size: 16), const SizedBox(width: 6),
+        Text(t, style: TextStyle(color: c, fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Poppins'))]));
 
-  // --- EVALUATION LIST ---
-  Widget _buildEvaluationList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: evaluationData.length,
-      itemBuilder: (context, index) {
-        final eval = evaluationData[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppColors.surface,
-                child: Text("${eval['score']}", style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(eval['intern'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text("Mentor: ${eval['mentor']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-                  ],
-                ),
-              ),
-              Text(eval['comment'], style: const TextStyle(color: AppColors.greenLight, fontSize: 11, fontStyle: FontStyle.italic)),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  Widget _iTile(Map<String, String> i) => Container(margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      child: Row(children: [
+        CircleAvatar(radius: 18, backgroundColor: AppColors.teal.withOpacity(0.2),
+            child: Text(i['name']![0], style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold))),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(i['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontFamily: 'Poppins', fontSize: 13)),
+          Text('NR: ${i['nr']} · ${i['dept']}', style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins')),
+        ])),
+        _badge(i['status']!, i['status'] == 'Active' ? AppColors.greenLight : AppColors.orange),
+      ]));
+
+  Widget _mTile(Map<String, dynamic> m) => Container(margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      child: Row(children: [
+        CircleAvatar(radius: 18, backgroundColor: AppColors.greenLight.withOpacity(0.15),
+            child: Text(m['name'][0], style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold))),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(m['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontFamily: 'Poppins', fontSize: 13)),
+          Text(m['specialty'], style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins')),
+        ])),
+        Text('${m['interns']} interns', style: const TextStyle(color: AppColors.gold, fontSize: 11, fontFamily: 'Poppins')),
+      ]));
+
+  Widget _badge(String t, Color c) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: c.withOpacity(0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: c.withOpacity(0.4))),
+      child: Text(t, style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'Poppins')));
+
+  Widget _chip(String label, String value, Color color, IconData icon) => Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withOpacity(0.25))),
+      child: Column(children: [Icon(icon, color: color, size: 16), const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: color, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 9, fontFamily: 'Poppins'), textAlign: TextAlign.center)]));
+
+  Widget _actBtn(String label, IconData icon, Color color, VoidCallback onTap) => GestureDetector(onTap: onTap,
+      child: Container(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withOpacity(0.3))),
+          child: Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 10),
+            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontFamily: 'Poppins', fontSize: 13))])));
+
+  Widget _invCard(String name, String dept) => Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.border)),
+      child: Row(children: [
+        CircleAvatar(backgroundColor: AppColors.surface, child: Text(name[0], style: const TextStyle(color: AppColors.greenLight))),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+          Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins')),
+        ])),
+        ElevatedButton(onPressed: () => _go(ReviewRequestPage(name: name, department: dept)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+            child: const Text('Review', style: TextStyle(fontFamily: 'Poppins', fontSize: 12))),
+      ]));
+
+  Widget _resTile(String title, String status, IconData ic, Color statusColor) => Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.border)),
+      child: ListTile(contentPadding: EdgeInsets.zero,
+          leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.description, color: Colors.white, size: 24)),
+          title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+          subtitle: Row(children: [Icon(ic, size: 14, color: statusColor), const SizedBox(width: 5), Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontFamily: 'Poppins'))]),
+          trailing: const Icon(Icons.file_download_outlined, color: AppColors.grey)));
+
+  Widget _drawer(BuildContext ctx) => Drawer(backgroundColor: AppColors.surface, child: Column(children: [
+    const DrawerHeader(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.hub_rounded, color: AppColors.greenLight, size: 50), SizedBox(height: 10),
+      Text('ADMIN PORTAL', style: TextStyle(color: Colors.white, fontSize: 12, letterSpacing: 1.2, fontFamily: 'Poppins')),
+    ]))),
+    _dt(ctx, Icons.dashboard,          'Dashboard',       () => Navigator.pop(ctx)),
+    _dt(ctx, Icons.business,           'Departments',     () { Navigator.pop(ctx); _go(const ManageDepartmentsPage()); }),
+    _dt(ctx, Icons.calendar_today,     'Schedules',       () { Navigator.pop(ctx); _go(const ScheduleManagementPage()); }),
+    _dt(ctx, Icons.menu_book_rounded,  'Policy Handbooks',() { Navigator.pop(ctx); _go(const PolicyManagementPage()); }),
+    const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Divider(color: AppColors.border)),
+    _dt(ctx, Icons.people,             'Manage Interns',  () { Navigator.pop(ctx); _go(const ManageInternsPage()); }),
+    _dt(ctx, Icons.school,             'Manage Mentors',  () { Navigator.pop(ctx); _go(const ManageMentorsPage()); }),
+    _dt(ctx, Icons.analytics_outlined, 'Reports',         () { Navigator.pop(ctx); _go(const ReportsScreen()); }),
+    _dt(ctx, Icons.settings,           'Settings',        () { Navigator.pop(ctx); _go(const AdminSettingsPage()); }),
+    const Spacer(),
+    _dt(ctx, Icons.logout, 'Logout', () => Navigator.pushReplacementNamed(ctx, '/login'), color: Colors.redAccent),
+    const SizedBox(height: 20),
+  ]));
+
+  Widget _dt(BuildContext ctx, IconData icon, String title, VoidCallback onTap, {Color color = Colors.white}) =>
+      ListTile(leading: Icon(icon, color: color == Colors.white ? AppColors.greenLight : color, size: 22),
+          title: Text(title, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500, fontFamily: 'Poppins')),
+          onTap: onTap, dense: true, visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)));
 }
 
-class ManageMentorsPage extends StatefulWidget {
-  const ManageMentorsPage({super.key});
-
-  @override
-  State<ManageMentorsPage> createState() => _ManageMentorsPageState();
-}
-
-class _ManageMentorsPageState extends State<ManageMentorsPage> {
-  // Demo Data - You can expand this list
-  final List<Map<String, dynamic>> mentors = [
-    {"name": "Dr. Amine Rahmani", "specialty": "Machine Learning", "interns": 5, "email": "rahmani.a@univ-constantine2.dz"},
-    {"name": "Prof. Sarah Zenati", "specialty": "Software Eng", "interns": 3, "email": "s.zenati@univ-constantine2.dz"},
-    {"name": "M. Karim Loukil", "specialty": "Cybersecurity", "interns": 8, "email": "k.loukil@univ-constantine2.dz"},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text("Mentor Management"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.group_add_rounded, color: AppColors.greenLight),
-            onPressed: () => _showAddMentorDialog(context),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Statistics Summary
-          _buildMentorStats(),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search Mentors",
-                hint: "Name or Specialty...",
-                icon: Icons.search,
-              ),
-            ),
-          ),
-
-          // List of Mentors
-          Expanded(
-            child: ListView.builder(
-              itemCount: mentors.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final mentor = mentors[index];
-                return _mentorCard(mentor, index);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Statistics Header
-  Widget _buildMentorStats() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _miniStat("Total Mentors", "${mentors.length}", AppColors.gold),
-          _miniStat("Total Capacity", "45", AppColors.greenLight),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-      ],
-    );
-  }
-
-  // Individual Mentor Card with Popup Menu
-  Widget _mentorCard(Map<String, dynamic> mentor, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: CircleAvatar(
-          radius: 25,
-          backgroundColor: AppColors.surface,
-          child: Text(mentor['name'][0],
-              style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
-        ),
-        title: Text(mentor['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(mentor['specialty'], style: const TextStyle(color: AppColors.greenLight, fontSize: 12)),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.people_outline, color: AppColors.grey, size: 14),
-                const SizedBox(width: 4),
-                Text("Supervising: ${mentor['interns']} Interns",
-                    style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-              ],
-            ),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: AppColors.grey),
-          color: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: AppColors.border),
-          ),
-          onSelected: (value) {
-            if (value == 'view') {
-              _showMentorInfo(context, mentor);
-            } else if (value == 'delete') {
-              _confirmDeleteMentor(index);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Row(
-                children: [
-                  Icon(Icons.badge_outlined, color: AppColors.greenLight, size: 20),
-                  SizedBox(width: 10),
-                  Text("View Info", style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                  SizedBox(width: 10),
-                  Text("Delete", style: TextStyle(color: Colors.redAccent)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showMentorInfo(BuildContext context, Map<String, dynamic> mentor) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bg,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: AppColors.border)
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircleAvatar(
-                radius: 35,
-                backgroundColor: AppColors.surface,
-                child: Icon(Icons.school, color: AppColors.greenLight, size: 30)
-            ),
-            const SizedBox(height: 15),
-            Text(
-                mentor['name'],
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
-            ),
-            const Divider(color: AppColors.border, height: 30),
-
-            // 1. Official Email
-            _infoRow(Icons.alternate_email, "University Gmail", mentor['email']),
-
-            // 2. Specialty
-            _infoRow(Icons.workspace_premium, "Specialty", mentor['specialty']),
-
-            // 3. Department (Added)
-            _infoRow(Icons.business, "Department", mentor['dept'] ?? "Computer Science"),
-
-            // 4. Phone (Added)
-            _infoRow(Icons.phone, "Contact", mentor['phone'] ?? "No Phone Added"),
-
-            // 5. DIPLOMA VIEW ROW
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.verified_user, color: AppColors.greenLight, size: 18),
-                  const SizedBox(width: 12),
-                  const Text("Diploma:", style: TextStyle(color: AppColors.grey, fontSize: 13)),
-                  const Spacer(),
-                  TextButton(
-                      onPressed: () {
-                        // Logic to open the PDF/Image
-                      },
-                      child: const Text("View File",
-                          style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))
-                  )
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.surface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                ),
-                child: const Text("Close", style: TextStyle(color: Colors.white)),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.grey, size: 18),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  // Create Mentor Form
-  // 1. Updated Registration Form
-  void _showAddMentorDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Register New Mentor",
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-
-              // Full Name
-              TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Full Name", hint: "Dr. Name", icon: Icons.person)),
-              const SizedBox(height: 15),
-
-              // SPECIALIZED FIELD: University Gmail
-              TextField(
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppColors.greenLight),
-                  decoration: proLinkInputDecoration(
-                      label: "University Gmail",
-                      hint: "username@univ-constantine2.dz",
-                      icon: Icons.alternate_email
-                  )),
-              const SizedBox(height: 15),
-
-              TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Specialty", hint: "e.g. AI", icon: Icons.workspace_premium)),
-              const SizedBox(height: 20),
-
-              // NEW: DIPLOMA UPLOAD SPACE
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(" Verification Document", style: TextStyle(color: AppColors.grey, fontSize: 13)),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  // Logic to pick file/image will go here
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Opening File Picker...")));
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload_file, color: AppColors.greenLight),
-                      SizedBox(width: 10),
-                      Text("Upload Mentor Diploma (PDF/JPG)", style: TextStyle(color: Colors.white, fontSize: 13)),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                ),
-                child: const Text("CREATE MENTOR ACCOUNT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-
-
-  // Delete Confirmation
-  void _confirmDeleteMentor(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text("Remove Mentor?", style: TextStyle(color: Colors.white)),
-        content: const Text("Warning: This will unassign all interns currently supervised by this mentor."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(
-              onPressed: () {
-                setState(() => mentors.removeAt(index));
-                Navigator.pop(context);
-              },
-              child: const Text("Remove", style: TextStyle(color: Colors.redAccent))
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ScheduleManagementPage extends StatefulWidget {
-  const ScheduleManagementPage({super.key});
-
-  @override
-  State<ScheduleManagementPage> createState() => _ScheduleManagementPageState();
-}
-
-class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
-  // ── DATA MODEL ──
-  List<Map<String, String>> schedules = [
-    {
-      "dept": "AI Department",
-      "class": "Master 1",
-      "group": "Group 02",
-      "teacher": "Dr. Amine Rahmani",
-      "subject": "Deep Learning",
-    },
-    {
-      "dept": "Web Development",
-      "class": "L3",
-      "group": "Group 01",
-      "teacher": "Prof. Sarah Zenati",
-      "subject": "Advanced CSS",
-    },
-  ];
-
-  List<Map<String, String>> filteredSchedules = [];
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    filteredSchedules = schedules;
-  }
-
-  // ── SEARCH LOGIC ──
-  void _filterSchedules(String query) {
-    setState(() {
-      filteredSchedules = schedules.where((s) {
-        final match = s['dept']!.toLowerCase().contains(query.toLowerCase()) ||
-            s['teacher']!.toLowerCase().contains(query.toLowerCase()) ||
-            s['class']!.toLowerCase().contains(query.toLowerCase());
-        return match;
-      }).toList();
-    });
-  }
-
-  // ── UPDATED ADD DIALOG ──
-  void _showAddScheduleDialog() {
-    String? selectedDept;
-    String? selectedClass;
-    String? selectedGroup;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 20, right: 20, top: 20),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Create Section Schedule",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-
-                // Department Pick
-                _customDropdown("Department", ["AI Department", "Web Dev"], selectedDept, (v) => setModalState(() => selectedDept = v)),
-
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    // Class (M1, M2, L3)
-                    Expanded(child: _customDropdown("Class/Year", ["M1", "M2", "L3"], selectedClass, (v) => setModalState(() => selectedClass = v))),
-                    const SizedBox(width: 10),
-                    // Group (G1, G2...)
-                    Expanded(child: _customDropdown("Group", ["G 01", "G 02", "G 03"], selectedGroup, (v) => setModalState(() => selectedGroup = v))),
-                  ],
-                ),
-
-                const SizedBox(height: 15),
-                // Teacher Name
-                TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Teacher Name", hint: "Dr. Full Name", icon: Icons.person_pin),
-                ),
-
-                const SizedBox(height: 15),
-                // Subject/Module
-                TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Module/Subject", hint: "e.g. Mathematics", icon: Icons.book),
-                ),
-
-                const SizedBox(height: 20),
-                // Upload PDF Button
-                _uploadBox(),
-
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50)),
-                  child: const Text("SAVE SCHEDULE"),
-                ),
-                const SizedBox(height: 30),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text("Schedules"), backgroundColor: Colors.transparent),
-      body: Column(
-        children: [
-          // ── SEARCH BAR ──
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _filterSchedules,
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Search Schedule", hint: "Teacher, Dept, or Class...", icon: Icons.search),
-            ),
-          ),
-
-          // ── LIST ──
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredSchedules.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final s = filteredSchedules[index];
-                return _scheduleCard(s);
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.green,
-        onPressed: _showAddScheduleDialog,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  // ── UI HELPERS ──
-  Widget _scheduleCard(Map<String, String> s) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(s['dept']!, style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-                child: Text("${s['class']} - ${s['group']}", style: const TextStyle(color: Colors.white, fontSize: 10)),
-              )
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(s['subject']!, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              const Icon(Icons.person_outline, color: AppColors.grey, size: 14),
-              const SizedBox(width: 5),
-              Text("Teacher: ${s['teacher']}", style: const TextStyle(color: AppColors.grey, fontSize: 13)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _customDropdown(String label, List<String> items, String? value, Function(String?) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        const SizedBox(height: 5),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              dropdownColor: AppColors.surface,
-              value: value,
-              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _uploadBox() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
-      child: const Column(
-        children: [
-          Icon(Icons.upload_file, color: AppColors.greenLight),
-          SizedBox(height: 10),
-          Text("Upload Time-Table PDF", style: TextStyle(color: AppColors.grey, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-}
-
+// ═════════════════════════════════════════════════════════════════════════════
+//  MANAGE DEPARTMENTS  (Dept → Specialty → Year → Group chip)
+// ═════════════════════════════════════════════════════════════════════════════
 class ManageDepartmentsPage extends StatefulWidget {
   const ManageDepartmentsPage({super.key});
-
-  @override
-  State<ManageDepartmentsPage> createState() => _ManageDepartmentsPageState();
+  @override State<ManageDepartmentsPage> createState() => _ManageDepartmentsPageState();
 }
 
 class _ManageDepartmentsPageState extends State<ManageDepartmentsPage> {
-  // ── DATA STRUCTURE: The "Hierarchy" Way ──
-  List<Map<String, dynamic>> departments = [
-    {
-      "name": "AI Department",
-      "icon": Icons.psychology,
-      "specialties": [
-        {
-          "name": "Machine Learning",
-          "classes": [
-            {
-              "year": "Master 1",
-              "groups": [
-                {"id": "Group 01", "teacher": "Dr. Amine Rahmani", "room": "Lab 05"},
-                {"id": "Group 02", "teacher": "Prof. Sarah Zenati", "room": "Room 12"},
-              ]
-            }
-          ]
-        },
-      ]
-    },
-    {
-      "name": "Software Engineering",
-      "icon": Icons.code,
-      "specialties": [
-        {
-          "name": "Web Development",
-          "classes": [
-            {
-              "year": "License 3",
-              "groups": [
-                {"id": "Group A", "teacher": "M. Karim Loukil", "room": "Lab 01"},
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text("University Structure"),
-        backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_business, color: AppColors.greenLight),
-            onPressed: () => _showAddDeptDialog(),
-          )
-        ],
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: departments.length,
-        itemBuilder: (context, index) {
-          final dept = departments[index];
-          return _buildDepartmentNode(dept);
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext ctx) => Scaffold(
+    backgroundColor: AppColors.bg,
+    appBar: AppBar(title: const Text('University Structure', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent,
+        actions: [IconButton(icon: const Icon(Icons.add_business, color: AppColors.greenLight), onPressed: () => _addDept(ctx))]),
+    body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: AppData.departments.length,
+        itemBuilder: (_, i) => _deptCard(ctx, i)),
+  );
 
-  // ── UI WIDGET: THE DEPARTMENT CARD (EXPANDABLE) ──
-  Widget _buildDepartmentNode(Map<String, dynamic> dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ExpansionTile(
-        leading: Icon(dept['icon'], color: AppColors.greenLight),
-        title: Text(dept['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Text("${dept['specialties'].length} Specialties", style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        iconColor: AppColors.greenLight,
-        collapsedIconColor: Colors.white,
-        children: [
-          const Divider(color: AppColors.border, height: 1),
-          // Loop through Specialties
-          ...(dept['specialties'] as List).map((spec) => _buildSpecialtyNode(spec)),
-          // Add Specialty Button
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text("Add Specialty"),
-          )
-        ],
-      ),
-    );
-  }
-
-  // ── UI WIDGET: THE SPECIALTY (SUB-LEVEL) ──
-  Widget _buildSpecialtyNode(Map<String, dynamic> spec) {
-    return ExpansionTile(
-      title: Text(spec['name'], style: const TextStyle(color: AppColors.gold, fontSize: 14, fontWeight: FontWeight.w600)),
-      children: [
-        ...(spec['classes'] as List).map((cls) => _buildClassNode(cls)),
-      ],
-    );
-  }
-
-  // ── UI WIDGET: THE CLASS & GROUPS (DEEP-LEVEL) ──
-  Widget _buildClassNode(Map<String, dynamic> cls) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Year: ${cls['year']}", style: const TextStyle(color: AppColors.greenLight, fontSize: 12)),
-          const SizedBox(height: 8),
-          // Grid or List of Groups
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: cls['groups'].length,
-            itemBuilder: (context, index) {
-              final group = cls['groups'][index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.groups_outlined, color: AppColors.grey, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(group['id'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          Text("Teacher: ${group['teacher']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit_note, color: Colors.blue, size: 20),
-                      onPressed: () => _editGroup(group),
-                    )
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── EDIT LOGIC ──
-  void _editGroup(Map group) {
-    TextEditingController teacherEdit = TextEditingController(text: group['teacher']);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text("Edit ${group['id']}"),
-        content: TextField(
-          controller: teacherEdit,
-          style: const TextStyle(color: Colors.white),
-          decoration: proLinkInputDecoration(
-              label: "Assign Teacher",
-              hint: "Name...",
-              icon: Icons.person),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => group['teacher'] = teacherEdit.text);
-              Navigator.pop(context);
-            },
-            child: const Text("Update"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── ADD NEW DEPT DIALOG ──
-  void _showAddDeptDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bg,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _deptCard(BuildContext ctx, int di) {
+    final d = AppData.departments[di];
+    return Container(margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+        child: Theme(data: Theme.of(ctx).copyWith(dividerColor: Colors.transparent), child: ExpansionTile(
+          leading: Icon(d['icon'] as IconData, color: AppColors.greenLight),
+          title: Text(d['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+          subtitle: Text('${(d['specialties'] as List).length} Specialties', style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins')),
+          iconColor: AppColors.greenLight, collapsedIconColor: AppColors.grey,
           children: [
-            const Text("Create New Faculty/Dept", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search Departments",
-                hint: "Name...",
-                icon: Icons.search,
-              ),
-            ),            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50)),
-              child: const Text("Create Structure"),
-            ),
-            const SizedBox(height: 30),
+            const Divider(color: AppColors.border, height: 1),
+            ...(d['specialties'] as List).asMap().entries.map((e) => _specTile(ctx, di, e.key, e.value as Map<String, dynamic>)),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: OutlinedButton.icon(onPressed: () => _addSpec(ctx, di),
+                    icon: const Icon(Icons.add, size: 16, color: AppColors.greenLight),
+                    label: const Text('Add Specialty', style: TextStyle(color: AppColors.greenLight, fontFamily: 'Poppins')),
+                    style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.greenLight)))),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class PolicyManagementPage extends StatefulWidget {
-  const PolicyManagementPage({super.key});
-
-  @override
-  State<PolicyManagementPage> createState() => _PolicyManagementPageState();
-}
-
-class _PolicyManagementPageState extends State<PolicyManagementPage> {
-  // ── DATA MODEL ──
-  List<Map<String, dynamic>> handbooks = [
-    {
-      "title": "Internship Rules 2026",
-      "isActive": true,
-      "versions": [
-        {"version": "v2.1", "date": "10/01/2026", "file": "rules_final.pdf"},
-        {"version": "v2.0", "date": "01/09/2025", "file": "rules_old.pdf"},
-      ]
-    },
-    {
-      "title": "Mentor Guidelines",
-      "isActive": false,
-      "versions": [
-        {"version": "v1.0", "date": "12/12/2025", "file": "mentor_guide.pdf"},
-      ]
-    },
-  ];
-
-  // ── ADD/UPLOAD DIALOG ──
-  void _showUploadDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Upload New Handbook",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Document Title", hint: "e.g. Code of Conduct", icon: Icons.description),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Version Number", hint: "v1.1", icon: Icons.history),
-            ),
-            const SizedBox(height: 20),
-
-            // Upload Area
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.upload_file, color: AppColors.greenLight, size: 30),
-                  SizedBox(height: 10),
-                  Text("Select PDF Document", style: TextStyle(color: AppColors.grey)),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 25),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 55)),
-              child: const Text("PUBLISH DOCUMENT", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
-    );
+        )));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text("Policy Handbooks"), backgroundColor: Colors.transparent),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: handbooks.length,
-        itemBuilder: (context, index) {
-          final doc = handbooks[index];
-          return _buildPolicyCard(doc, index);
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.green,
-        onPressed: _showUploadDialog,
-        child: const Icon(Icons.add_to_photos),
-      ),
-    );
-  }
-
-  // ── UI WIDGET: POLICY CARD ──
-  Widget _buildPolicyCard(Map<String, dynamic> doc, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: doc['isActive'] ? AppColors.greenLight.withOpacity(0.3) : AppColors.border),
-      ),
-      child: ExpansionTile(
-        leading: Icon(Icons.menu_book, color: doc['isActive'] ? AppColors.greenLight : AppColors.grey),
-        title: Text(doc['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        trailing: Switch(
-          value: doc['isActive'],
-          activeColor: AppColors.greenLight,
-          onChanged: (val) {
-            setState(() => doc['isActive'] = val);
-          },
-        ),
+  Widget _specTile(BuildContext ctx, int di, int si, Map<String, dynamic> spec) =>
+      Theme(data: Theme.of(ctx).copyWith(dividerColor: Colors.transparent), child: ExpansionTile(
+        tilePadding: const EdgeInsets.only(left: 32, right: 16),
+        leading: const Icon(Icons.folder_special_rounded, color: AppColors.gold, size: 20),
+        title: Text(spec['name'], style: const TextStyle(color: AppColors.gold, fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
+        iconColor: AppColors.gold, collapsedIconColor: AppColors.gold,
         children: [
-          const Divider(color: AppColors.border, height: 1),
-          const Padding(
-            padding: EdgeInsets.all(12.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Version History", style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          // List versions
-          ...(doc['versions'] as List).map((v) => ListTile(
-            dense: true,
-            leading: const Icon(Icons.file_present, color: AppColors.grey, size: 18),
-            title: Text("Version ${v['version']}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-            subtitle: Text("Uploaded: ${v['date']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-            trailing: TextButton(
-              onPressed: () {},
-              child: const Text("View", style: TextStyle(color: Colors.blue)),
-            ),
-          )),
-          const SizedBox(height: 10),
+          ...(spec['years'] as List).asMap().entries.map((e) => _yearTile(ctx, di, si, e.key, e.value as Map<String, dynamic>)),
+          Padding(padding: const EdgeInsets.only(left: 48, bottom: 10),
+              child: TextButton.icon(onPressed: () => _addYear(ctx, di, si),
+                  icon: const Icon(Icons.add, size: 14, color: AppColors.teal),
+                  label: const Text('Add Year', style: TextStyle(color: AppColors.teal, fontSize: 12, fontFamily: 'Poppins')))),
         ],
-      ),
-    );
-  }
-}
+      ));
 
-class ManageInternsPage extends StatefulWidget {
-  const ManageInternsPage({super.key});
-
-  @override
-  State<ManageInternsPage> createState() => _ManageInternsPageState();
-}
-
-class _ManageInternsPageState extends State<ManageInternsPage> {
-  // Demo Data
-  final List<Map<String, String>> interns = [
-    {"name": "Lina Bouzid", "dept": "AI", "nr": "20203501", "status": "Active"},
-    {"name": "Omar Khelil", "dept": "Web", "nr": "20203502", "status": "Active"},
-    {"name": "Yassine Ben", "dept": "Mobile", "nr": "20203503", "status": "Pending"},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text("Intern Management"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add_alt_1, color: AppColors.greenLight),
-            onPressed: () => _showAddInternDialog(context),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // ── QUICK STATS ──
-          _buildTopStats(),
-
-          // ── SEARCH BAR ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search Interns",
-                hint: "Search by Name or Registration NR...",
-                icon: Icons.search,
-              ),
-            ),
-          ),
-
-          // ── INTERN LIST ──
-          Expanded(
-            child: ListView.builder(
-              itemCount: interns.length,
-              padding: const EdgeInsets.all(16),
-              itemBuilder: (context, index) {
-                final item = interns[index];
-                return _internCard(item, index);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _yearTile(BuildContext ctx, int di, int si, int yi, Map<String, dynamic> year) {
+    final groups = (year['groups'] as List).cast<String>();
+    return Padding(padding: const EdgeInsets.only(left: 48, right: 16, bottom: 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [const Icon(Icons.calendar_view_week_rounded, color: AppColors.teal, size: 16), const SizedBox(width: 8),
+        Text(year['label'], style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600, fontFamily: 'Poppins', fontSize: 13))]),
+      const SizedBox(height: 10),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        ...groups.asMap().entries.map((ge) => _groupChip(ctx, di, si, yi, ge.value)),
+        GestureDetector(onTap: () => _addGroup(ctx, di, si, yi), child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.add, color: AppColors.grey, size: 14), SizedBox(width: 4),
+              Text('Group', style: TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))]))),
+      ]),
+      const SizedBox(height: 10), const Divider(color: AppColors.divider, height: 1),
+    ]));
   }
 
-  Widget _buildTopStats() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _miniStat("Total", "${interns.length}", Colors.blue),
-          _miniStat("Active", "110", AppColors.green),
-          _miniStat("M1/M2", "45", AppColors.gold),
-        ],
-      ),
-    );
+  Widget _groupChip(BuildContext ctx, int di, int si, int yi, String group) {
+    final specId = (AppData.departments[di]['specialties'] as List)[si]['id'];
+    final yearLabel = ((AppData.departments[di]['specialties'] as List)[si]['years'] as List)[yi]['label'];
+    final key = '$specId|$yearLabel|$group';
+    final has = AppData.schedules.containsKey(key);
+    final count = AppData.schedules[key]?.length ?? 0;
+    return GestureDetector(
+        onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => GroupScheduleViewPage(
+            deptName: AppData.departments[di]['name'],
+            specName: (AppData.departments[di]['specialties'] as List)[si]['name'],
+            yearLabel: yearLabel, group: group, scheduleKey: key))),
+        child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(color: has ? AppColors.greenLight.withOpacity(0.12) : AppColors.surface,
+                borderRadius: BorderRadius.circular(20), border: Border.all(color: has ? AppColors.greenLight.withOpacity(0.5) : AppColors.border)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(has ? Icons.event_available_rounded : Icons.event_busy_rounded, color: has ? AppColors.greenLight : AppColors.grey, size: 14),
+                const SizedBox(width: 5), Text(group, style: TextStyle(color: has ? AppColors.greenLight : AppColors.grey, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
+              ]),
+              if (has) Text('$count sessions', style: const TextStyle(color: AppColors.grey, fontSize: 9, fontFamily: 'Poppins')),
+            ])));
   }
 
-  Widget _miniStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-      ],
-    );
+  // ── Dialogs ─────────────────────────────────────────────────────────────────
+  void _sheet(BuildContext ctx, String title, List<Widget> body) => showModalBottomSheet(
+      context: ctx, isScrollControlled: true, backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, left: 20, right: 20, top: 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+            const SizedBox(height: 20), ...body, const SizedBox(height: 20)])));
+
+  Widget _tf(TextEditingController ctrl, String hint, IconData icon) =>
+      TextField(controller: ctrl, style: const TextStyle(color: Colors.white),
+          decoration: proLinkInputDecoration(label: hint, hint: hint, icon: icon));
+
+  Widget _btn(String label, VoidCallback fn) => SizedBox(width: double.infinity,
+      child: ElevatedButton(onPressed: fn,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))));
+
+  void _addDept(BuildContext ctx) {
+    final ctrl = TextEditingController();
+    _sheet(ctx, 'New Department', [
+      _tf(ctrl, 'Department name', Icons.business), const SizedBox(height: 20),
+      _btn('Create', () { if (ctrl.text.isNotEmpty) { setState(() => AppData.departments.add({'id':'d${DateTime.now().millisecondsSinceEpoch}','name':ctrl.text,'icon':Icons.folder_rounded,'specialties':[]})); Navigator.pop(ctx); }}),
+    ]);
   }
 
-  Widget _internCard(Map<String, String> data, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.surface,
-          child: Text(data['name']![0], style: const TextStyle(color: AppColors.greenLight)),
-        ),
-        title: Text(data['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Text("NR: ${data['nr']} • ${data['dept']}", style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-
-        // ── THE THREE DOTS MENU ──
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: AppColors.grey),
-          color: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          onSelected: (value) {
-            if (value == 'view') {
-              _showInternInfo(context, data);
-            } else if (value == 'delete') {
-              _confirmDelete(index);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: AppColors.greenLight, size: 20),
-                  SizedBox(width: 10),
-                  Text("View Info", style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                  SizedBox(width: 10),
-                  Text("Delete", style: TextStyle(color: Colors.redAccent)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  void _showInternInfo(BuildContext context, Map<String, String> data) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: AppColors.border)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: AppColors.greenDeep,
-              child: Text(data['name']![0], style: const TextStyle(fontSize: 30, color: Colors.white)),
-            ),
-            const SizedBox(height: 15),
-            Text(data['name']!, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            Text("Intern Student", style: TextStyle(color: AppColors.greenLight.withOpacity(0.8), fontSize: 14)),
-
-            const Divider(color: AppColors.border, height: 30),
-
-            // Academic Info Rows
-            _infoRow(Icons.numbers, "Registration NR", data['nr']!),
-            _infoRow(Icons.school, "Specialty", data['dept']!),
-            _infoRow(Icons.calendar_month, "Academic Year", "Master 1 (M1)"), // Example detail
-            _infoRow(Icons.phone, "Phone Number", "0661 00 00 00"),
-
-            const SizedBox(height: 20),
-
-            // Close Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface),
-                child: const Text("Close", style: TextStyle(color: Colors.white)),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
+  void _addSpec(BuildContext ctx, int di) {
+    final ctrl = TextEditingController();
+    _sheet(ctx, 'New Specialty', [
+      _tf(ctrl, 'Specialty name', Icons.workspace_premium), const SizedBox(height: 20),
+      _btn('Add Specialty', () { if (ctrl.text.isNotEmpty) { setState(() => (AppData.departments[di]['specialties'] as List).add({'id':'s${DateTime.now().millisecondsSinceEpoch}','name':ctrl.text,'years':[]})); Navigator.pop(ctx); }}),
+    ]);
   }
 
-// Helper for the Info Rows
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.grey, size: 18),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  void _confirmDelete(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text("Remove Intern?", style: TextStyle(color: Colors.white)),
-        content: const Text("All academic records for this student will be deleted."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(
-              onPressed: () {
-                setState(() => interns.removeAt(index));
-                Navigator.pop(context);
-              },
-              child: const Text("Delete", style: TextStyle(color: Colors.redAccent))
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── THE DETAILED "MANY INFO" DIALOG ──
-  void _showAddInternDialog(BuildContext context) {
-    // Controller for the new specialized field
-    final TextEditingController _uniEmailController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Official University Registration",
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+  void _addYear(BuildContext ctx, int di, int si) {
+    String? sel;
+    const years = ['Licence 1','Licence 2','Licence 3','Master 1','Master 2'];
+    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: AppColors.bg,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        builder: (_) => StatefulBuilder(builder: (c, ss) => Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, left: 20, right: 20, top: 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Add Year Level', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
               const SizedBox(height: 20),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                  child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: AppColors.surface, value: sel,
+                      hint: const Text('Select year', style: TextStyle(color: AppColors.greyDark, fontFamily: 'Poppins')),
+                      items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins')))).toList(),
+                      onChanged: (v) => ss(() => sel = v)))),
+              const SizedBox(height: 20),
+              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () { if (sel != null) { setState(() => ((AppData.departments[di]['specialties'] as List)[si]['years'] as List).add({'label':sel,'groups':[]})); Navigator.pop(ctx); }},
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text('Add Year', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')))),
+              const SizedBox(height: 20),
+            ]))));
+  }
 
-              // Standard Info
-              TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Full Name", hint: "Ahmed Benali", icon: Icons.person)
-              ),
-              const SizedBox(height: 15),
-
-              // SPECIALIZED FIELD: University Gmail
-              TextField(
-                  controller: _uniEmailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppColors.greenLight), // Highlighted color
-                  decoration: proLinkInputDecoration(
-                      label: "University Gmail",
-                      hint: "username@univ-constantine2.dz",
-                      icon: Icons.alternate_email
-                  )
-              ),
-              const SizedBox(height: 15),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                        style: const TextStyle(color: Colors.white),
-                        decoration: proLinkInputDecoration(label: "Registration NR", hint: "2020...", icon: Icons.numbers)
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Internship Duration Picker Space
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        // Logic to pick start/end date
-                        await showDateRangePicker(context: context, firstDate: DateTime.now(), lastDate: DateTime(2030));
-                      },
-                      icon: const Icon(Icons.date_range, size: 16, color: AppColors.greenLight),
-                      label: const Text("Set Dates", style: TextStyle(color: Colors.white, fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.border),
-                          padding: const EdgeInsets.symmetric(vertical: 18)
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              // Mentor Assignment Dropdown Space
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    dropdownColor: AppColors.surface,
-                    hint: const Text("Select Mentor", style: TextStyle(color: AppColors.grey)),
-                    items: ["Dr. Rahmani", "Prof. Zenati"].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(color: Colors.white)))).toList(),
-                    onChanged: (val) {},
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                ),
-                child: const Text("VALIDATE & ASSIGN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
+  void _addGroup(BuildContext ctx, int di, int si, int yi) {
+    final ctrl = TextEditingController();
+    _sheet(ctx, 'Add Group', [
+      _tf(ctrl, 'Group name (e.g. G03)', Icons.groups_rounded), const SizedBox(height: 20),
+      _btn('Add Group', () { if (ctrl.text.isNotEmpty) { setState(() => (((AppData.departments[di]['specialties'] as List)[si]['years'] as List)[yi]['groups'] as List).add(ctrl.text)); Navigator.pop(ctx); }}),
+    ]);
   }
 }
 
-class AdminSettingsPage extends StatelessWidget {
-  const AdminSettingsPage({super.key});
+// ═════════════════════════════════════════════════════════════════════════════
+//  GROUP SCHEDULE VIEW
+// ═════════════════════════════════════════════════════════════════════════════
+class GroupScheduleViewPage extends StatefulWidget {
+  final String deptName, specName, yearLabel, group, scheduleKey;
+  const GroupScheduleViewPage({super.key, required this.deptName, required this.specName, required this.yearLabel, required this.group, required this.scheduleKey});
+  @override State<GroupScheduleViewPage> createState() => _GroupScheduleViewPageState();
+}
+
+class _GroupScheduleViewPageState extends State<GroupScheduleViewPage> {
+  static const _days = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  static const _dayColors = [AppColors.greenLight, AppColors.teal, AppColors.gold, AppColors.orange, AppColors.greenPastel];
+
+  List<Map<String, String>> get _slots => AppData.schedules[widget.scheduleKey] ?? [];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
+    final byDay = <String, List<Map<String, String>>>{for (final d in _days) d: _slots.where((s) => s['day'] == d).toList()};
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text("Admin Settings"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _sectionHeader("General"),
-          _settingsTile(Icons.language, "Language", "English (US)", () {
-            // Show Language Picker
-          }),
-          _settingsTile(Icons.dark_mode, "Appearance", "Dark Mode", null),
-
-          const SizedBox(height: 25),
-          _sectionHeader("System Control"),
-          _settingsTile(Icons.notifications_active, "Push Notifications", "On", () {}),
-          _settingsTile(Icons.security, "Two-Factor Auth", "Highly Recommended", () {}),
-          _settingsTile(Icons.storage, "Database Backup", "Last sync: 2h ago", () {}),
-
-          const SizedBox(height: 25),
-          _sectionHeader("Organization"),
-          _settingsTile(Icons.domain, "University Details", "Constantine 2", () {}),
-          _settingsTile(Icons.admin_panel_settings, "Role Permissions", "Edit access levels", () {}),
-
-          const SizedBox(height: 40),
-          Center(
-            child: Text("Pro-Link v1.0.4", style: TextStyle(color: AppColors.grey.withOpacity(0.5), fontSize: 12)),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(title.toUpperCase(),
-          style: const TextStyle(color: AppColors.greenLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-    );
-  }
-
-  Widget _settingsTile(IconData icon, String title, String subtitle, VoidCallback? onTap) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(icon, color: Colors.white),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        subtitle: Text(subtitle, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.grey, size: 20),
-      ),
-    );
-  }
-}
-class ReviewRequestPage extends StatefulWidget {
-  final String name;
-  final String department;
-
-  const ReviewRequestPage({super.key, required this.name, required this.department});
-
-  @override
-  State<ReviewRequestPage> createState() => _ReviewRequestPageState();
-}
-
-class _ReviewRequestPageState extends State<ReviewRequestPage> {
-  // 1. Controller to capture the rejection reason
-  final TextEditingController _reasonController = TextEditingController();
-
-  // 2. The Logic Function
-  void _handleAction(bool isApproved) {
-    if (!isApproved && _reasonController.text.trim().isEmpty) {
-      // If rejecting, make sure they wrote a reason
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please provide a reason for rejection"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
-    // Success Message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isApproved ? "${widget.name} Approved!" : "Request Rejected"),
-        backgroundColor: isApproved ? AppColors.green : Colors.red,
-      ),
-    );
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text("Review Request", style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Profile Header
-            const CircleAvatar(radius: 50, backgroundImage: NetworkImage('https://i.pravatar.cc/150')),
-            const SizedBox(height: 15),
-            Text(widget.name, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            Text(widget.department, style: const TextStyle(color: AppColors.grey, fontSize: 16)),
-            const SizedBox(height: 15),
-
-            // Status Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.access_time_filled, color: Colors.orange, size: 18),
-                  SizedBox(width: 8),
-                  Text("Pending Validation", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Details Card
-            _buildDetailCard(),
-            const SizedBox(height: 25),
-
-            // 3. ADDED: Reason for Rejection Field
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(" Admin Notes / Rejection Reason", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _reasonController,
-              maxLines: 3,
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Reason",
-                hint: "Type reason if rejecting...",
-                icon: Icons.edit_note,
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleAction(false), // Reject
-                    icon: const Icon(Icons.close),
-                    label: const Text("Reject"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, padding: const EdgeInsets.all(16)),
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleAction(true), // Approve
-                    icon: const Icon(Icons.check),
-                    label: const Text("Approve"),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, padding: const EdgeInsets.all(16)),
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Application Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          Divider(color: AppColors.border, height: 30),
-          _detailRow("Full Name", widget.name),
-          _detailRow("Email", "${widget.name.toLowerCase().replaceAll(' ', '.')}@university.edu"),
-          _detailRow("Registration", "Oct 24, 2023"),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-}
-class AllRequestsPage extends StatelessWidget {
-  const AllRequestsPage({super.key});
-
-  // Example data list
-  final List<Map<String, String>> allRequests = const [
-    {"name": "Lina Bouzid", "dept": "AI Department"},
-    {"name": "Omar Khelil", "dept": "Web Dev"},
-    {"name": "James Smith", "dept": "Business Admin"},
-    {"name": "Sophia Lee", "dept": "Software Engineering"},
-    {"name": "Ahmed Rayan", "dept": "Cybersecurity"},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text("All Pending Requests"),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Search bar to find specific requests
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search Requests",
-                hint: "Filter by name...",
-                icon: Icons.search,
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: allRequests.length,
-              itemBuilder: (context, index) {
-                final request = allRequests[index];
-                // Reusing your existing invitation card design
-                return _requestCard(context, request['name']!, request['dept']!);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Custom version of your card for the full list
-  Widget _requestCard(BuildContext context, String name, String dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border)
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-              backgroundColor: AppColors.surface,
-              child: Text(name[0], style: const TextStyle(color: AppColors.greenLight))
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ReviewRequestPage(name: name, department: dept))
-              );
-            },
-            icon: const Icon(Icons.arrow_forward_ios, color: AppColors.greenLight, size: 18),
-          ),
-        ],
-      ),
-    );
-  }
-}
-class ProLinkApp extends StatelessWidget {
-  const ProLinkApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pro-Link',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      home: const LoginPage(),
-      routes: {
-        '/login':  (context) => const LoginPage(),
-        '/admin':  (context) => const AdminDashboard(),
-        '/mentor': (context) => const MentorDashboard(),
-        '/intern': (context) => const InternDashboard(),
-      },
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Particle System (animated background)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _Particle {
-  double x, y, radius, speed, angle, opacity, drift;
-  _Particle({
-    required this.x, required this.y, required this.radius,
-    required this.speed, required this.angle,
-    required this.opacity, required this.drift,
-  });
-}
-
-class _ParticlesPainter extends CustomPainter {
-  final List<_Particle> particles;
-  final double t;
-  _ParticlesPainter(this.particles, this.t);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // ── Radial background gradient ───────────────────────────────────────────
-    final bgPaint = Paint()
-      ..shader = const RadialGradient(
-        center: Alignment(0, -0.35),
-        radius: 0.85,
-        colors: [Color(0xFF0D3520), Color(0xFF070D09)],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    // ── Subtle horizontal scanlines (depth effect) ───────────────────────────
-    final linePaint = Paint()
-      ..color = AppColors.greenDeep.withOpacity(0.04)
-      ..strokeWidth = 1;
-    for (double y = 0; y < size.height; y += 6) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
-    }
-
-    // ── Compute current particle positions ───────────────────────────────────
-    final List<Offset> positions = particles.map((p) {
-      return Offset(
-        p.x * size.width  + math.cos(p.angle + t * p.speed) * p.drift,
-        p.y * size.height + math.sin(p.angle + t * p.speed) * p.drift,
-      );
-    }).toList();
-
-    // ── Connecting lines ──────────────────────────────────────────────────────
-    final connPaint = Paint()..strokeWidth = 0.5;
-    final threshold = size.width * 0.22;
-    for (int i = 0; i < particles.length; i++) {
-      for (int j = i + 1; j < particles.length; j++) {
-        final d = (positions[j] - positions[i]).distance;
-        if (d < threshold) {
-          connPaint.color = AppColors.border.withOpacity(0.35 * (1 - d / threshold));
-          canvas.drawLine(positions[i], positions[j], connPaint);
-        }
-      }
-    }
-
-    // ── Particles ─────────────────────────────────────────────────────────────
-    for (int i = 0; i < particles.length; i++) {
-      final p = particles[i];
-      final pos = positions[i];
-
-      // glow
-      canvas.drawCircle(pos, p.radius * 3.5,
-          Paint()
-            ..color = AppColors.greenLight.withOpacity(p.opacity * 0.12)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
-
-      // core
-      canvas.drawCircle(pos, p.radius,
-          Paint()..color = AppColors.green.withOpacity(p.opacity * 0.7));
-    }
-  }
-
-  @override
-  bool shouldRepaint(_ParticlesPainter old) => old.t != t;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Login Page
-// ─────────────────────────────────────────────────────────────────────────────
-
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
-  // ── Animation controllers ──────────────────────────────────────────────────
-  late final AnimationController _bgCtrl;   // particle loop
-  late final AnimationController _entryCtrl; // card entry
-  late final AnimationController _logoCtrl;  // logo pulse
-
-  late final Animation<double> _cardSlide;
-  late final Animation<double> _cardFade;
-  late final Animation<double> _logoPulse;
-
-  // ── Form state ─────────────────────────────────────────────────────────────
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
-  bool _obscurePass = true;
-  bool _isLoading   = false;
-  int  _selectedRole = 0; // 0=Admin  1=Mentor  2=Intern
-
-  static const _roles     = ['Admin',                    'Mentor',              'Intern'];
-  static const _roleIcons = [Icons.admin_panel_settings, Icons.school_rounded,  Icons.badge_rounded];
-  static const _roleColors = [AppColors.gold, AppColors.greenLight, AppColors.teal];
-
-  // ── Particle data ──────────────────────────────────────────────────────────
-  late final List<_Particle> _particles;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Particle background — infinite loop
-    _bgCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
-
-    // Card slides up on enter
-    _entryCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
-    _cardSlide = Tween<double>(begin: 90, end: 0).animate(
-        CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
-    _cardFade = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _entryCtrl, curve: const Interval(0, 0.7, curve: Curves.easeOut)));
-
-    // Logo gentle pulse
-    _logoCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
-    _logoPulse = Tween<double>(begin: 0.92, end: 1.0)
-        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeInOut));
-
-    // Seeded particles for a consistent layout
-    final rng = math.Random(7);
-    _particles = List.generate(20, (i) => _Particle(
-      x:       rng.nextDouble(),
-      y:       rng.nextDouble(),
-      radius:  rng.nextDouble() * 2.5 + 1,
-      speed:   rng.nextDouble() * 0.28 + 0.04,
-      angle:   rng.nextDouble() * math.pi * 2,
-      opacity: rng.nextDouble() * 0.5 + 0.2,
-      drift:   rng.nextDouble() * 28 + 10,
-    ));
-
-    Future.delayed(const Duration(milliseconds: 250), () {
-      if (mounted) _entryCtrl.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _bgCtrl.dispose();
-    _entryCtrl.dispose();
-    _logoCtrl.dispose();
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1600));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    const routes = ['/admin', '/mentor', '/intern'];
-    Navigator.pushReplacementNamed(context, routes[_selectedRole]);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  //  Build
-  // ─────────────────────────────────────────────────────────────────────────
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Particle layer
-          AnimatedBuilder(
-            animation: _bgCtrl,
-            builder: (_, __) => CustomPaint(
-              painter: _ParticlesPainter(_particles, _bgCtrl.value * math.pi * 2),
-              size: Size.infinite,
-            ),
-          ),
-          // Content
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: AnimatedBuilder(
-                    animation: _entryCtrl,
-                    builder: (_, child) => Opacity(
-                      opacity: _cardFade.value,
-                      child: Transform.translate(
-                        offset: Offset(0, _cardSlide.value),
-                        child: child,
-                      ),
-                    ),
-                    child: _buildCard(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Header (logo + title) ─────────────────────────────────────────────────
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
-      child: Column(children: [
-        // Animated logo bubble
-        ScaleTransition(
-          scale: _logoPulse,
-          child: Container(
-            width: 80, height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [AppColors.greenDeep, AppColors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(color: AppColors.green.withOpacity(0.5), blurRadius: 28, spreadRadius: 2),
-              ],
-              border: Border.all(color: AppColors.greenLight.withOpacity(0.3), width: 1.5),
-            ),
-            child: const Icon(Icons.hub_rounded, color: Colors.white, size: 38),
-          ),
-        ),
-        const SizedBox(height: 14),
-        // Pro-Link gradient text
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [AppColors.white, AppColors.greenGlow],
-          ).createShader(bounds),
-          child: const Text('Pro-Link',
-              style: TextStyle(color: Colors.white, fontSize: 34,
-                  fontWeight: FontWeight.w800, letterSpacing: 2.5, fontFamily: 'Poppins')),
-        ),
-        const SizedBox(height: 3),
-        Text('Enterprise Internship & Skill Tracking',
-            style: TextStyle(color: AppColors.grey.withOpacity(0.85),
-                fontSize: 12, letterSpacing: 1.1, fontFamily: 'Poppins')),
-        const SizedBox(height: 2),
-        Text('Constantine 2 University  ·  IFA',
-            style: TextStyle(color: AppColors.gold.withOpacity(0.7),
-                fontSize: 11, letterSpacing: 0.8, fontFamily: 'Poppins')),
+      appBar: AppBar(backgroundColor: Colors.transparent,
+          title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${widget.specName} · ${widget.group}', style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 15)),
+            Text('${widget.yearLabel} · ${widget.deptName}', style: const TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.grey)),
+          ]),
+          actions: [IconButton(icon: const Icon(Icons.add_circle_outline, color: AppColors.greenLight), onPressed: () => _addSlot(ctx))]),
+      body: _slots.isEmpty ? _empty(ctx) : ListView(padding: const EdgeInsets.all(16), children: [
+        ..._days.asMap().entries.map((e) {
+          final day = e.value; final color = _dayColors[e.key]; final sess = byDay[day]!;
+          if (sess.isEmpty) return const SizedBox.shrink();
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(padding: const EdgeInsets.only(bottom: 10, top: 4), child: Row(children: [
+              Container(width: 4, height: 18, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))), const SizedBox(width: 10),
+              Text(day, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'Poppins')),
+            ])),
+            ...sess.map((s) => _sessionCard(s, color)),
+            const SizedBox(height: 12),
+          ]);
+        }),
       ]),
     );
   }
 
-  // ── Login card ────────────────────────────────────────────────────────────
-  Widget _buildCard() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border),
-            ),
-            padding: const EdgeInsets.all(26),
-            child: Form(
-              key: _formKey,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                // Title
-                const Text('Welcome Back',
-                    style: TextStyle(color: AppColors.white, fontSize: 22,
-                        fontWeight: FontWeight.w700, fontFamily: 'Poppins')),
-                const SizedBox(height: 3),
-                Text('Sign in to continue to your workspace',
-                    style: TextStyle(color: AppColors.grey, fontSize: 13, fontFamily: 'Poppins')),
-                const SizedBox(height: 22),
+  Widget _sessionCard(Map<String, String> s, Color ac) => Container(margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16),
+          border: Border(left: BorderSide(color: ac, width: 4))),
+      child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(s['subject']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Poppins')),
+          const SizedBox(height: 5),
+          Row(children: [const Icon(Icons.schedule, color: AppColors.grey, size: 13), const SizedBox(width: 4), Text(s['time']!, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins')),
+            const SizedBox(width: 12), const Icon(Icons.person_outline, color: AppColors.grey, size: 13), const SizedBox(width: 4),
+            Flexible(child: Text(s['teacher']!, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'), overflow: TextOverflow.ellipsis))]),
+          const SizedBox(height: 3),
+          Row(children: [const Icon(Icons.room_outlined, color: AppColors.grey, size: 13), const SizedBox(width: 4), Text(s['room']!, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))]),
+        ])),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(color: ac.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+            child: Text('2h', style: TextStyle(color: ac, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+      ])));
 
-                // Role selector
-                _buildRoleSelector(),
-                const SizedBox(height: 22),
+  Widget _empty(BuildContext ctx) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    const Icon(Icons.calendar_today_rounded, color: AppColors.greyDark, size: 60), const SizedBox(height: 16),
+    const Text('No schedule yet', style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+    const SizedBox(height: 8), Text('Tap + to add sessions', style: TextStyle(color: AppColors.grey.withOpacity(0.7), fontFamily: 'Poppins')),
+    const SizedBox(height: 24),
+    ElevatedButton.icon(onPressed: () => _addSlot(ctx), icon: const Icon(Icons.add), label: const Text('Add First Session', style: TextStyle(fontFamily: 'Poppins')),
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))),
+  ]));
 
-                // Email
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppColors.white, fontFamily: 'Poppins'),
-                  decoration: proLinkInputDecoration(
-                      label: 'Email Address', hint: 'you@prolink.app',
-                      icon: Icons.email_outlined),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Email required' : null,
-                ),
-                const SizedBox(height: 14),
+  Widget _drop(String label, List<String> items, String? val, Function(String?) fn) =>
+      Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+          child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: AppColors.surface, value: val,
+              hint: Text(label, style: const TextStyle(color: AppColors.greyDark, fontFamily: 'Poppins', fontSize: 12)),
+              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins', fontSize: 12)))).toList(),
+              onChanged: fn)));
 
-                // Password
-                TextFormField(
-                  controller: _passCtrl,
-                  obscureText: _obscurePass,
-                  style: const TextStyle(color: AppColors.white, fontFamily: 'Poppins'),
-                  decoration: proLinkInputDecoration(
-                      label: 'Password', hint: '••••••••',
-                      icon: Icons.lock_outline_rounded).copyWith(
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                          _obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          color: AppColors.grey, size: 20),
-                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
-                    ),
-                  ),
-                  validator: (v) => (v == null || v.length < 4) ? 'Password too short' : null,
-                ),
-                const SizedBox(height: 6),
-
-                // Forgot
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(foregroundColor: AppColors.greenLight,
-                        padding: EdgeInsets.zero),
-                    child: const Text('Forgot Password?',
-                        style: TextStyle(fontSize: 12, fontFamily: 'Poppins')),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Login button
-                GradientButton(label: 'Sign In', icon: Icons.login_rounded,
-                    onTap: _login, isLoading: _isLoading),
-                const SizedBox(height: 20),
-
-                // Footer
-                Row(children: [
-                  Expanded(child: Divider(color: AppColors.border)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('Pro-Link © 2025',
-                        style: TextStyle(color: AppColors.greyDark, fontSize: 11, fontFamily: 'Poppins')),
-                  ),
-                  Expanded(child: Divider(color: AppColors.border)),
-                ]),
+  void _addSlot(BuildContext ctx) {
+    final subCtrl = TextEditingController(); final teachCtrl = TextEditingController(); final roomCtrl = TextEditingController();
+    String? selDay; String? selTime;
+    const times = ['08:00–10:00','10:00–12:00','12:00–14:00','14:00–16:00','16:00–18:00'];
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: AppColors.bg,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        builder: (_) => StatefulBuilder(builder: (c, ss) => Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, left: 20, right: 20, top: 20),
+            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Add Session', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+              const SizedBox(height: 20),
+              TextField(controller: subCtrl, style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Subject', hint: 'e.g. Deep Learning', icon: Icons.book_rounded)),
+              const SizedBox(height: 12),
+              TextField(controller: teachCtrl, style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Teacher', hint: 'Dr. Full Name', icon: Icons.person_outline)),
+              const SizedBox(height: 12),
+              TextField(controller: roomCtrl, style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Room', hint: 'e.g. Lab 05', icon: Icons.room_outlined)),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: _drop('Day', days, selDay, (v) => ss(() => selDay = v))),
+                const SizedBox(width: 10),
+                Expanded(child: _drop('Time slot', times, selTime, (v) => ss(() => selTime = v))),
               ]),
-            ),
-          ),
-        ),
-      ),
-    );
+              const SizedBox(height: 20),
+              SizedBox(width: double.infinity, child: ElevatedButton(
+                  onPressed: () { if (subCtrl.text.isNotEmpty && selDay != null && selTime != null) { setState(() { AppData.schedules.putIfAbsent(widget.scheduleKey, () => []); AppData.schedules[widget.scheduleKey]!.add({'subject':subCtrl.text,'teacher':teachCtrl.text,'room':roomCtrl.text,'day':selDay!,'time':selTime!}); }); Navigator.pop(ctx); }},
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text('Save Session', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')))),
+            ])))));
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  SCHEDULE MANAGEMENT  (overview — pick dept → specialty → year → group)
+// ═════════════════════════════════════════════════════════════════════════════
+class ScheduleManagementPage extends StatefulWidget {
+  const ScheduleManagementPage({super.key});
+  @override State<ScheduleManagementPage> createState() => _ScheduleManagementPageState();
+}
+
+class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
+  final _searchCtrl = TextEditingController();
+  String _q = '';
+  @override void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext ctx) => Scaffold(
+    backgroundColor: AppColors.bg,
+    appBar: AppBar(title: const Text('Schedules', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent),
+    body: Column(children: [
+      Padding(padding: const EdgeInsets.all(16), child: TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+          onChanged: (v) => setState(() => _q = v.toLowerCase()),
+          decoration: proLinkInputDecoration(label: 'Search', hint: 'Department, specialty, group…', icon: Icons.search).copyWith(
+              suffixIcon: _q.isNotEmpty ? IconButton(icon: const Icon(Icons.close, color: AppColors.grey, size: 18),
+                  onPressed: () { _searchCtrl.clear(); setState(() => _q = ''); }) : null))),
+      Expanded(child: ListView.builder(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: AppData.departments.length,
+          itemBuilder: (_, di) => _deptSection(ctx, AppData.departments[di]))),
+    ]),
+  );
+
+  Widget _deptSection(BuildContext ctx, Map<String, dynamic> dept) {
+    final specs = (dept['specialties'] as List).cast<Map<String, dynamic>>();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.only(bottom: 10, top: 8), child: Row(children: [
+        Icon(dept['icon'] as IconData, color: AppColors.greenLight, size: 18), const SizedBox(width: 8),
+        Text(dept['name'], style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'Poppins')),
+      ])),
+      ...specs.map((spec) => _specSection(ctx, dept['name'], spec)),
+      const SizedBox(height: 8),
+    ]);
   }
 
-  // ── Role selector ─────────────────────────────────────────────────────────
-  Widget _buildRoleSelector() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final itemW = (constraints.maxWidth - 8) / 3;
-      return Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: AppColors.bg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Stack(children: [
-          // Sliding highlight
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeInOutCubic,
-            left: _selectedRole * itemW + 4,
-            top: 4, bottom: 4,
-            width: itemW - 4,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [_roleColors[_selectedRole].withOpacity(0.25),
-                    _roleColors[_selectedRole].withOpacity(0.15)],
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _roleColors[_selectedRole].withOpacity(0.5)),
-              ),
-            ),
-          ),
-          // Tabs
-          Row(children: List.generate(3, (i) {
-            final active = i == _selectedRole;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedRole = i),
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                width: itemW,
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  AnimatedScale(
-                    scale: active ? 1.15 : 1.0,
-                    duration: const Duration(milliseconds: 220),
-                    child: Icon(_roleIcons[i],
-                        size: 18,
-                        color: active ? _roleColors[i] : AppColors.greyDark),
-                  ),
-                  const SizedBox(height: 3),
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                        color: active ? _roleColors[i] : AppColors.greyDark,
-                        fontSize: 12,
-                        fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-                        fontFamily: 'Poppins'),
-                    child: Text(_roles[i]),
-                  ),
-                ]),
-              ),
-            );
-          })),
-        ]),
-      );
-    });
+  Widget _specSection(BuildContext ctx, String deptName, Map<String, dynamic> spec) {
+    final years = (spec['years'] as List).cast<Map<String, dynamic>>();
+    return Container(margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+        child: Theme(data: Theme.of(ctx).copyWith(dividerColor: Colors.transparent), child: ExpansionTile(
+          leading: const Icon(Icons.folder_special_rounded, color: AppColors.gold, size: 20),
+          title: Text(spec['name'], style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w600, fontSize: 13, fontFamily: 'Poppins')),
+          subtitle: Text('${years.length} year levels', style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins')),
+          iconColor: AppColors.gold, collapsedIconColor: AppColors.grey,
+          children: years.map((year) => _yearGroups(ctx, deptName, spec, year)).toList(),
+        )));
   }
+
+  Widget _yearGroups(BuildContext ctx, String deptName, Map<String, dynamic> spec, Map<String, dynamic> year) {
+    final groups = (year['groups'] as List).cast<String>();
+    return Padding(padding: const EdgeInsets.only(left: 20, right: 16, bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [const Icon(Icons.school_outlined, color: AppColors.teal, size: 14), const SizedBox(width: 6),
+        Text(year['label'], style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600, fontSize: 12, fontFamily: 'Poppins'))]),
+      const SizedBox(height: 8),
+      Wrap(spacing: 8, runSpacing: 8, children: groups.map((g) {
+        final key = '${spec['id']}|${year['label']}|$g';
+        final has = AppData.schedules.containsKey(key);
+        final count = AppData.schedules[key]?.length ?? 0;
+        return GestureDetector(
+            onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => GroupScheduleViewPage(
+                deptName: deptName, specName: spec['name'], yearLabel: year['label'], group: g, scheduleKey: key))),
+            child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(color: has ? AppColors.greenLight.withOpacity(0.1) : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12), border: Border.all(color: has ? AppColors.greenLight.withOpacity(0.4) : AppColors.border)),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(has ? Icons.event_available_rounded : Icons.event_busy_rounded, color: has ? AppColors.greenLight : AppColors.grey, size: 14),
+                    const SizedBox(width: 5), Text(g, style: TextStyle(color: has ? AppColors.greenLight : AppColors.grey, fontSize: 13, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                  ]),
+                  if (has) Text('$count sessions', style: const TextStyle(color: AppColors.grey, fontSize: 9, fontFamily: 'Poppins')),
+                ])));
+      }).toList()),
+    ]));
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  MANAGE MENTORS
+// ═════════════════════════════════════════════════════════════════════════════
+class ManageMentorsPage extends StatefulWidget {
+  const ManageMentorsPage({super.key});
+  @override State<ManageMentorsPage> createState() => _ManageMentorsPageState();
+}
+
+class _ManageMentorsPageState extends State<ManageMentorsPage> {
+  final _searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> _filtered = [];
+  @override void initState() { super.initState(); _filtered = List.from(AppData.mentors); }
+  @override void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  void _filter(String q) { final query = q.trim().toLowerCase(); setState(() => _filtered = query.isEmpty ? List.from(AppData.mentors) : AppData.mentors.where((m) => m['name'].toString().toLowerCase().contains(query) || m['specialty'].toString().toLowerCase().contains(query)).toList()); }
+
+  @override
+  Widget build(BuildContext ctx) => Scaffold(
+    backgroundColor: AppColors.bg,
+    appBar: AppBar(title: const Text('Mentor Management', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent, elevation: 0,
+        actions: [IconButton(icon: const Icon(Icons.group_add_rounded, color: AppColors.greenLight), onPressed: () => _addMentorSheet(ctx))]),
+    body: Column(children: [
+      Padding(padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            _s('Total', '${AppData.mentors.length}', AppColors.gold),
+            _s('Interns', '${AppData.interns.where((i)=>i['status']=='Active').length}', AppColors.greenLight),
+            _s('Depts', '3', AppColors.teal),
+          ])),
+      Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: TextField(controller: _searchCtrl, onChanged: _filter, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+              decoration: proLinkInputDecoration(label: 'Search Mentors', hint: 'Name, specialty or email…', icon: Icons.search).copyWith(
+                  suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.close, color: AppColors.grey, size: 18), onPressed: () { _searchCtrl.clear(); _filter(''); }) : null))),
+      _filtered.isEmpty ? Expanded(child: Center(child: const Text('No mentors found.', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')))) :
+      Expanded(child: ListView.builder(itemCount: _filtered.length, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemBuilder: (_, i) => _mentorCard(ctx, _filtered[i], i))),
+    ]),
+  );
+
+  Widget _s(String l, String v, Color c) => Column(children: [Text(v, style: TextStyle(color: c, fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), Text(l, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))]);
+
+  Widget _mentorCard(BuildContext ctx, Map<String, dynamic> m, int i) => Container(margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      child: ListTile(contentPadding: const EdgeInsets.all(12),
+          leading: CircleAvatar(radius: 25, backgroundColor: AppColors.surface, child: Text(m['name'][0], style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold))),
+          title: Text(m['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+          subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(m['specialty'], style: const TextStyle(color: AppColors.greenLight, fontSize: 12, fontFamily: 'Poppins')),
+            Row(children: [const Icon(Icons.people_outline, color: AppColors.grey, size: 14), const SizedBox(width: 4), Text('${m['interns']} interns', style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins'))]),
+          ]),
+          trailing: PopupMenuButton<String>(icon: const Icon(Icons.more_vert, color: AppColors.grey), color: AppColors.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.border)),
+              onSelected: (v) { if (v=='view') _infoDialog(ctx, m); if (v=='delete') _delDialog(ctx, i); },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'view', child: Row(children: [Icon(Icons.badge_outlined, color: AppColors.greenLight, size: 20), SizedBox(width: 10), Text('View Info', style: TextStyle(color: Colors.white, fontFamily: 'Poppins'))])),
+                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, color: Colors.redAccent, size: 20), SizedBox(width: 10), Text('Delete', style: TextStyle(color: Colors.redAccent, fontFamily: 'Poppins'))])),
+              ])));
+
+  void _infoDialog(BuildContext ctx, Map<String, dynamic> m) => showDialog(context: ctx, builder: (_) => AlertDialog(backgroundColor: AppColors.bg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const CircleAvatar(radius: 35, backgroundColor: AppColors.surface, child: Icon(Icons.school, color: AppColors.greenLight, size: 30)),
+        const SizedBox(height: 12), Text(m['name'], style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+        const Divider(color: AppColors.border, height: 24),
+        _ir(Icons.alternate_email, 'Email', m['email']), _ir(Icons.workspace_premium, 'Specialty', m['specialty']),
+        _ir(Icons.business, 'Dept', m['dept']), _ir(Icons.phone, 'Phone', m['phone']),
+        const SizedBox(height: 14),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface), child: const Text('Close', style: TextStyle(color: Colors.white)))),
+      ])));
+
+  Widget _ir(IconData ic, String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(ic, color: AppColors.grey, size: 18), const SizedBox(width: 10),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins')), Text(v, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Poppins'))]))  ]));
+
+  void _delDialog(BuildContext ctx, int i) => showDialog(context: ctx, builder: (_) => AlertDialog(backgroundColor: AppColors.surface,
+      title: const Text('Remove Mentor?', style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
+      content: const Text('This will unassign all supervised interns.', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.grey))),
+        TextButton(onPressed: () { final ri = AppData.mentors.indexOf(_filtered[i]); setState(() { AppData.mentors.removeAt(ri); _filtered.removeAt(i); }); Navigator.pop(ctx); },
+            child: const Text('Remove', style: TextStyle(color: Colors.redAccent)))]));
+
+  void _addMentorSheet(BuildContext ctx) => showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (_) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
+          child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Register New Mentor', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), const SizedBox(height: 20),
+            TextField(style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Full Name', hint: 'Dr. Name', icon: Icons.person)), const SizedBox(height: 15),
+            TextField(keyboardType: TextInputType.emailAddress, style: const TextStyle(color: AppColors.greenLight),
+                decoration: proLinkInputDecoration(label: 'University Email', hint: 'username@univ-constantine2.dz', icon: Icons.alternate_email)), const SizedBox(height: 15),
+            TextField(style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Specialty', hint: 'e.g. AI', icon: Icons.workspace_premium)), const SizedBox(height: 25),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx), style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: const Text('CREATE MENTOR ACCOUNT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))), const SizedBox(height: 30),
+          ]))));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  MANAGE INTERNS  (with assignment flow)
+// ═════════════════════════════════════════════════════════════════════════════
+class ManageInternsPage extends StatefulWidget {
+  const ManageInternsPage({super.key});
+  @override State<ManageInternsPage> createState() => _ManageInternsPageState();
+}
+
+class _ManageInternsPageState extends State<ManageInternsPage> {
+  List<Map<String, String>> _filtered = [];
+  final _searchCtrl = TextEditingController();
+  @override void initState() { super.initState(); _filtered = List.from(AppData.interns); }
+  @override void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  void _filter(String q) { final query = q.trim().toLowerCase(); setState(() => _filtered = query.isEmpty ? List.from(AppData.interns) : AppData.interns.where((i) => i['name']!.toLowerCase().contains(query) || i['dept']!.toLowerCase().contains(query) || i['nr']!.contains(query)).toList()); }
+
+  @override
+  Widget build(BuildContext ctx) => Scaffold(
+    backgroundColor: AppColors.bg,
+    appBar: AppBar(title: const Text('Intern Management', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent, elevation: 0,
+        actions: [IconButton(icon: const Icon(Icons.person_add_alt_1, color: AppColors.greenLight), onPressed: () => _addInternSheet(ctx))]),
+    body: Column(children: [
+      Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+        _ms('Total', '${AppData.interns.length}', Colors.blue),
+        _ms('Active', '${AppData.interns.where((i)=>i['status']=='Active').length}', AppColors.green),
+        _ms('Pending', '${AppData.interns.where((i)=>i['status']=='Pending').length}', AppColors.orange),
+      ])),
+      Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: TextField(controller: _searchCtrl, onChanged: _filter, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+              decoration: proLinkInputDecoration(label: 'Search Interns', hint: 'Name, NR or department…', icon: Icons.search).copyWith(
+                  suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.close, color: AppColors.grey, size: 18), onPressed: () { _searchCtrl.clear(); _filter(''); }) : null))),
+      const SizedBox(height: 4),
+      _filtered.isEmpty ? Expanded(child: Center(child: const Text('No interns match.', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')))) :
+      Expanded(child: ListView.builder(itemCount: _filtered.length, padding: const EdgeInsets.all(16), itemBuilder: (_, i) => _internCard(ctx, _filtered[i], i))),
+    ]),
+  );
+
+  Widget _ms(String l, String v, Color c) => Column(children: [Text(v, style: TextStyle(color: c, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), Text(l, style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins'))]);
+
+  Widget _internCard(BuildContext ctx, Map<String, String> data, int index) {
+    final active = data['status'] == 'Active';
+    return Container(margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+        child: ListTile(
+            leading: CircleAvatar(backgroundColor: AppColors.surface, child: Text(data['name']![0], style: const TextStyle(color: AppColors.greenLight))),
+            title: Text(data['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+            subtitle: Row(children: [Text('NR: ${data['nr']} · ${data['dept']}', style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins')), const SizedBox(width: 8),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: active ? AppColors.greenLight.withOpacity(0.15) : AppColors.orange.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                  child: Text(data['status']!, style: TextStyle(color: active ? AppColors.greenLight : AppColors.orange, fontSize: 9, fontWeight: FontWeight.w700, fontFamily: 'Poppins')))]),
+            trailing: PopupMenuButton<String>(icon: const Icon(Icons.more_vert, color: AppColors.grey), color: AppColors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onSelected: (v) { if (v=='view') _infoDialog(ctx, data); if (v=='assign') _assignDialog(ctx, data); if (v=='delete') _delDialog(ctx, index); },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'view',   child: Row(children: [Icon(Icons.info_outline,    color: AppColors.greenLight, size: 20), SizedBox(width: 10), Text('View Info',     style: TextStyle(color: Colors.white, fontFamily: 'Poppins'))])),
+                  const PopupMenuItem(value: 'assign', child: Row(children: [Icon(Icons.assignment_ind,  color: AppColors.teal,       size: 20), SizedBox(width: 10), Text('Assign Mentor', style: TextStyle(color: Colors.white, fontFamily: 'Poppins'))])),
+                  const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline,  color: Colors.redAccent,     size: 20), SizedBox(width: 10), Text('Delete',        style: TextStyle(color: Colors.redAccent, fontFamily: 'Poppins'))])),
+                ])));
+  }
+
+  void _infoDialog(BuildContext ctx, Map<String, String> data) => showDialog(context: ctx, builder: (_) => AlertDialog(backgroundColor: AppColors.bg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        CircleAvatar(radius: 40, backgroundColor: AppColors.greenDeep, child: Text(data['name']![0], style: const TextStyle(fontSize: 30, color: Colors.white))),
+        const SizedBox(height: 12),
+        Text(data['name']!, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+        Text('Intern', style: TextStyle(color: AppColors.greenLight.withOpacity(0.8), fontSize: 13, fontFamily: 'Poppins')),
+        const Divider(color: AppColors.border, height: 24),
+        _ir(Icons.numbers, 'Registration NR', data['nr']!), _ir(Icons.school, 'Department', data['dept']!),
+        _ir(Icons.person_outline, 'Mentor', data['mentor']!.isNotEmpty ? data['mentor']! : 'Unassigned'),
+        _ir(Icons.alternate_email, 'Email', data['email']!), const SizedBox(height: 14),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(ctx), style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface), child: const Text('Close', style: TextStyle(color: Colors.white)))),
+      ])));
+
+  Widget _ir(IconData ic, String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(ic, color: AppColors.grey, size: 18), const SizedBox(width: 10),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins')), Text(v, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Poppins'))]))  ]));
+
+  void _assignDialog(BuildContext ctx, Map<String, String> data) {
+    String? selDept = data['dept']; String? selMentor = data['mentor']?.isNotEmpty == true ? data['mentor'] : null;
+    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: AppColors.bg,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        builder: (_) => StatefulBuilder(builder: (c, ss) => Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, left: 20, right: 20, top: 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(children: [CircleAvatar(backgroundColor: AppColors.greenDeep, child: Text(data['name']![0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))), const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(data['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), const Text('Assign Internship', style: TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))])]),
+              const SizedBox(height: 20),
+              _drop('Department', AppData.departments.map((d) => d['name'] as String).toList(), selDept, (v) => ss(() => selDept = v)),
+              const SizedBox(height: 14),
+              _drop('Mentor', AppData.mentors.map((m) => m['name'] as String).toList(), selMentor, (v) => ss(() => selMentor = v)),
+              const SizedBox(height: 20),
+              SizedBox(width: double.infinity, child: ElevatedButton(
+                  onPressed: () { setState(() { data['mentor'] = selMentor ?? ''; data['status'] = 'Active'; }); Navigator.pop(ctx); ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('${data['name']} assigned to $selMentor'), backgroundColor: AppColors.green)); },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text('CONFIRM ASSIGNMENT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')))),
+              const SizedBox(height: 10),
+            ]))));
+  }
+
+  Widget _drop(String label, List<String> items, String? val, Function(String?) fn) => Container(padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: AppColors.surface, value: val,
+          hint: Text('Select $label', style: const TextStyle(color: AppColors.greyDark, fontFamily: 'Poppins')),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins')))).toList(),
+          onChanged: fn)));
+
+  void _delDialog(BuildContext ctx, int i) => showDialog(context: ctx, builder: (_) => AlertDialog(backgroundColor: AppColors.surface,
+      title: const Text('Remove Intern?', style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
+      content: const Text('All records will be deleted.', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.grey))),
+        TextButton(onPressed: () { final ri = AppData.interns.indexOf(_filtered[i]); setState(() { AppData.interns.removeAt(ri); _filtered.removeAt(i); }); Navigator.pop(ctx); }, child: const Text('Delete', style: TextStyle(color: Colors.redAccent)))]));
+
+  void _addInternSheet(BuildContext ctx) {
+    String? selMentor;
+    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: AppColors.bg,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+        builder: (_) => StatefulBuilder(builder: (c, ss) => Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
+            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Official Registration', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), const SizedBox(height: 20),
+              TextField(style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Full Name', hint: 'Ahmed Benali', icon: Icons.person)), const SizedBox(height: 15),
+              TextField(keyboardType: TextInputType.emailAddress, style: const TextStyle(color: AppColors.greenLight), decoration: proLinkInputDecoration(label: 'University Email', hint: 'username@univ.dz', icon: Icons.alternate_email)), const SizedBox(height: 15),
+              TextField(style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Registration NR', hint: '2020…', icon: Icons.numbers)), const SizedBox(height: 15),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                  child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: AppColors.surface, value: selMentor,
+                      hint: const Text('Select Mentor', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')),
+                      items: AppData.mentors.map((m) => DropdownMenuItem(value: m['name'] as String, child: Text(m['name'], style: const TextStyle(color: Colors.white, fontFamily: 'Poppins')))).toList(),
+                      onChanged: (v) => ss(() => selMentor = v)))),
+              const SizedBox(height: 25),
+              ElevatedButton(onPressed: () => Navigator.pop(ctx), style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text('VALIDATE & ASSIGN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+              const SizedBox(height: 30),
+            ])))));
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  POLICY MANAGEMENT
+// ═════════════════════════════════════════════════════════════════════════════
+class PolicyManagementPage extends StatefulWidget {
+  const PolicyManagementPage({super.key});
+  @override State<PolicyManagementPage> createState() => _PolicyManagementPageState();
+}
+
+class _PolicyManagementPageState extends State<PolicyManagementPage> {
+  List<Map<String, dynamic>> handbooks = [
+    {"title":"Internship Rules 2026","isActive":true,"versions":[{"version":"v2.1","date":"10/01/2026"},{"version":"v2.0","date":"01/09/2025"}]},
+    {"title":"Mentor Guidelines",   "isActive":false,"versions":[{"version":"v1.0","date":"12/12/2025"}]},
+  ];
+
+  @override Widget build(BuildContext ctx) => Scaffold(backgroundColor: AppColors.bg,
+      appBar: AppBar(title: const Text('Policy Handbooks', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent),
+      body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: handbooks.length, itemBuilder: (_, i) => _card(handbooks[i])),
+      floatingActionButton: FloatingActionButton(backgroundColor: AppColors.green, onPressed: _upload, child: const Icon(Icons.add_to_photos)));
+
+  Widget _card(Map<String, dynamic> doc) => Container(margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: (doc['isActive'] as bool) ? AppColors.greenLight.withOpacity(0.3) : AppColors.border)),
+      child: Theme(data: Theme.of(context).copyWith(dividerColor: Colors.transparent), child: ExpansionTile(
+          leading: Icon(Icons.menu_book, color: (doc['isActive'] as bool) ? AppColors.greenLight : AppColors.grey),
+          title: Text(doc['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+          trailing: Switch(value: doc['isActive'] as bool, activeColor: AppColors.greenLight, onChanged: (v) => setState(() => doc['isActive'] = v)),
+          children: [const Divider(color: AppColors.border, height: 1),
+            const Padding(padding: EdgeInsets.all(12), child: Align(alignment: Alignment.centerLeft, child: Text('Version History', style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Poppins')))),
+            ...(doc['versions'] as List).map((v) => ListTile(dense: true, leading: const Icon(Icons.file_present, color: AppColors.grey, size: 18),
+                title: Text('Version ${v['version']}', style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'Poppins')),
+                subtitle: Text('Uploaded: ${v['date']}', style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins')),
+                trailing: TextButton(onPressed: () {}, child: const Text('View', style: TextStyle(color: AppColors.teal, fontFamily: 'Poppins'))))),
+            const SizedBox(height: 10)])));
+
+  void _upload() => showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (_) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Upload New Handbook', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), const SizedBox(height: 20),
+            TextField(style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Document Title', hint: 'e.g. Code of Conduct', icon: Icons.description)), const SizedBox(height: 15),
+            TextField(style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Version', hint: 'v1.1', icon: Icons.history)), const SizedBox(height: 20),
+            Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.border)),
+                child: const Column(children: [Icon(Icons.upload_file, color: AppColors.greenLight, size: 30), SizedBox(height: 10), Text('Select PDF', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins'))])),
+            const SizedBox(height: 25),
+            ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: const Text('PUBLISH', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+            const SizedBox(height: 30)])));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  REVIEW REQUEST  +  ALL REQUESTS
+// ═════════════════════════════════════════════════════════════════════════════
+class ReviewRequestPage extends StatefulWidget {
+  final String name, department;
+  const ReviewRequestPage({super.key, required this.name, required this.department});
+  @override State<ReviewRequestPage> createState() => _ReviewRequestPageState();
+}
+
+class _ReviewRequestPageState extends State<ReviewRequestPage> {
+  final _rc = TextEditingController();
+  @override void dispose() { _rc.dispose(); super.dispose(); }
+
+  void _handle(bool approve) {
+    if (!approve && _rc.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Provide rejection reason'), backgroundColor: Colors.redAccent)); return; }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(approve ? '${widget.name} Approved!' : 'Request Rejected'), backgroundColor: approve ? AppColors.green : Colors.red));
+    Navigator.pop(context);
+  }
+
+  @override Widget build(BuildContext ctx) => Scaffold(backgroundColor: AppColors.bg,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: const Text('Review Request', style: TextStyle(color: Colors.white, fontFamily: 'Poppins')), centerTitle: true),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [
+        const CircleAvatar(radius: 50, backgroundImage: NetworkImage('https://i.pravatar.cc/150')), const SizedBox(height: 14),
+        Text(widget.name, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+        Text(widget.department, style: const TextStyle(color: AppColors.grey, fontSize: 16, fontFamily: 'Poppins')), const SizedBox(height: 14),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.access_time_filled, color: Colors.orange, size: 18), SizedBox(width: 8), Text('Pending Validation', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))])),
+        const SizedBox(height: 28),
+        Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Application Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'Poppins')), const Divider(color: AppColors.border, height: 28),
+              _dr('Full Name', widget.name), _dr('Email', '${widget.name.toLowerCase().replaceAll(' ', '.')}@university.edu'),
+              _dr('Department', widget.department), _dr('Registration', 'Oct 24, 2023'),
+            ])),
+        const SizedBox(height: 24),
+        const Align(alignment: Alignment.centerLeft, child: Text(' Admin Notes / Rejection Reason', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+        const SizedBox(height: 10),
+        TextField(controller: _rc, maxLines: 3, style: const TextStyle(color: Colors.white), decoration: proLinkInputDecoration(label: 'Reason', hint: 'Type reason if rejecting…', icon: Icons.edit_note)),
+        const SizedBox(height: 28),
+        Row(children: [
+          Expanded(child: ElevatedButton.icon(onPressed: () => _handle(false), icon: const Icon(Icons.close), label: const Text('Reject', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)), style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, padding: const EdgeInsets.all(16)))),
+          const SizedBox(width: 14),
+          Expanded(child: ElevatedButton.icon(onPressed: () => _handle(true), icon: const Icon(Icons.check), label: const Text('Approve', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)), style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, padding: const EdgeInsets.all(16)))),
+        ]), const SizedBox(height: 20),
+      ])));
+
+  Widget _dr(String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(l, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins')), Text(v, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500, fontFamily: 'Poppins'))]));
+}
+
+class AllRequestsPage extends StatefulWidget {
+  const AllRequestsPage({super.key});
+  @override State<AllRequestsPage> createState() => _AllRequestsPageState();
+}
+
+class _AllRequestsPageState extends State<AllRequestsPage> {
+  List<Map<String, String>> _filtered = [];
+  final _searchCtrl = TextEditingController();
+  @override void initState() { super.initState(); _filtered = List.from(AppData.pendingRequests); }
+  @override void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void _filter(String q) { final query = q.trim().toLowerCase(); setState(() => _filtered = query.isEmpty ? List.from(AppData.pendingRequests) : AppData.pendingRequests.where((r) => r['name']!.toLowerCase().contains(query) || r['dept']!.toLowerCase().contains(query)).toList()); }
+
+  @override Widget build(BuildContext ctx) => Scaffold(backgroundColor: AppColors.bg,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: const Text('All Pending Requests', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), centerTitle: true),
+      body: Column(children: [
+      Padding(padding: const EdgeInsets.all(20), child: TextField(controller: _searchCtrl, onChanged: _filter, style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+          decoration: proLinkInputDecoration(label: 'Search', hint: 'Filter by name or department…', icon: Icons.search).copyWith(
+              suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.close, color: AppColors.grey, size: 18), onPressed: () { _searchCtrl.clear(); _filter(''); }) : null))),
+  _filtered.isEmpty ? Expanded(child: Center(child: const Text('No requests match.', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')))) :
+  Expanded(child: ListView.builder(padding: const EdgeInsets.symmetric(horizontal: 20), itemCount: _filtered.length, itemBuilder: (_, i) => Container(
+  margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(14),
+  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.border)),
+  child: Row(children: [CircleAvatar(backgroundColor: AppColors.surface, child: Text(_filtered[i]['name']![0], style: const TextStyle(color: AppColors.greenLight))),
+  const SizedBox(width: 14),
+  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Text(_filtered[i]['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+  Text(_filtered[i]['dept']!, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))])),
+  IconButton(onPressed: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => ReviewRequestPage(name: _filtered[i]['name']!, department: _filtered[i]['dept']!))),
+  icon: const Icon(Icons.arrow_forward_ios, color: AppColors.greenLight, size: 18))]))),
+  )]
+  )
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  REPORTS
+// ═════════════════════════════════════════════════════════════════════════════
+class ReportsScreen extends StatelessWidget {
+  const ReportsScreen({super.key});
+  static const attendance = [
+    {"name": "Ahmed Benali", "dept": "AI",    "present": "95%", "status": "Excellent"},
+    {"name": "Sara Zeghidi", "dept": "Web",   "present": "82%", "status": "Good"},
+    {"name": "Mourad Kasmi", "dept": "Cyber", "present": "60%", "status": "Warning"},
+  ];
+  static const evaluations = [
+    {"intern": "Ahmed Benali", "mentor": "Dr. Rahmani",  "score": "18.5", "comment": "Highly Proactive"},
+    {"intern": "Sara Zeghidi", "mentor": "Prof. Zenati", "score": "14.0", "comment": "Good progress"},
+  ];
+
+  @override Widget build(BuildContext ctx) => Scaffold(backgroundColor: AppColors.bg,
+      appBar: AppBar(title: const Text('University Reports', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent,
+          actions: [TextButton.icon(onPressed: () {}, icon: const Icon(Icons.download_rounded, color: AppColors.greenLight), label: const Text('Export', style: TextStyle(color: AppColors.greenLight, fontFamily: 'Poppins'))), const SizedBox(width: 10)]),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _h('Attendance Summary'),
+        Container(width: double.infinity, decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.border)),
+            child: DataTable(columnSpacing: 15, headingRowColor: WidgetStateProperty.all(AppColors.surface),
+                columns: const [DataColumn(label: Text('Intern',  style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins'))), DataColumn(label: Text('Dept',    style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins'))), DataColumn(label: Text('Present', style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins'))), DataColumn(label: Text('Status',  style: TextStyle(color: AppColors.grey, fontFamily: 'Poppins')))],
+                rows: attendance.map((d) => DataRow(cells: [DataCell(Text(d['name']!, style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Poppins'))), DataCell(Text(d['dept']!, style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Poppins'))), DataCell(Text(d['present']!, style: const TextStyle(color: AppColors.greenLight, fontSize: 12, fontFamily: 'Poppins'))), DataCell(Text(d['status']!, style: TextStyle(color: d['status'] == 'Warning' ? Colors.redAccent : AppColors.greenLight, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'Poppins')))])).toList())),
+        const SizedBox(height: 28), _h('Evaluation Summaries'),
+        ...evaluations.map((e) => Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+            child: Row(children: [CircleAvatar(backgroundColor: AppColors.surface, child: Text(e['score']!, style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(e['intern']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Poppins')), Text('Mentor: ${e['mentor']!}', style: const TextStyle(color: AppColors.grey, fontSize: 11, fontFamily: 'Poppins'))])),
+              Text(e['comment']!, style: const TextStyle(color: AppColors.greenLight, fontSize: 11, fontStyle: FontStyle.italic, fontFamily: 'Poppins'))]))),
+      ])));
+
+  static Widget _h(String t) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4, top: 4), child: Text(t, style: const TextStyle(color: AppColors.gold, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins')));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  SETTINGS
+// ═════════════════════════════════════════════════════════════════════════════
+class AdminSettingsPage extends StatefulWidget {
+  const AdminSettingsPage({super.key});
+  @override State<AdminSettingsPage> createState() => _AdminSettingsPageState();
+}
+
+class _AdminSettingsPageState extends State<AdminSettingsPage> {
+  String _language = 'English (US)'; bool _notifs = true; bool _twoFactor = false;
+  String _difficulty = 'Standard'; bool _compact = false;
+  static const _langs = ['English (US)', 'Français', 'العربية', 'Tamazight'];
+  static const _diffs = ['Beginner', 'Standard', 'Advanced'];
+
+  @override Widget build(BuildContext ctx) => Scaffold(backgroundColor: AppColors.bg,
+      appBar: AppBar(title: const Text('Admin Settings', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)), backgroundColor: Colors.transparent, elevation: 0),
+      body: ListView(padding: const EdgeInsets.all(20), children: [
+        _sec('Appearance'),
+        _row(icon: Icons.dark_mode_rounded, iconColor: AppColors.teal, title: 'Dark Mode', subtitle: 'Always enabled', trailing: Switch(value: true, onChanged: null, activeColor: AppColors.teal)),
+        _row(icon: Icons.view_compact_rounded, iconColor: AppColors.greenLight, title: 'Compact Mode', subtitle: _compact ? 'Reduced spacing' : 'Standard spacing', trailing: Switch(value: _compact, activeColor: AppColors.greenLight, onChanged: (v) => setState(() => _compact = v))),
+        const SizedBox(height: 20), _sec('Language'),
+        _row(icon: Icons.language_rounded, iconColor: AppColors.gold, title: 'Display Language', subtitle: _language, trailing: const Icon(Icons.chevron_right, color: AppColors.grey),
+            onTap: () => _picker(ctx, 'Choose Language', _langs, _language, (v) => setState(() => _language = v))),
+        const SizedBox(height: 20), _sec('Interface Difficulty'),
+        Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Complexity Level', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontFamily: 'Poppins', fontSize: 14)), const SizedBox(height: 4),
+          const Text('Controls how much detail is shown', style: TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins')), const SizedBox(height: 16),
+          Row(children: _diffs.map((d) { final sel = d == _difficulty; final c = d=='Beginner'?AppColors.teal:d=='Standard'?AppColors.greenLight:AppColors.gold;
+          return Expanded(child: GestureDetector(onTap: () => setState(() => _difficulty = d), child: Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(color: sel?c.withOpacity(0.15):AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: sel?c:AppColors.border, width: sel?1.5:1)),
+              child: Column(children: [Icon(d=='Beginner'?Icons.filter_1_rounded:d=='Standard'?Icons.filter_2_rounded:Icons.filter_3_rounded, color: sel?c:AppColors.greyDark, size: 20), const SizedBox(height: 4),
+                Text(d, style: TextStyle(color: sel?c:AppColors.greyDark, fontSize: 10, fontWeight: FontWeight.w600, fontFamily: 'Poppins'))]))));
+          }).toList()),
+        ])),
+        const SizedBox(height: 20), _sec('System Control'),
+        _row(icon: Icons.notifications_active_rounded, iconColor: AppColors.orange, title: 'Push Notifications', subtitle: _notifs?'Enabled':'Disabled', trailing: Switch(value: _notifs, activeColor: AppColors.orange, onChanged: (v) => setState(() => _notifs = v))),
+        _row(icon: Icons.security_rounded, iconColor: AppColors.red, title: 'Two-Factor Auth', subtitle: _twoFactor?'Active — secured':'Not enabled', trailing: Switch(value: _twoFactor, activeColor: AppColors.greenLight, onChanged: (v) => setState(() => _twoFactor = v))),
+        _row(icon: Icons.storage_rounded, iconColor: AppColors.grey, title: 'Database Backup', subtitle: 'Last sync: 2h ago', trailing: const Icon(Icons.chevron_right, color: AppColors.grey),
+            onTap: () => ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Triggering backup…'), backgroundColor: AppColors.green))),
+        const SizedBox(height: 20), _sec('Organization'),
+        _row(icon: Icons.domain_rounded, iconColor: AppColors.greenLight, title: 'University Details', subtitle: 'Constantine 2 · IFA', trailing: const Icon(Icons.chevron_right, color: AppColors.grey), onTap: () {}),
+        _row(icon: Icons.admin_panel_settings_rounded, iconColor: AppColors.gold, title: 'Role Permissions', subtitle: 'Edit access levels', trailing: const Icon(Icons.chevron_right, color: AppColors.grey), onTap: () {}),
+        const SizedBox(height: 28),
+        Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.red.withOpacity(0.06), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.red.withOpacity(0.3))),
+            child: Row(children: [const Icon(Icons.logout_rounded, color: AppColors.red), const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Sign Out', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w700, fontFamily: 'Poppins')), const Text('Return to login', style: TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))])),
+              TextButton(onPressed: () => Navigator.pushReplacementNamed(ctx, '/login'), child: const Text('Logout', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold, fontFamily: 'Poppins')))])),
+        const SizedBox(height: 28), Center(child: Text('Pro-Link v1.0.4', style: TextStyle(color: AppColors.grey.withOpacity(0.4), fontSize: 12, fontFamily: 'Poppins'))), const SizedBox(height: 20),
+      ]));
+
+  Widget _sec(String t) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 2), child: Text(t.toUpperCase(), style: const TextStyle(color: AppColors.greenLight, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.4, fontFamily: 'Poppins')));
+
+  Widget _row({required IconData icon, required Color iconColor, required String title, required String subtitle, required Widget trailing, VoidCallback? onTap}) =>
+      GestureDetector(onTap: onTap, child: Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.border)),
+          child: Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: iconColor.withOpacity(0.12), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)), const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Poppins')), Text(subtitle, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontFamily: 'Poppins'))])), trailing])));
+
+  void _picker(BuildContext ctx, String title, List<String> items, String selected, ValueChanged<String> onSelect) =>
+      showModalBottomSheet(context: ctx, backgroundColor: AppColors.surface, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          builder: (_) => Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Padding(padding: const EdgeInsets.only(bottom: 12, left: 20, right: 20), child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Poppins'))),
+            const Divider(color: AppColors.border, height: 1),
+            ...items.map((item) { final sel = item == selected; return ListTile(
+                title: Text(item, style: TextStyle(color: sel?AppColors.greenLight:Colors.white, fontFamily: 'Poppins', fontWeight: sel?FontWeight.w700:FontWeight.normal)),
+                trailing: sel ? const Icon(Icons.check_rounded, color: AppColors.greenLight) : null,
+                onTap: () { onSelect(item); Navigator.pop(ctx); });})
+          ])));
 }
