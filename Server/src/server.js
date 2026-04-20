@@ -8,6 +8,26 @@ require('dotenv').config();
 
 const app = express();
 
+const cors = require('cors');
+
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: process.env.CORS_CREDENTIALS === 'true',
+};
+
 
 
 // Connect to database
@@ -15,6 +35,9 @@ connectDB();
 
 
 // Middleware
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(express.json());  // This middleware parses incoming JSON data from the request body and converts it into a JavaScript object.
 // It is important When a client sends data we can access that data like:  req.body.name
 
