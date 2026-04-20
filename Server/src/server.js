@@ -36,7 +36,9 @@ connectDB();
 
 // Middleware
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options('(.*)', cors(corsOptions));
+
+
 
 app.use(express.json());  // This middleware parses incoming JSON data from the request body and converts it into a JavaScript object.
 // It is important When a client sends data we can access that data like:  req.body.name
