@@ -7,6 +7,9 @@ import 'theme.dart';
 import 'admin_dashboard.dart';
 import 'mentor_dashboard.dart';
 import 'intern_dashboard.dart';
+import 'models/department_model.dart';
+import 'services/admin_department_service.dart';
+import 'services/api_exception.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Entry point
@@ -1124,217 +1127,499 @@ class ManageDepartmentsPage extends StatefulWidget {
 }
 
 class _ManageDepartmentsPageState extends State<ManageDepartmentsPage> {
-  // ── DATA STRUCTURE: The "Hierarchy" Way ──
-  List<Map<String, dynamic>> departments = [
-    {
-      "name": "AI Department",
-      "icon": Icons.psychology,
-      "specialties": [
-        {
-          "name": "Machine Learning",
-          "classes": [
-            {
-              "year": "Master 1",
-              "groups": [
-                {"id": "Group 01", "teacher": "Dr. Amine Rahmani", "room": "Lab 05"},
-                {"id": "Group 02", "teacher": "Prof. Sarah Zenati", "room": "Room 12"},
-              ]
-            }
-          ]
-        },
-      ]
-    },
-    {
-      "name": "Software Engineering",
-      "icon": Icons.code,
-      "specialties": [
-        {
-          "name": "Web Development",
-          "classes": [
-            {
-              "year": "License 3",
-              "groups": [
-                {"id": "Group A", "teacher": "M. Karim Loukil", "room": "Lab 01"},
-              ]
-            }
-          ]
-        }
-      ]
+  final AdminDepartmentService _departmentService = AdminDepartmentService();
+
+  bool _isLoading = true;
+  String? _error;
+  List<DepartmentModel> _departments = [];
+  String _searchTerm = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDepartments();
+  }
+
+  Future<void> _loadDepartments() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final items = await _departmentService.fetchDepartments();
+      if (!mounted) return;
+      setState(() => _departments = items);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Unable to load departments.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-  ];
+  }
+
+  List<DepartmentModel> get _filteredDepartments {
+    final term = _searchTerm.trim().toLowerCase();
+    if (term.isEmpty) {
+      return _departments;
+    }
+
+    return _departments.where((dept) {
+      return dept.name.toLowerCase().contains(term) ||
+          dept.code.toLowerCase().contains(term) ||
+          (dept.description ?? '').toLowerCase().contains(term);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text("University Structure"),
+        title: const Text("Departments"),
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_business, color: AppColors.greenLight),
-            onPressed: () => _showAddDeptDialog(),
+            onPressed: _showCreateDepartmentSheet,
           )
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: TextField(
+              onChanged: (value) => setState(() => _searchTerm = value),
+              style: const TextStyle(color: Colors.white),
+              decoration: proLinkInputDecoration(
+                label: "Search Departments",
+                hint: "Name, code, or description",
+                icon: Icons.search,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: _buildBody(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.greenLight));
+    }
+
+    if (_error != null) {
+      return _buildErrorState(_error!);
+    }
+
+    final departments = _filteredDepartments;
+    if (departments.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return RefreshIndicator(
+      color: AppColors.greenLight,
+      onRefresh: _loadDepartments,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         itemCount: departments.length,
-        itemBuilder: (context, index) {
-          final dept = departments[index];
-          return _buildDepartmentNode(dept);
+        itemBuilder: (context, index) => _buildDepartmentCard(departments[index]),
+      ),
+    );
+  }
+
+  Widget _buildDepartmentCard(DepartmentModel dept) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.business, color: AppColors.greenLight, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(dept.name,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Text(dept.code,
+                        style: const TextStyle(color: AppColors.grey, fontSize: 12, letterSpacing: 1.2)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: dept.isActive ? AppColors.greenLight.withOpacity(0.18) : AppColors.orange.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: dept.isActive ? AppColors.greenLight.withOpacity(0.4) : AppColors.orange.withOpacity(0.4),
+                  ),
+                ),
+                child: Text(
+                  dept.isActive ? 'Active' : 'Inactive',
+                  style: TextStyle(
+                    color: dept.isActive ? AppColors.greenLight : AppColors.orange,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if ((dept.description ?? '').isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              dept.description!,
+              style: const TextStyle(color: AppColors.grey, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                dept.createdAt == null || dept.createdAt!.isEmpty ? 'Created: -' : 'Created: ${dept.createdAt}',
+                style: const TextStyle(color: AppColors.greyDark, fontSize: 10),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.edit_note, color: AppColors.greenLight),
+                onPressed: () => _showEditDepartmentSheet(dept),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: AppColors.red),
+                onPressed: () => _confirmDelete(dept),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.red, size: 40),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: AppColors.white), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadDepartments,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.green),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.business_outlined, color: AppColors.grey, size: 38),
+          const SizedBox(height: 12),
+          const Text('No departments yet', style: TextStyle(color: AppColors.white)),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _showCreateDepartmentSheet,
+            icon: const Icon(Icons.add, color: AppColors.greenLight),
+            label: const Text('Create department', style: TextStyle(color: AppColors.greenLight)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreateDepartmentSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => _DepartmentFormSheet(
+        parentContext: this.context,
+        service: _departmentService,
+        onCreated: (created) => setState(() => _departments = [created, ..._departments]),
+      ),
+    );
+  }
+
+  void _showEditDepartmentSheet(DepartmentModel dept) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => _DepartmentFormSheet(
+        parentContext: this.context,
+        service: _departmentService,
+        department: dept,
+        onUpdated: (updated) {
+          setState(() {
+            _departments = _departments.map((item) => item.id == dept.id ? updated : item).toList();
+          });
         },
       ),
     );
   }
 
-  // ── UI WIDGET: THE DEPARTMENT CARD (EXPANDABLE) ──
-  Widget _buildDepartmentNode(Map<String, dynamic> dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ExpansionTile(
-        leading: Icon(dept['icon'], color: AppColors.greenLight),
-        title: Text(dept['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Text("${dept['specialties'].length} Specialties", style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        iconColor: AppColors.greenLight,
-        collapsedIconColor: Colors.white,
-        children: [
-          const Divider(color: AppColors.border, height: 1),
-          // Loop through Specialties
-          ...(dept['specialties'] as List).map((spec) => _buildSpecialtyNode(spec)),
-          // Add Specialty Button
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text("Add Specialty"),
-          )
-        ],
-      ),
-    );
-  }
-
-  // ── UI WIDGET: THE SPECIALTY (SUB-LEVEL) ──
-  Widget _buildSpecialtyNode(Map<String, dynamic> spec) {
-    return ExpansionTile(
-      title: Text(spec['name'], style: const TextStyle(color: AppColors.gold, fontSize: 14, fontWeight: FontWeight.w600)),
-      children: [
-        ...(spec['classes'] as List).map((cls) => _buildClassNode(cls)),
-      ],
-    );
-  }
-
-  // ── UI WIDGET: THE CLASS & GROUPS (DEEP-LEVEL) ──
-  Widget _buildClassNode(Map<String, dynamic> cls) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Year: ${cls['year']}", style: const TextStyle(color: AppColors.greenLight, fontSize: 12)),
-          const SizedBox(height: 8),
-          // Grid or List of Groups
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: cls['groups'].length,
-            itemBuilder: (context, index) {
-              final group = cls['groups'][index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.groups_outlined, color: AppColors.grey, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(group['id'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          Text("Teacher: ${group['teacher']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit_note, color: Colors.blue, size: 20),
-                      onPressed: () => _editGroup(group),
-                    )
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── EDIT LOGIC ──
-  void _editGroup(Map group) {
-    TextEditingController teacherEdit = TextEditingController(text: group['teacher']);
+  void _confirmDelete(DepartmentModel dept) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text("Edit ${group['id']}"),
-        content: TextField(
-          controller: teacherEdit,
-          style: const TextStyle(color: Colors.white),
-          decoration: proLinkInputDecoration(
-              label: "Assign Teacher",
-              hint: "Name...",
-              icon: Icons.person),
+        title: const Text('Delete Department', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Delete ${dept.name}? This action cannot be undone.',
+          style: const TextStyle(color: AppColors.grey),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              setState(() => group['teacher'] = teacherEdit.text);
+            onPressed: () async {
               Navigator.pop(context);
+              try {
+                await _departmentService.deleteDepartment(dept.id);
+                if (!mounted) return;
+                setState(() => _departments = _departments.where((item) => item.id != dept.id).toList());
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Department deleted successfully.')),
+                );
+              } on ApiException catch (e) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text(e.message)),
+                );
+              } catch (_) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Unable to delete department.')),
+                );
+              }
             },
-            child: const Text("Update"),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
   }
+}
 
-  // ── ADD NEW DEPT DIALOG ──
-  void _showAddDeptDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bg,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+class _DepartmentFormSheet extends StatefulWidget {
+  final BuildContext parentContext;
+  final AdminDepartmentService service;
+  final DepartmentModel? department;
+  final ValueChanged<DepartmentModel>? onCreated;
+  final ValueChanged<DepartmentModel>? onUpdated;
+
+  const _DepartmentFormSheet({
+    required this.parentContext,
+    required this.service,
+    this.department,
+    this.onCreated,
+    this.onUpdated,
+  });
+
+  @override
+  State<_DepartmentFormSheet> createState() => _DepartmentFormSheetState();
+}
+
+class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late String _name;
+  late String _code;
+  late String _description;
+  late bool _isActive;
+  bool _isSaving = false;
+  String? _submitError;
+
+  bool get _isEdit => widget.department != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final dept = widget.department;
+    _name = dept?.name ?? '';
+    _code = dept?.code ?? '';
+    _description = dept?.description ?? '';
+    _isActive = dept?.isActive ?? true;
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSaving = true;
+      _submitError = null;
+    });
+
+    try {
+      final name = _name.trim();
+      final code = _code.trim();
+      final description = _description.trim();
+
+      if (_isEdit) {
+        final updated = await widget.service.updateDepartment(
+          id: widget.department!.id,
+          name: name,
+          code: code,
+          description: description.isEmpty ? null : description,
+          isActive: _isActive,
+        );
+        widget.onUpdated?.call(updated);
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+          const SnackBar(content: Text('Department updated successfully.')),
+        );
+      } else {
+        final created = await widget.service.createDepartment(
+          name: name,
+          code: code,
+          description: description.isEmpty ? null : description,
+        );
+        widget.onCreated?.call(created);
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+          const SnackBar(content: Text('Department created successfully.')),
+        );
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _submitError = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitError = _isEdit ? 'Unable to update department.' : 'Unable to create department.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 20,
+        right: 20,
+        top: 20,
+      ),
+      child: Form(
+        key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Create New Faculty/Dept", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(_isEdit ? 'Edit Department' : 'Create Department',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            TextField(
+            TextFormField(
+              initialValue: _name,
               style: const TextStyle(color: Colors.white),
               decoration: proLinkInputDecoration(
-                label: "Search Departments",
-                hint: "Name...",
-                icon: Icons.search,
+                label: 'Name',
+                hint: 'Department name',
+                icon: Icons.business,
               ),
-            ),            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50)),
-              child: const Text("Create Structure"),
+              validator: (value) => value == null || value.trim().isEmpty ? 'Name is required' : null,
+              onChanged: (value) => _name = value,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: _code,
+              style: const TextStyle(color: Colors.white),
+              decoration: proLinkInputDecoration(
+                label: 'Code',
+                hint: _isEdit ? 'Short code' : 'Short code (e.g. DEV)',
+                icon: Icons.tag,
+              ),
+              validator: (value) => value == null || value.trim().isEmpty ? 'Code is required' : null,
+              onChanged: (value) => _code = value,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: _description,
+              style: const TextStyle(color: Colors.white),
+              decoration: proLinkInputDecoration(
+                label: 'Description',
+                hint: 'Optional description',
+                icon: Icons.notes,
+              ),
+              maxLines: 3,
+              onChanged: (value) => _description = value,
+            ),
+            if (_isEdit) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Switch(
+                    value: _isActive,
+                    activeColor: AppColors.greenLight,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_isActive ? 'Active' : 'Inactive',
+                      style: const TextStyle(color: AppColors.grey, fontSize: 12)),
+                ],
+              ),
+            ],
+            if (_submitError != null) ...[
+              const SizedBox(height: 12),
+              Text(_submitError!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
+            ],
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _isSaving ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.green,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : Text(_isEdit ? 'Save Changes' : 'Create'),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
