@@ -24,8 +24,6 @@ const internSchema = new mongoose.Schema({
   },
   work_id: {
     type: Number,
-    unique: true,
-    sparse: true,
     default: null
   },
   id_photo_url: {
@@ -42,6 +40,8 @@ const internSchema = new mongoose.Schema({
 
 internSchema.index({ mentor_id: 1 });
 internSchema.index({ department_id: 1 });
+// Partial unique index: only enforce uniqueness on non-null work_id values
+internSchema.index({ work_id: 1 }, { unique: true, sparse: true, partialFilterExpression: { work_id: { $ne: null } } });
 
 const Intern = User.discriminator('Intern', internSchema, 'Student');
 
