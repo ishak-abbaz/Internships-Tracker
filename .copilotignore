@@ -1,0 +1,5 @@
+# Block AI context/indexing for secrets and environment files
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
