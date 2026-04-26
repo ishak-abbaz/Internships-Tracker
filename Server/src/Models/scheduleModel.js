@@ -7,51 +7,43 @@ const scheduleSchema = new mongoose.Schema({
     trim: true,
     maxlength: 255
   },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: 2000,
+    default: null
+  },
   department_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department',
     default: null
   },
-  intern_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
-  mentor_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
-  weekday: {
-    type: String,
-    enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    default: null
-  },
-  schedule_date: {
-    type: Date,
-    default: null
-  },
-  start_time: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  end_time: {
-    type: String,
-    required: true,
-    trim: true
-  },
-
-  notes: {
+  department_code: {
     type: String,
     trim: true,
-    maxlength: 1000,
+    maxlength: 20,
     default: null
+  },
+  file_url: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  file_public_id: {
+    type: String,
+    default: null,
+    trim: true
   },
   uploaded_by_admin_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true,
     default: null
+  },
+  version: {
+    type: Number,
+    default: 1,
+    min: 1
   },
   is_active: {
     type: Boolean,
@@ -61,9 +53,7 @@ const scheduleSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-scheduleSchema.index({ department_id: 1, schedule_date: 1 });
-scheduleSchema.index({ intern_id: 1, schedule_date: 1 });
-scheduleSchema.index({ mentor_id: 1, schedule_date: 1 });
+scheduleSchema.index({ department_id: 1, is_active: 1 });
 
 const Schedule = mongoose.model('Schedule', scheduleSchema);
 

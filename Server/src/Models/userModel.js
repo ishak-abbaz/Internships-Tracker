@@ -55,11 +55,6 @@ const user = new mongoose.Schema({
 // Indexes for query optimization
 user.index({ user_role: 1 }); // Index for role-based queries
 user.index({ account_status: 1 }); // Index for registration approval workflow
-user.index({ is_email_verified: 1 }); // Index for filtering verified users
-user.index({ google_id: 1 }); // Index for Google OAuth lookups
-user.index({ email_verification_token: 1 }); // Index for token verification
-user.index({ reset_Password_Token: 1 }); // Index for password reset
-
 // Create Model
 const User = mongoose.model('User', user);
 

@@ -154,16 +154,19 @@ exports.deletePolicyHandbook = async (req, res) => {
 
 exports.createOfficeSchedule = async (req, res) => {
   try {
-    const { title, department_id, intern_id, mentor_id,
-            weekday, schedule_date, start_time, end_time } = req.body;
+    const { title, description, department_code, version } = req.body;
 
-    if (!title || !start_time || !end_time)
-      return res.status(400).json({ msg: 'title, start_time and end_time are required' });
+    if (!title)
+      return res.status(400).json({ msg: 'Title is required' });
     if (!req.file)
       return res.status(400).json({ msg: 'PDF file is required' });
 
-    for (const [key, val] of [['department_id', department_id], ['intern_id', intern_id], ['mentor_id', mentor_id]]) {
-      if (val && !isValidId(val)) return res.status(400).json({ msg: `Invalid ${key}` });
+    let department_id = null;
+    if (department_code) {
+      const department = await Department.findOne({ code: department_code.trim().toUpperCase() });
+      if (!department)
+        return res.status(400).json({ msg: 'Department code not found' });
+      department_id = department._id;
     }
 
     const { secure_url, public_id } = await uploadToCloudinary(
@@ -173,15 +176,13 @@ exports.createOfficeSchedule = async (req, res) => {
 
     const schedule = await Schedule.create({
       title: title.trim(),
-      department_id: department_id || null,
-      intern_id:     intern_id     || null,
-      mentor_id:     mentor_id     || null,
-      weekday:       weekday       || null,
-      schedule_date: schedule_date || null,
-      start_time: start_time.trim(),
-      end_time:   end_time.trim(),
+      description: description ?? null,
+      department_id: department_id,
+      department_code: department_code ? department_code.trim().toUpperCase() : null,
+      version: version || 1,
       file_url:       secure_url,
       file_public_id: public_id,
+      uploaded_by_admin_id: req.user._id,
     });
 
     res.status(201).json({ msg: 'Office schedule uploaded successfully', schedule });
@@ -218,28 +219,29 @@ exports.updateOfficeSchedule = async (req, res) => {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(400).json({ msg: 'Invalid schedule id' });
 
-    const { title, department_id, intern_id, mentor_id,
-            weekday, schedule_date, start_time, end_time } = req.body;
+    const { title, description, department_code, version } = req.body;
 
-    const hasChanges = title || department_id || intern_id || mentor_id ||
-                       weekday || schedule_date || start_time || end_time || req.file;
+    const hasChanges = title || description || department_code || version || req.file;
     if (!hasChanges) return res.status(400).json({ msg: 'Provide at least one field to update' });
 
-    for (const [key, val] of [['department_id', department_id], ['intern_id', intern_id], ['mentor_id', mentor_id]]) {
-      if (val && !isValidId(val)) return res.status(400).json({ msg: `Invalid ${key}` });
+    let department_id = null;
+    if (department_code) {
+      const department = await Department.findOne({ code: department_code.trim().toUpperCase() });
+      if (!department)
+        return res.status(400).json({ msg: 'Department code not found' });
+      department_id = department._id;
     }
 
     const schedule = await Schedule.findById(id);
     if (!schedule) return res.status(404).json({ msg: 'Schedule not found' });
 
-    if (title         !== undefined) schedule.title         = title.trim();
-    if (department_id !== undefined) schedule.department_id = department_id || null;
-    if (intern_id     !== undefined) schedule.intern_id     = intern_id     || null;
-    if (mentor_id     !== undefined) schedule.mentor_id     = mentor_id     || null;
-    if (weekday       !== undefined) schedule.weekday       = weekday       || null;
-    if (schedule_date !== undefined) schedule.schedule_date = schedule_date || null;
-    if (start_time    !== undefined) schedule.start_time    = start_time.trim();
-    if (end_time      !== undefined) schedule.end_time      = end_time.trim();
+    if (title !== undefined) schedule.title = title.trim();
+    if (description !== undefined) schedule.description = description;
+    if (department_code !== undefined) {
+      schedule.department_id = department_id;
+      schedule.department_code = department_code ? department_code.trim().toUpperCase() : null;
+    }
+    if (version !== undefined) schedule.version = version;
 
     if (req.file) {
       const { secure_url, public_id } = await uploadToCloudinary(

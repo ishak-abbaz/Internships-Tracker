@@ -24,6 +24,8 @@ const internSchema = new mongoose.Schema({
   },
   work_id: {
     type: Number,
+    unique: true,
+    sparse: true,
     default: null
   },
   id_photo_url: {
