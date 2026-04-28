@@ -36,7 +36,6 @@ connectDB();
 
 // Middleware
 app.use(cors(corsOptions));
-app.options('/:path(*)', cors(corsOptions));
 
 
 

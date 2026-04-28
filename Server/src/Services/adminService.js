@@ -54,7 +54,7 @@ const validateObjectId = (id, entityName = 'User') => {
   }
 };
 
-const createUser = async ({ full_name, email, password, user_role = 'Student', department_id = null, specialization = null, admin_scope = null }) => {
+const createUser = async ({ full_name, email, password, user_role = 'Student', department_id = null, mentor_id = null, specialization = null, admin_scope = null }) => {
   
     if (!full_name || !email || !password || !user_role) {
     throw buildError('Please provide all required fields', 400);
@@ -65,6 +65,17 @@ const createUser = async ({ full_name, email, password, user_role = 'Student', d
   }
 
   // Validate role-specific fields
+  if (user_role === 'Student') {
+    // Validate department_id if provided
+    if (department_id && !mongoose.Types.ObjectId.isValid(department_id)) {
+      throw buildError('Invalid department_id', 400);
+    }
+    // Validate mentor_id if provided
+    if (mentor_id && !mongoose.Types.ObjectId.isValid(mentor_id)) {
+      throw buildError('Invalid mentor_id', 400);
+    }
+  }
+
   if (user_role === 'Mentor') {
     if (!department_id || !specialization) {
       throw buildError('Mentor requires department_id and specialization', 400);
@@ -104,6 +115,11 @@ const createUser = async ({ full_name, email, password, user_role = 'Student', d
   };
 
   // Add role-specific fields
+  if (user_role === 'Student') {
+    if (department_id) newUserData.department_id = department_id;
+    if (mentor_id) newUserData.mentor_id = mentor_id;
+  }
+
   if (user_role === 'Mentor') {
     newUserData.department_id = department_id;
     newUserData.specialization = specialization;
@@ -181,6 +197,16 @@ const updateInternById = async (internId, payload = {}) => {
   const intern = await User.findOne({ _id: internId, user_role: "Student" });
   if (!intern) {
     throw buildError('Intern not found', 404);
+  }
+
+  // Validate mentor_id if provided
+  if (payload.mentor_id && !mongoose.Types.ObjectId.isValid(payload.mentor_id)) {
+    throw buildError('Invalid mentor_id', 400);
+  }
+
+  // Validate department_id if provided
+  if (payload.department_id && !mongoose.Types.ObjectId.isValid(payload.department_id)) {
+    throw buildError('Invalid department_id', 400);
   }
 
   const updatableFields = [

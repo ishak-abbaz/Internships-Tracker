@@ -22,24 +22,6 @@ const generateNextWorkId = async () => {
   return candidate;
 };
 
-const generateNextWorkId = async () => {
-  const START_WORK_ID = 100001;
-
-  const lastInternWithWorkId = await Intern.findOne({ work_id: { $ne: null } })
-    .sort({ work_id: -1 })
-    .select('work_id');
-
-  let candidate = lastInternWithWorkId?.work_id
-    ? Number(lastInternWithWorkId.work_id) + 1
-    : START_WORK_ID;
-
-  while (await Intern.exists({ work_id: candidate })) {
-    candidate += 1;
-  }
-
-  return candidate;
-};
-
 exports.listPendingRegistrations = async (req, res) => {
   try {
     const pendingUsers = await User.find({
@@ -106,7 +88,7 @@ exports.listPendingInterns = async (req, res) => {
  */
 exports.createUser = async (req, res) => {
   try {
-    const { full_name, email, password, phone_number, user_role, department_id, specialization, admin_scope } = req.body;
+    const { full_name, email, password, phone_number, user_role, department_id, mentor_id, specialization, admin_scope } = req.body;
     const user = await adminService.createUser({
       full_name,
       email,
@@ -114,6 +96,7 @@ exports.createUser = async (req, res) => {
       phone_number,
       user_role,
       department_id,
+      mentor_id,
       specialization,
       admin_scope
     });
