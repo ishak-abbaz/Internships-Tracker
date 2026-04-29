@@ -122,12 +122,13 @@ exports.createUser = async (req, res) => {
  */
 exports.listInterns = async (req, res) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, include } = req.query;
 
     const result = await adminService.listInterns({
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 10,
-      search: search || ''
+      search: search || '',
+      include: include || ''
     });
 
     res.status(200).json({
@@ -153,8 +154,9 @@ exports.listInterns = async (req, res) => {
 exports.getInternById = async (req, res) => {
   try {
     const { internId } = req.params;
+    const { include } = req.query;
 
-    const intern = await adminService.getInternById(internId);
+    const intern = await adminService.getInternById(internId, include || '');
 
     res.status(200).json({
       success: true,
@@ -333,12 +335,13 @@ exports.rejectIntern = async (req, res) => {
  */
 exports.listMentors = async (req, res) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, include } = req.query;
 
     const result = await adminService.listMentors({
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 10,
-      search: search || ''
+      search: search || '',
+      include: include || ''
     });
 
     res.status(200).json({
@@ -364,8 +367,9 @@ exports.listMentors = async (req, res) => {
 exports.getMentor = async (req, res) => {
   try {
     const { mentorId } = req.params;
+    const { include } = req.query;
 
-    const mentor = await adminService.getMentorById(mentorId);
+    const mentor = await adminService.getMentorById(mentorId, include || '');
 
     res.status(200).json({
       success: true,

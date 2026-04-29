@@ -147,7 +147,7 @@ const createUser = async ({ full_name, email, password, user_role = 'Student', d
   return sanitizeUser(newUser);
 };
 
-const listInterns = async ({ page = 1, limit = 10, search = '' } = {}) => {
+const listInterns = async ({ page = 1, limit = 10, search = '', include = '' } = {}) => {
   const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
 
@@ -161,11 +161,24 @@ const listInterns = async ({ page = 1, limit = 10, search = '' } = {}) => {
     ];
   }
 
+  // Parse include parameter to determine what to populate
+  const includeFields = include ? String(include).split(',').map(f => f.trim()).filter(f => f) : [];
+  
+  let userQuery = User.find(query)
+    .sort({ created_at: -1 })
+    .skip((safePage - 1) * safeLimit)
+    .limit(safeLimit);
+
+  // Apply conditional population
+  if (includeFields.includes('department')) {
+    userQuery = userQuery.populate('department_id', 'name code _id');
+  }
+  if (includeFields.includes('mentor')) {
+    userQuery = userQuery.populate('mentor_id', 'full_name email _id');
+  }
+
   const [interns, total] = await Promise.all([
-    User.find(query)
-      .sort({ created_at: -1 })
-      .skip((safePage - 1) * safeLimit)
-      .limit(safeLimit),
+    userQuery,
     User.countDocuments(query)
   ]);
 
@@ -180,10 +193,23 @@ const listInterns = async ({ page = 1, limit = 10, search = '' } = {}) => {
   };
 };
 
-const getInternById = async (internId) => {
+const getInternById = async (internId, include = '') => {
   validateObjectId(internId, 'Intern');
 
-  const intern = await User.findOne({ _id: internId, user_role: "Student" });
+  // Parse include parameter to determine what to populate
+  const includeFields = include ? String(include).split(',').map(f => f.trim()).filter(f => f) : [];
+
+  let query = User.findOne({ _id: internId, user_role: "Student" });
+
+  // Apply conditional population
+  if (includeFields.includes('department')) {
+    query = query.populate('department_id', 'name code _id');
+  }
+  if (includeFields.includes('mentor')) {
+    query = query.populate('mentor_id', 'full_name email _id');
+  }
+
+  const intern = await query;
   if (!intern) {
     throw buildError('Intern not found', 404);
   }
@@ -259,7 +285,7 @@ const deleteInternById = async (internId) => {
   return sanitizeUser(intern);
 };
 
-const listMentors = async ({ page = 1, limit = 10, search = '' } = {}) => {
+const listMentors = async ({ page = 1, limit = 10, search = '', include = '' } = {}) => {
   const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
 
@@ -273,11 +299,21 @@ const listMentors = async ({ page = 1, limit = 10, search = '' } = {}) => {
     ];
   }
 
+  // Parse include parameter to determine what to populate
+  const includeFields = include ? String(include).split(',').map(f => f.trim()).filter(f => f) : [];
+  
+  let userQuery = User.find(query)
+    .sort({ created_at: -1 })
+    .skip((safePage - 1) * safeLimit)
+    .limit(safeLimit);
+
+  // Apply conditional population
+  if (includeFields.includes('department')) {
+    userQuery = userQuery.populate('department_id', 'name code _id');
+  }
+
   const [mentors, total] = await Promise.all([
-    User.find(query)
-      .sort({ created_at: -1 })
-      .skip((safePage - 1) * safeLimit)
-      .limit(safeLimit),
+    userQuery,
     User.countDocuments(query)
   ]);
 
@@ -292,10 +328,20 @@ const listMentors = async ({ page = 1, limit = 10, search = '' } = {}) => {
   };
 };
 
-const getMentorById = async (mentorId) => {
+const getMentorById = async (mentorId, include = '') => {
   validateObjectId(mentorId, 'Mentor');
 
-  const mentor = await User.findOne({ _id: mentorId, user_role: "Mentor" });
+  // Parse include parameter to determine what to populate
+  const includeFields = include ? String(include).split(',').map(f => f.trim()).filter(f => f) : [];
+
+  let query = User.findOne({ _id: mentorId, user_role: "Mentor" });
+
+  // Apply conditional population
+  if (includeFields.includes('department')) {
+    query = query.populate('department_id', 'name code _id');
+  }
+
+  const mentor = await query;
   if (!mentor) {
     throw buildError('Mentor not found', 404);
   }
