@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Readable } = require('stream');
 const cloudinary = require('../Config/cloudinary');
 const Intern = require('../Models/internModel');
-const Policy = require('../Models/policyModel');
+const TrainingModule = require('../Models/trainingModuleModel');
 const Schedule = require('../Models/scheduleModel');
 const Evaluation = require('../Models/evaluationModel');
 const InternAssignment = require('../Models/internAssignmentModel');
@@ -32,19 +32,32 @@ const deleteFromCloudinary = async (publicId) => {
 const getInternContext = async (internId) => {
 	const [intern, assignment] = await Promise.all([
 		Intern.findById(internId)
-			.select('department_id mentor_id work_id id_photo_url id_photo_public_id account_status is_validated_by_admin'),
+			.select('department_id mentor_id work_id id_photo_url id_photo_public_id account_status is_validated_by_admin')
+			.populate('department_id', 'name code'),
 		InternAssignment.findOne({ intern_id: internId })
 			.populate('department_id', 'name code')
 			.populate('mentor_id', 'full_name email')
 			.sort({ created_at: -1 })
 	]);
 
-	if (!intern) return { intern: null, assignment: null, departmentId: null, mentorId: null };
+	if (!intern) {
+		return {
+			intern: null,
+			assignment: null,
+			departmentId: null,
+			departmentCode: null,
+			mentorId: null
+		};
+	}
 
-	const departmentId = assignment?.department_id?._id || intern.department_id || null;
+	const departmentFromAssignment = assignment?.department_id || null;
+	const departmentFromIntern = intern.department_id || null;
+
+	const departmentId = departmentFromAssignment?._id || departmentFromIntern?._id || departmentFromIntern || null;
+	const departmentCode = departmentFromAssignment?.code || departmentFromIntern?.code || null;
 	const mentorId = assignment?.mentor_id?._id || intern.mentor_id || null;
 
-	return { intern, assignment, departmentId, mentorId };
+	return { intern, assignment, departmentId, departmentCode, mentorId };
 };
 
 // ─── Intern Views ───────────────────────────────────────────────────────────
@@ -73,20 +86,19 @@ exports.getMySchedules = async (req, res) => {
 		const internId = req.user?._id;
 		if (!internId || !isValidId(internId)) return res.status(401).json({ msg: 'Unauthorized' });
 
-		const context = await getInternContext(internId);
+		const assignment = await InternAssignment.findOne({ intern_id: internId })
+			.select('department_id')
+			.sort({ created_at: -1 });
 
-		const { departmentId, mentorId } = context;
-
-		const scheduleFilters = [{ intern_id: internId }];
-		if (departmentId) scheduleFilters.push({ department_id: departmentId });
-		if (mentorId) scheduleFilters.push({ mentor_id: mentorId });
+		if (!assignment || !assignment.department_id) {
+			return res.status(404).json({ msg: 'No department assignment found for this intern' });
+		}
 
 		const schedules = await Schedule.find({
 			is_active: { $ne: false },
-			$or: scheduleFilters
+			department_id: assignment.department_id
 		})
 			.populate('department_id', 'name code')
-			.populate('mentor_id', 'full_name email')
 			.sort({ schedule_date: -1, created_at: -1 });
 
 		res.status(200).json({ msg: 'Fetched successfully', count: schedules.length, schedules });
@@ -102,16 +114,14 @@ exports.getMyTrainingModules = async (req, res) => {
 
 		const context = await getInternContext(internId);
 
-		const { departmentId } = context;
+		const { departmentCode } = context;
+		if (!departmentCode) {
+			return res.status(404).json({ msg: 'No department found for this intern' });
+		}
 
-		const departmentFilter = [{ department_id: null }];
-		if (departmentId) departmentFilter.push({ department_id: departmentId });
-
-		// Training modules are currently stored in the Policy collection.
-		const trainingModules = await Policy.find({
-			is_active: { $ne: false },
-			target_role: { $in: ['All', 'student'] },
-			$or: departmentFilter
+		const trainingModules = await TrainingModule.find({
+			is_active: true,
+			department_code: departmentCode.toUpperCase()
 		}).sort({ created_at: -1 });
 
 		res.status(200).json({
@@ -134,23 +144,26 @@ exports.downloadTrainingModuleById = async (req, res) => {
 
 		const context = await getInternContext(internId);
 
-		const { departmentId } = context;
-		const trainingModule = await Policy.findById(moduleId);
+		const { departmentCode } = context;
+		if (!departmentCode) {
+			return res.status(404).json({ msg: 'No department found for this intern' });
+		}
+
+		const trainingModule = await TrainingModule.findById(moduleId);
 		if (!trainingModule) return res.status(404).json({ msg: 'Training module not found' });
 
-		const roleAllowed = trainingModule.target_role === 'All' || trainingModule.target_role === 'student';
-		const departmentAllowed = !trainingModule.department_id ||
-			(departmentId && String(trainingModule.department_id) === String(departmentId));
+		const departmentAllowed =
+			trainingModule.department_code === departmentCode.toUpperCase();
 
-		if (!roleAllowed || !departmentAllowed || trainingModule.is_active === false) {
+		if (!departmentAllowed || trainingModule.is_active === false) {
 			return res.status(403).json({ msg: 'You are not allowed to access this training module' });
 		}
 
-		if (!trainingModule.file_url) {
+		if (!trainingModule.url) {
 			return res.status(404).json({ msg: 'Training module file not found' });
 		}
 
-		return res.redirect(trainingModule.file_url);
+		return res.redirect(trainingModule.url);
 	} catch (err) {
 		res.status(500).json({ msg: 'Failed to download training module', error: err.message });
 	}
@@ -198,6 +211,88 @@ exports.getMyWorkId = async (req, res) => {
 		});
 	} catch (err) {
 		res.status(500).json({ msg: 'Failed to fetch Work ID', error: err.message });
+	}
+};
+
+exports.getMyDepartment = async (req, res) => {
+	try {
+		const internId = req.user?._id;
+		if (!internId || !isValidId(internId)) return res.status(401).json({ msg: 'Unauthorized' });
+
+		const [intern, assignment] = await Promise.all([
+			Intern.findById(internId)
+				.select('department_id')
+				.populate('department_id', 'name code'),
+			InternAssignment.findOne({ intern_id: internId })
+				.populate('department_id', 'name code')
+				.sort({ created_at: -1 })
+		]);
+
+		if (!intern) return res.status(404).json({ msg: 'Intern not found' });
+
+		const department = assignment?.department_id || intern.department_id || null;
+		if (!department) {
+			return res.status(404).json({ msg: 'No department found for this intern' });
+		}
+
+		res.status(200).json({
+			msg: 'Fetched successfully',
+			department: {
+				id: department._id,
+				name: department.name,
+				code: department.code
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ msg: 'Failed to fetch department', error: err.message });
+	}
+};
+
+exports.getMyProfile = async (req, res) => {
+	try {
+		const internId = req.user?._id;
+		if (!internId || !isValidId(internId)) return res.status(401).json({ msg: 'Unauthorized' });
+
+		const [intern, assignment] = await Promise.all([
+			Intern.findById(internId)
+				.select('_id full_name email user_role university_id department_id mentor_id work_id id_photo_url account_status is_validated_by_admin created_at updated_at')
+				.populate('department_id', 'name code')
+				.populate('mentor_id', 'full_name email'),
+			InternAssignment.findOne({ intern_id: internId })
+				.populate('department_id', 'name code')
+				.populate('mentor_id', 'full_name email')
+				.sort({ created_at: -1 })
+		]);
+
+		if (!intern) return res.status(404).json({ msg: 'Intern not found' });
+
+		const department = assignment?.department_id || intern.department_id || null;
+		const mentor = assignment?.mentor_id || intern.mentor_id || null;
+
+		res.status(200).json({
+			msg: 'Fetched successfully',
+			profile: {
+				id: intern._id,
+				full_name: intern.full_name,
+				email: intern.email,
+				user_role: intern.user_role,
+				university_id: intern.university_id || null,
+				work_id: intern.work_id || null,
+				id_photo_url: intern.id_photo_url || null,
+				account_status: intern.account_status,
+				is_validated_by_admin: intern.is_validated_by_admin,
+				created_at: intern.created_at,
+				updated_at: intern.updated_at,
+				department: department
+					? { id: department._id, name: department.name, code: department.code }
+					: null,
+				mentor: mentor
+					? { id: mentor._id, full_name: mentor.full_name, email: mentor.email }
+					: null
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ msg: 'Failed to fetch profile', error: err.message });
 	}
 };
 

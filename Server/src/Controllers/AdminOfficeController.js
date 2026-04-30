@@ -31,7 +31,8 @@ const deleteFromCloudinary = async (publicId) => {
 
 exports.createPolicyHandbook = async (req, res) => {
   try {
-    const { title, description, department_code, target_role, version } = req.body;
+    const { title, department_code, target_role, version } = req.body;
+    const description = req.body.description ?? req.body.Description;
 
     if (!title)     return res.status(400).json({ msg: 'Title is required' });
     if (!req.file)  return res.status(400).json({ msg: 'PDF file is required' });
@@ -60,7 +61,8 @@ exports.createPolicyHandbook = async (req, res) => {
       file_public_id: public_id,
     });
 
-    res.status(201).json({ msg: 'Policy handbook uploaded successfully', policy });
+    console.log('createPolicyHandbook - req.body:', req.body);
+    res.status(201).json({ msg: 'Policy handbook uploaded successfully', policy, debugReceivedDescription: description ?? null });
   } catch (err) {
     res.status(500).json({ msg: 'Failed to upload policy handbook', error: err.message });
   }
@@ -94,7 +96,8 @@ exports.updatePolicyHandbook = async (req, res) => {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(400).json({ msg: 'Invalid policy id' });
 
-    const { title, description, department_code, target_role, version } = req.body;
+    const { title, department_code, target_role, version } = req.body;
+    const description = req.body.description ?? req.body.Description;
     const hasChanges = title || description || department_code || target_role || version || req.file;
     if (!hasChanges) return res.status(400).json({ msg: 'Provide at least one field to update' });
 
@@ -154,7 +157,8 @@ exports.deletePolicyHandbook = async (req, res) => {
 
 exports.createOfficeSchedule = async (req, res) => {
   try {
-    const { title, description, department_code, version } = req.body;
+    const { title, department_code, version } = req.body;
+    const description = req.body.description ?? req.body.Description;
 
     if (!title)
       return res.status(400).json({ msg: 'Title is required' });
@@ -185,7 +189,8 @@ exports.createOfficeSchedule = async (req, res) => {
       uploaded_by_admin_id: req.user._id,
     });
 
-    res.status(201).json({ msg: 'Office schedule uploaded successfully', schedule });
+    console.log('createOfficeSchedule - req.body:', req.body);
+    res.status(201).json({ msg: 'Office schedule uploaded successfully', schedule, debugReceivedDescription: description ?? null });
   } catch (err) {
     res.status(500).json({ msg: 'Failed to upload schedule', error: err.message });
   }
@@ -219,7 +224,8 @@ exports.updateOfficeSchedule = async (req, res) => {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(400).json({ msg: 'Invalid schedule id' });
 
-    const { title, description, department_code, version } = req.body;
+    const { title, department_code, version } = req.body;
+    const description = req.body.description ?? req.body.Description;
 
     const hasChanges = title || description || department_code || version || req.file;
     if (!hasChanges) return res.status(400).json({ msg: 'Provide at least one field to update' });
