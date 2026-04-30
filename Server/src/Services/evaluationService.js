@@ -51,17 +51,9 @@ exports.createEvaluation = async ({ internId, mentorId, weekLabel, overallMark, 
 
     await evaluation.save();
 
-    return {
-      id: evaluation._id,
-      intern_id: evaluation.intern_id,
-      mentor_id: evaluation.mentor_id,
-      week_label: evaluation.week_label,
-      overall_mark: evaluation.overall_mark,
-      feedback: evaluation.feedback,
-      evaluated_at: evaluation.evaluated_at,
-      created_at: evaluation.created_at,
-      updated_at: evaluation.updated_at
-    };
+    return await Evaluation.findById(evaluation._id)
+      .populate('intern_id', 'full_name email')
+      .populate('mentor_id', 'full_name email');
   } catch (error) {
     throw error;
   }
@@ -102,13 +94,22 @@ exports.getEvaluationByName = async (internName, limit = 50, page = 1) => {
             from: 'users',
             localField: 'intern_id',
             foreignField: '_id',
-            as: 'intern'
+            as: 'intern_id'
           }
         },
-        { $unwind: '$intern' },
+        { $unwind: '$intern_id' },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'mentor_id',
+            foreignField: '_id',
+            as: 'mentor_id'
+          }
+        },
+        { $unwind: '$mentor_id' },
         {
           $match: {
-            'intern.full_name': { $regex: internName, $options: 'i' }
+            'intern_id.full_name': { $regex: internName, $options: 'i' }
           }
         },
         { $sort: { evaluated_at: -1 } },
@@ -121,13 +122,13 @@ exports.getEvaluationByName = async (internName, limit = 50, page = 1) => {
             from: 'users',
             localField: 'intern_id',
             foreignField: '_id',
-            as: 'intern'
+            as: 'intern_id'
           }
         },
-        { $unwind: '$intern' },
+        { $unwind: '$intern_id' },
         {
           $match: {
-            'intern.full_name': { $regex: internName, $options: 'i' }
+            'intern_id.full_name': { $regex: internName, $options: 'i' }
           }
         },
         { $count: 'total' }
@@ -163,6 +164,7 @@ exports.getInternEvaluations = async (internId, limit = 50, page = 1) => {
 
     const [evaluations, total] = await Promise.all([
       Evaluation.find({ intern_id: internId })
+        .populate('intern_id', 'full_name email')
         .populate('mentor_id', 'full_name email')
         .sort({ evaluated_at: -1 })
         .limit(limit)
@@ -198,6 +200,7 @@ exports.getMentorEvaluations = async (mentorId, limit = 50, page = 1) => {
     const [evaluations, total] = await Promise.all([
       Evaluation.find({ mentor_id: mentorId })
         .populate('intern_id', 'full_name email')
+        .populate('mentor_id', 'full_name email')
         .sort({ evaluated_at: -1 })
         .limit(limit)
         .skip(skip),
@@ -259,7 +262,9 @@ exports.updateEvaluation = async (evaluationId, { weekLabel, overallMark, feedba
       evaluationId,
       updateData,
       { new: true, runValidators: true }
-    );
+    )
+    .populate('intern_id', 'full_name email')
+    .populate('mentor_id', 'full_name email');
 
     if (!evaluation) {
       throw buildError('Evaluation record not found', 404);
