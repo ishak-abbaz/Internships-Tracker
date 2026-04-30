@@ -6,9 +6,14 @@ class ApiConfig {
   static const String register = '/auth/register';
 
   // Admin
+  static const String adminUsers = '/admin/users';
   static const String adminInterns = '/admin/interns';
+  static String adminInternsById(String id) => '/admin/interns/$id';
+  static String adminInternsByIdApprove(String id) => '/admin/interns/$id/approve';
+  static String adminInternsByIdReject(String id) => '/admin/interns/$id/reject';
   static const String adminPendingInterns = '/admin/interns/pending';
   static const String adminMentors = '/admin/mentors';
+  static String adminMentorsById(String id) => '/admin/mentors/$id';
   static const String adminDepartmentsList = '/admin/departments/getAlldep';
   static const String adminDepartmentsCreate = '/admin/departments/createdep';
   static String adminDepartmentById(String id) => '/admin/departments/$id';
@@ -19,6 +24,9 @@ class ApiConfig {
   // Mentor
   static const String mentorAttendance = '/mentors/attendance';
   static const String mentorTrainingModules = '/mentors/training-modules';
+
+  // Evaluations & Assignments
+  static const String evaluations = '/evaluations';
 
   // Intern
   static const String internAssignment = '/intern/assignment';

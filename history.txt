@@ -1,0 +1,1000 @@
+  986  ping 10.85.8.1
+  987  ping 10.0.8.1
+  988  ping 10.0.0.1
+  989  clear
+  990  ping 10.0.13.100
+  991  10.0.13.11
+  992  ping 10.0.13.1
+  993  ping 10.0.13.2
+  994  ping 10.0.13.3
+  995  ping 10.0.13.4
+  996  ping 10.0.13.5
+  997  ping 10.0.13.6
+  998  ping 10.0.13.7
+  999  ping 10.0.13.8
+ 1000  ping 10.0.13.9
+ 1001  ping 10.0.13.10
+ 1002  clear
+ 1003  exit
+ 1004  cd Downloads/android-studio-panda3-linux/android-studio/bin/
+ 1005  ls
+ 1006  ./studio
+ 1007  shutdown now
+ 1008  ls
+ 1009  cd ..
+ 1010  ls ~/.ssh/
+ 1011  cat ~/.ssh/id_rsa_secure.pub 
+ 1012  git@github.com:ishak-abbaz/Internships-Tracker.git
+ 1013  git git@github.com:ishak-abbaz/Internships-Tracker.git
+ 1014  ssh -T git@github.com
+ 1015  ssh-add ~/.ssh/id_rsa_secure.pub 
+ 1016  ssh-add ~/.ssh/id_rsa_secure
+ 1017  chmod 600 ~/.ssh/id_rsa_secure
+ 1018  ssh-add ~/.ssh/id_rsa_secure
+ 1019  ssh -T git@github.com
+ 1020  git clone git@github.com:ishak-abbaz/Internships-Tracker.git
+ 1021  ls
+ 1022  cd Internships-Tracker/
+ 1023  ls
+ 1024  git branch
+ 1025  git pull
+ 1026  git branch -r
+ 1027  git fetch --all
+ 1028  ping google.com
+ 1029  clear
+ 1030  git branch
+ 1031  git pull -u origin backend 
+ 1032  git pull origin backend 
+ 1033  git checkout ishak 
+ 1034  git add .
+ 1035  git branch
+ 1036  git pull -u origin backend 
+ 1037  git pull origin backend 
+ 1038  git add .
+ 1039  git commit
+ 1040  git commit -m ""
+ 1041  git commit -m "package-lock.json name attribute changed from EdTrack to Server"
+ 1042  git checkout ishak 
+ 1043  git pull origin backend 
+ 1044  clear
+ 1045  git add .
+ 1046  git commit -m "file: adminService.js first version added and to be reviewed"
+ 1047  git push -u origin ishak 
+ 1048  tar -xf Downloads/postman-linux-x64.tar.gz 
+ 1049  ls
+ 1050  cd Postman/
+ 1051  ls
+ 1052  ./Postman 
+ 1053  clear
+ 1054  exit
+ 1055  clear
+ 1056  history | grep npm
+ 1057  cd ~ history | grep npm
+ 1058  cd ~
+ 1059  history | grep npm
+ 1060  clear
+ 1061  cd IdeaProjects/Internships-Tracker/
+ 1062  which npm
+ 1063  npm -h
+ 1064  clear
+ 1065  npm run devlopement
+ 1066  npm run start
+ 1067  npm run dev
+ 1068  npm start dev
+ 1069  npm ci
+ 1070  cd Server/
+ 1071  npm ci
+ 1072  npm audit fix
+ 1073  npm start start
+ 1074  npm start dev
+ 1075  clear
+ 1076  git branch
+ 1077  git pull origin ishak 
+ 1078  git add .
+ 1079  git commit -m "review adminService methods, filled adminController and adminRoutes"
+ 1080  git push -u origin ishak 
+ 1081  git branch
+ 1082  git checkout backend 
+ 1083  git branch
+ 1084  git pull origin backend 
+ 1085  git branch
+ 1086  cd ../..
+ 1087  git clone git@github.com:ishak-abbaz/microTasks.git
+ 1088  ls
+ 1089  cd Internships-Tracker/
+ 1090  cd Server
+ 1091  git checkout ishak 
+ 1092  git add .
+ 1093  git commit -m "."
+ 1094  git push -u origin ishak 
+ 1095  git branch
+ 1096  git checkout ishak 
+ 1097  git branch
+ 1098  git pull origin backend 
+ 1099  git pull --no-rebase origin backend
+ 1100  git add .
+ 1101  git commit -m "."
+ 1102  git push backend:ishak
+ 1103  git push origin backend:ishak
+ 1104  git pull origin ishak
+ 1105  git pull --no-rebase origin ishak
+ 1106  git add .
+ 1107  git commit -m "."
+ 1108  git branch 
+ 1109  git push origin backend:ishak  
+ 1110  git branch
+ 1111  git branch ishak 
+ 1112  git checkout ishak 
+ 1113  git pull origin ishak 
+ 1114  git checkout backend 
+ 1115  git branch 
+ 1116  git pull origin backend 
+ 1117  git pull --no-rebase 
+ 1118  git pull --no-rebase origin backend 
+ 1119  ls
+ 1120  git branch
+ 1121  git checkout ishak 
+ 1122  git branch
+ 1123  npm start dev
+ 1124  cd Server/
+ 1125  ls
+ 1126  clear
+ 1127  git branch
+ 1128  git pull origin ishak 
+ 1129  git fetch origin ishak:ishak 
+ 1130  git pull origin ishak 
+ 1131  git status
+ 1132  git fetch origin
+ 1133  git reset --hard origin/ishak 
+ 1134  clear
+ 1135  npm run dev
+ 1136  git branch
+ 1137  git checkout backend 
+ 1138  history | grep pull
+ 1139  git fetch origin
+ 1140  git reset --hard origin/<branch-name>
+ 1141  git reset --hard origin/backend 
+ 1142  git checkout ishak 
+ 1143  npm run dev
+ 1144  git add .
+ 1145  git commit -m "test: Intern CRUD Operations tested successfully"
+ 1146  git push -u origin ishak 
+ 1147  clear
+ 1148  git checkout backend 
+ 1149  git branch
+ 1150  git checkout ishak 
+ 1151  git branch
+ 1152  git reset --hard origin/backend 
+ 1153  git checkout ishak 
+ 1154  git reset --hard origin/backend 
+ 1155  ls
+ 1156  git checkout ishak 
+ 1157  git checkout ishak -f
+ 1158  git branch
+ 1159  git status
+ 1160  git checkout backend 
+ 1161  git add .
+ 1162  npm run dev
+ 1163  git add .
+ 1164  git commit -m "ishak branch merge to backend branch"
+ 1165  git push -u origin backend 
+ 1166  clear
+ 1167  npm run dev
+ 1168  clear
+ 1169  git add .
+ 1170  git commit -m "feat: CRUD mentor"
+ 1171  git push -u origin backend 
+ 1172  clear
+ 1173  git checkout ishak 
+ 1174  git pull origin backend 
+ 1175  git config pull.rebase false
+ 1176  git pull origin backend 
+ 1177  history || grep rest
+ 1178  history || grep reset
+ 1179  git reset --hard origin/backend
+ 1180  git checkout
+ 1181  git branch
+ 1182  ls
+ 1183  sudo nmtui
+ 1184  sudo -i
+ 1185  exit
+ 1186  cd Postman/
+ 1187  ls
+ 1188  ./Postman 
+ 1189  exit
+ 1190  clear
+ 1191  exot
+ 1192  exit
+ 1193  git branch
+ 1194  ./Postman/Postman 
+ 1195  npm run dev
+ 1196  git branch backend 
+ 1197  git branch
+ 1198  clear
+ 1199  npm run dev
+ 1200  npm install
+ 1201  git branch
+ 1202  git pull origin backend
+ 1203  git add src/Routes/authRoutes.js 
+ 1204  git add src/Services/adminService.js 
+ 1205  git add package-lock.json 
+ 1206  git add src/Controllers/adminController.js 
+ 1207  git add src/Controllers/authController.js 
+ 1208  git commit -m "resolve merge conflicts just to mark as resolve"
+ 1209  git pull origin backend 
+ 1210  git push -u origin ishak 
+ 1211  git pull origin backend 
+ 1212  git add .
+ 1213  git commit -m "push server.js"
+ 1214  git checkout backend 
+ 1215  git branch
+ 1216  git pull origin backend 
+ 1217  git checkout ishak 
+ 1218  git branch
+ 1219  npm run dev
+ 1220  sudo -i
+ 1221  sudo reboot now
+ 1222  curl -fsSL https://claude.ai/install.sh | bash
+ 1223  curl -fsSL https://claude.ai/install.sh
+ 1224  ls
+ 1225  curl -fsSL https://claude.ai/install.sh | bash
+ 1226  claude --help
+ 1227  claude prompt
+ 1228  cd IdeaProjects/microTasks/
+ 1229  claude prompt
+ 1230  clear
+ 1231  exit
+ 1232  ls
+ 1233  ls -la script.sh 
+ 1234  ls -la
+ 1235  shutdown now
+ 1236  ls
+ 1237  clear
+ 1238  git branch
+ 1239  clear
+ 1240  git branch
+ 1241  git add .
+ 1242  git commit -m "mentor feat: CRUD attendance, evaulation"
+ 1243  git push -u origin ishak 
+ 1244  npm run dev
+ 1245  clear
+ 1246  git branch
+ 1247  git add .
+ 1248  git commit -m "mentor feat: intershipAssignment CRUD"
+ 1249  git push -u origin ishak 
+ 1250  clear
+ 1251  cd ../../microTasks/
+ 1252  ls
+ 1253  which docker
+ 1254  clear
+ 1255  shutdown now
+ 1256  ip addr show
+ 1257  clear
+ 1258  ping 10.0.0.1
+ 1259  ping 10.0.13.100
+ 1260  clear
+ 1261  ping 10.0.0.1
+ 1262  clear
+ 1263  ping 10.0.13.100
+ 1264  clear
+ 1265  git branch
+ 1266  cd ../Internships-Tracker/
+ 1267  ls
+ 1268  cd Server/
+ 1269  ls
+ 1270  clear
+ 1271  git branch
+ 1272  git pull origin backend
+ 1273  git push -u origin backend
+ 1274  git branch
+ 1275  git add .
+ 1276  git commit -m "feat: internshipAssignment CRUD"
+ 1277  git push -u origin backend
+ 1278  git branch
+ 1279  git merge ishak
+ 1280  git push origin backend 
+ 1281  git branch
+ 1282  git checkout ishak 
+ 1283  git pull origin ishak 
+ 1284  git pull origin backend 
+ 1285  clear
+ 1286  cd usbData/secure-machines/
+ 1287  ls
+ 1288  cd secure-machines/src/
+ 1289  ls
+ 1290  cat ../README.md 
+ 1291  ansible-playbook playbook.yml -kK --tags=hostname --limit=10.0.5.1
+ 1292  ansible-playbook playbook.yml -kK --tags=shutdown_manual_client --limit=10.0.13.100
+ 1293  ssh admin@10.0.13.100
+ 1294  ansible-playbook playbook.yml -kK --tags=shutdown_manual_client --limit=10.0.13.100
+ 1295  ssh admin@10.0.13.100
+ 1296  ansible-playbook playbook.yml -kK --tags=shutdown_manual_client --limit=10.0.13.100
+ 1297  ssh admin@10.0.13.100
+ 1298  ansible-playbook playbook.yml -kK --tags=shutdown_manual_client --limit=10.0.13.100
+ 1299  ssh admin@10.0.13.100
+ 1300  ansible-playbook playbook.yml -kK --tags=shutdown_manual_client --limit=10.0.13.100
+ 1301  ssh admin@10.0.13.100
+ 1302  ping google.com
+ 1303  ping 10.0.0.1
+ 1304  clear
+ 1305  ping 10.0.13.100
+ 1306  clear
+ 1307  npm run dev
+ 1308  cd Server/
+ 1309  npm run dev
+ 1310  cd Server/
+ 1311  npm run dev
+ 1312  git branch
+ 1313  git pull origin ishak
+ 1314  git add .
+ 1315  git commit -m "feat: training module CRUD"
+ 1316  git push -u origin ishak 
+ 1317  clear
+ 1318  ls
+ 1319  git branch
+ 1320  git checkout backend 
+ 1321  git pull origin backend 
+ 1322  git branch
+ 1323  git checkout yasser 
+ 1324  git branch
+ 1325  git add .
+ 1326  git commit -m "merging adminOffice"
+ 1327  git push -u origin ishak 
+ 1328  git branch
+ 1329  git checkout yasser 
+ 1330  git pull origin yasser 
+ 1331  exit
+ 1332  ls
+ 1333  git branch
+ 1334  ls 
+ 1335  git branch
+ 1336  git config --global --add safe.directory /opt/lampp/htdocs/MedicareConstantine
+ 1337  git branch
+ 1338  git status
+ 1339  git add .
+ 1340  git commit -m "Project implemeted successfully"
+ 1341  git push -u origin main 
+ 1342  git pull origin main 
+ 1343  git config pull.rebase false
+ 1344  git pull origin main 
+ 1345  git add .
+ 1346  git commit -m "Project implemeted successfully"
+ 1347  git push -u origin main 
+ 1348  git branch
+ 1349  git checkout ishak 
+ 1350  cd Serve
+ 1351  cd Server/
+ 1352  ls
+ 1353  npm run dev
+ 1354  clear
+ 1355  git branch
+ 1356  npm run dev
+ 1357  nano index.html 
+ 1358  cd .. ..
+ 1359  cd .. 
+ 1360  cd ../..
+ 1361  cd ..
+ 1362  ./manager-linux-x64.run 
+ 1363  sudo ./manager-linux-x64.run 
+ 1364  ls
+ 1365  ls htdocs/
+ 1366  ls htdocs/MedicareConstantine/
+ 1367  cd htdocs/MedicareConstantine/FrontEnd/
+ 1368  ls
+ 1369  cd ../../../
+ 1370  cd htdocs/
+ 1371  ls
+ 1372  cat applications.html 
+ 1373  ls
+ 1374  sudo netstat -tunlp | grep :80
+ 1375  which apache2
+ 1376  sudo systemctl stop apache2
+ 1377  sudo systemctl status apache2
+ 1378  cd ~
+ 1379  clear
+ 1380  sudo -u postgres psql -c 'SHOW config_file'
+ 1381  nano 
+ 1382  nano /etc/postgresql/16/main/postgresql.conf
+ 1383  sudo nano /etc/postgresql/16/main/postgresql.conf
+ 1384  sudo reboot now
+ 1385  sudo systemctl restart postgresql
+ 1386  cat /etc/postgresql/16/main/postgresql.conf
+ 1387  sudo nano /etc/postgresql/16/main/postgresql.conf
+ 1388  sudo systemctl restart postgresql
+ 1389  sudo service postgresql restart
+ 1390  sudo -u postgres psql -c "SHOW shared_preload_libraries;"
+ 1391  sudo -u postgres psql 
+ 1392  sudo shutdown now
+ 1393  git branch
+ 1394  git status
+ 1395  git add .
+ 1396  git commit -m "fix adminController missing methods"
+ 1397  git push -u origin ishak 
+ 1398  git checkout backend 
+ 1399  git branch
+ 1400  git pull origin backend 
+ 1401  git pull origin ishak 
+ 1402  git add .
+ 1403  git commit -m "merge ishak branch with backend"
+ 1404  git push -u origin backend 
+ 1405  npm run dev
+ 1406  npm install cloudinary
+ 1407  npm run dev
+ 1408  npm ci
+ 1409  npm run dev
+ 1410  npm install multer
+ 1411  npm run dev
+ 1412  git branch
+ 1413  git status
+ 1414  git branch
+ 1415  git pull origin backend 
+ 1416  git add .
+ 1417  git commit -m "add multer and cloudinary to requirements file"
+ 1418  git push -u origin backend 
+ 1419  git checkout yasser 
+ 1420  git add .gitignore 
+ 1421  git commit -m "gitignore updated"
+ 1422  git push -u origin backend 
+ 1423  git checkout yasser 
+ 1424  git branch
+ 1425  git status
+ 1426  git pull origin main
+ 1427  ls ~/.ssh/
+ 1428  cat ~/.ssh/id_rsa_secure.pub
+ 1429  git pull origin main
+ 1430  git branch
+ 1431  cd ..
+ 1432  ls
+ 1433  git remote -v 
+ 1434  ssh -T git@gitlab.com
+ 1435  git pull origin main
+ 1436  git remote set-url origin git@gitlab.com:ntic-labs/ntic-machines.git
+ 1437  git pull origin main
+ 1438  git add .
+ 1439  git commit -m "feat: compile server.py to prevent source code exposure"
+ 1440  git commit -m "feat: add desktop shortcut copy command in purge_guest script"
+ 1441  git reset HEAD~1
+ 1442  git add roles/shutdown_manual_server/files/server.py roles/shutdown_manual_server/tasks/main.yml 
+ 1443  git commit -m "feat: compile server.py to prevent source code exposure"
+ 1444  git add roles/guest/files/purge_guest_home.sh 
+ 1445  git commit -m "feat: add desktop shortcut copy command in purge_guest script"
+ 1446  git add roles/shutdown_manual_client/files/dist/shutdown_manual.jar 
+ 1447  git commit -m "feat: improve teacher UI desktop application"
+ 1448  git add .
+ 1449  git commit -m "security: encrypt authentication tokens. feat: complete initial release of Remote Lab Control v1.0.0"
+ 1450  git push -u origin main
+ 1451  nano first_number_factorize.txt 
+ 1452  factor 88983774230476795134763412284708944571110946255868729
+ 1453  clear
+ 1454  wc -l second_number_factorize.txt 
+ 1455  which msieve
+ 1456  sudo apt install msieve
+ 1457  sudo apt install pari-gp
+ 1458  gp
+ 1459  clear
+ 1460  mv ~/Downloads/pubkey.pem 
+ 1461  mkdir ../challenge2
+ 1462  cd ../challenge2
+ 1463  mv ~/Downloads/pubkey.pem ./
+ 1464  ls
+ 1465  echo "e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA" > encrypted_pass.txt
+ 1466  ls
+ 1467  cat encrypted_pass.txt 
+ 1468  echo "hello" > example_password1.txt
+ 1469  echo "hello" > example_password2.txt
+ 1470  openssl pkeyutl -encrypt -pubin -inkey pubkey.pem -in example_password1.txt -out password1.enc
+ 1471  openssl pkeyutl -encrypt -pubin -inkey pubkey.pem -in example_password2.txt -out password2.enc
+ 1472  cat password1.enc 
+ 1473  cat password2.enc 
+ 1474  wc -c pubkey.pem 
+ 1475  python3 -c "print(int('e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/b^CLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA', 16))"
+ 1476  cat encrypted_pass.txt 
+ 1477  python3 -c "print(int('e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA', 16))"
+ 1478  python3 -c "print(int(e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA, 16))"
+ 1479  clear
+ 1480  cd usbData/secure-machines/secure-machines/
+ 1481  ls
+ 1482  git branch
+ 1483  cd ..
+ 1484  ls
+ 1485  cd ../...
+ 1486  cd ../..
+ 1487  cd PhpstormProjects/ntic-machines/
+ 1488  ls
+ 1489  git branch
+ 1490  git status
+ 1491  cat ~/usbData/secure-machines/secure-machines/src/roles/guest/files/purge_guest_home.sh 
+ 1492  ls
+ 1493  ls src/
+ 1494  ls src/roles/shutdown_manual_client/
+ 1495  cp -r ~/usbData/secure-machines/secure-machines/src/roles/shutdown_manual_* ~/Cryptography/semester2/
+ 1496  ls ~/Cryptography/semester2/
+ 1497  cp ~/usbData/secure-machines/secure-machines/src/roles/guest/files/purge_guest_home.sh ~/Cryptography/semester2/
+ 1498  ls ~/Cryptography/semester2/
+ 1499  cat ~/Cryptography/semester2/purge_guest_home.sh 
+ 1500  rm -r src/roles/shutdown_manual_
+ 1501  rm -r src/roles/shutdown_manual_*
+ 1502  rm src/roles/guest/files/purge_guest_home.sh 
+ 1503  ls src/roles/guest/files/
+ 1504  cp -r ~/Cryptography/semester2/shutdown_manual_* src/roles/
+ 1505  cp ~/Cryptography/semester2/purge_guest_home.sh src/roles/guest/files/
+ 1506  ls src/roles/guest/files/
+ 1507  cat src/roles/guest/files/purge_guest_home.sh 
+ 1508  git status
+ 1509  ls
+ 1510  cd ~
+ 1511  ls
+ 1512  cat script.sh 
+ 1513  rm script.sh 
+ 1514  cat RSD.txt 
+ 1515  tm RSD.txt 
+ 1516  rm RSD.txt 
+ 1517  cat EC2.sh 
+ 1518  rm EC2.sh 
+ 1519  ls
+ 1520  rm id_rsa.pub 
+ 1521  cat head
+ 1522  cat heap_formatted.json 
+ 1523  rm heap_formatted.json 
+ 1524  ls
+ 1525  mv ciscoCourses/ Cryptography/
+ 1526  mkdir Tools
+ 1527  mv Postman/ Tools/
+ 1528  mv Android/ Tools/
+ 1529  mv BurpSuiteCommunity/ Tools/
+ 1530  ls snap/
+ 1531  tree snap/
+ 1532  clear
+ 1533  ls 
+ 1534  ls Templates/
+ 1535  rm Templates/
+ 1536  rm -d Templates/
+ 1537  ls 
+ 1538  clear
+ 1539  ls VirtualBox\ VMs/
+ 1540  clear
+ 1541  history | grep '209'
+ 1542  ssh webexcel@209.38.230.25
+ 1543  ssh admin@209.38.230.25
+ 1544  ssh ubuntu@209.38.230.25
+ 1545  history | grep 'ssh'
+ 1546  ssh webexcelubuntu@209.38.230.25
+ 1547  ssh root@209.38.230.25
+ 1548  which scp
+ 1549  scp root@209.38.230.25:/home/webexcel/WebExcel/uploads/orders/Destock'LAND.xlsx ./
+ 1550  scp root@209.38.230.25:/home/webexcel/WebExcel/uploads/orders/Destock'LAND.xlsx .
+ 1551  scp root@209.38.230.25:/home/webexcel/WebExcel/uploads/orders/Destock\'LAND.xlsx .
+ 1552  ls
+ 1553  ssh root@209.38.230.25
+ 1554  clear
+ 1555  cd Cryptography/semester2/lab3/excercise2
+ 1556  ls
+ 1557  ls /etc/ssl/certs/
+ 1558  which apache2
+ 1559  sudo systemctl status apache2.service 
+ 1560  clear
+ 1561  openssl dhparam -out dhparams.pem 2048
+ 1562  ls
+ 1563  mkdir ../excercise3
+ 1564  mv dhparams.pem ../excercise3/
+ 1565  cd ../excercise3
+ 1566  ls
+ 1567  cat dhparams.pem 
+ 1568  openssl genpkey -paramfile dhparams.pem -out alice_private.pem
+ 1569  openssl pkey -in alice_private.pem -pubout -out alice_public.pem
+ 1570  openssl genpkey -paramfile dhparams.pem -out bob_private.pem
+ 1571  openssl pkey -in bob_private.pem -pubout -out bob_public.pem
+ 1572  ls
+ 1573  openssl pkeyutl -derive -inkey alice_private.pem -peerkey bob_public.pem -out
+ 1574  alice_secret.bin
+ 1575  openssl pkeyutl -derive -inkey alice_private.pem -peerkey bob_public.pem -out alice_secret.bin
+ 1576  openssl pkeyutl -derive -inkey bob_private.pem -peerkey alice_public.pem -out bob_secret.bin
+ 1577  ls
+ 1578  cat bob_secret.bin 
+ 1579  cat alice_secret.bin 
+ 1580  cat alice_public.pem 
+ 1581  cat alice_private.pem 
+ 1582  cmp alice_secret.bin bob_secret.bin && echo "Shared secret matches!" || echo "Mismatch!"
+ 1583  which base64
+ 1584  base64 bob_secret.bin 
+ 1585  base64 bob_secret.bin > base64_shared_secret.txt
+ 1586  ls
+ 1587  cd ..
+ 1588  mkdir challenge1
+ 1589  cd challenge1/
+ 1590  ls
+ 1591  clear
+ 1592  which factorize
+ 1593  which factor
+ 1594  factor 3148240326296492491829836036538028522262397298543021512290073 > first_number_factorize.txt
+ 1595  cat first_number_factorize.txt 
+ 1596  factor 4433634977317959977189716351978918572296527677331175210881861 > second_number_factorize.txt
+ 1597  sudo apt install pdfarranger
+ 1598  pdfarranger 
+ 1599  sudo apt install ./Downloads/onlyoffice-desktopeditors_amd64.deb 
+ 1600  sudo -i
+ 1601  cd IdeaProjects/Internships-Tracker/Server/
+ 1602  git branch
+ 1603  git checkout backend 
+ 1604  git checkout -f backend 
+ 1605  git status
+ 1606  npm ci
+ 1607  ls
+ 1608  ls ..
+ 1609  ls
+ 1610  cd ~/Cryptography/semester2/lab3/challenge1/
+ 1611  ls
+ 1612  wc -l second_number_factorize.txt 
+ 1613  git clone https://github.com/bbuhrow/yafu.git
+ 1614  ls
+ 1615  cd yafu/
+ 1616  ls
+ 1617  tree
+ 1618  tree  > tree.txt
+ 1619  grep 'yafu' tree.txt 
+ 1620  cd ..
+ 1621  rm -r yafu/
+ 1622  ls
+ 1623  rm -fr yafu/
+ 1624  ls
+ 1625  clear
+ 1626  which msieve
+ 1627  sudo apt install msieve
+ 1628  which gp
+ 1629  sudo apt update
+ 1630  sudo apt install build-essential zlib1g-dev libgmp-dev
+ 1631  wget https://downloads.sourceforge.net/project/msieve/msieve/Msieve%20v1.53/msieve153_src.tar.gz
+ 1632  tar -xzvf msieve153_src.tar.gz
+ 1633  cd msieve-1.53
+ 1634  make all GMP=1
+ 1635  sudo cp msieve /usr/local/bin/
+ 1636  which msieve
+ 1637  msieve -v 3148240326296492491829836036538028522262397298543021512290073
+ 1638  msieve -v 4433634977317959977189716351978918572296527677331175210881861
+ 1639  cd ..
+ 1640  ls
+ 1641  rm msieve153_src.tar.gz 
+ 1642  clear
+ 1643  ls 
+ 1644  nano fermat.py
+ 1645  python3 fermat.py 16
+ 1646  python3 fermat.py 17
+ 1647  python3 fermat.py 20
+ 1648  python3 fermat.py 17
+ 1649  python3 fermat.py 18
+ 1650  python3 fermat.py 15
+ 1651  python3 fermat.py 17
+ 1652  python3 fermat.py 16
+ 1653  python3 fermat.py 17
+ 1654  python3 fermat.py 4433634977317959977189716351978918572296527677331175210881861
+ 1655  clear
+ 1656  cd ~
+ 1657  clear
+ 1658  cd IdeaProjects/
+ 1659  ls
+ 1660  tree > tree.txt
+ 1661  grep .py tree.txt 
+ 1662  find ./ -type f "youtubedownloader"
+ 1663  find ./ -type f -name "youtubedownloader"
+ 1664  find ./ -type f -name "*youtubedownloader*"
+ 1665  find ./ -type f -name "*youtubedownloader.py"
+ 1666  find ./ -type f -name "*youtube_downloader.py"
+ 1667  ls mp3Converter/
+ 1668  cd mp3Converter/
+ 1669  ls
+ 1670  tree
+ 1671  rm downloads/*
+ 1672  tree
+ 1673  cat converter.py 
+ 1674  ls
+ 1675  cat youtube_downloader.py 
+ 1676  ls
+ 1677  python3 converter.py 
+ 1678  ls
+ 1679  python3 -m venv .venv 
+ 1680  ls
+ 1681  ls -la
+ 1682  source .venv/bin/activate
+ 1683  pip3 install yt_dlp
+ 1684  python3 converter.py 
+ 1685  ls
+ 1686  mkdir downloads/rai
+ 1687  mv downloads/* downloads/rai/
+ 1688  cp downloads/* downloads/rai/
+ 1689  cp -r downloads/* downloads/rai/
+ 1690  ls -1 downloads/rai/ | wc -l
+ 1691  cd downloads/
+ 1692  ls
+ 1693  ls rai/
+ 1694  ls -d
+ 1695  ls 
+ 1696  ls rai/
+ 1697  cd ..
+ 1698  python3 converter.py 
+ 1699  clear
+ 1700  exit
+ 1701  ls
+ 1702  ls downloads/
+ 1703  ls -la downloads/
+ 1704  ls -1 downloads/
+ 1705  ls -1 downloads/ | wc -l
+ 1706  clear
+ 1707  ls -1 downloads/ | wc -l
+ 1708  ls downloads/
+ 1709  ls -1 downloads/ | wc -l
+ 1710  exit
+ 1711  cd Server/
+ 1712  ls
+ 1713  git branch
+ 1714  npm run dev
+ 1715  git branch
+ 1716  git checkout ishak 
+ 1717  git checkout yasser 
+ 1718  git branch
+ 1719  ls
+ 1720  pwd
+ 1721  cd ..
+ 1722  cd ~/IdeaProjects/Internships-Tracker/
+ 1723  ls
+ 1724  git branch
+ 1725  git reset --hard origin yasser 
+ 1726  git reset --hard origin/yasser 
+ 1727  which flutter
+ 1728  flutter pub get
+ 1729  git add .
+ 1730  git commit -m "First two projects added"
+ 1731  git push -u origin main
+ 1732  clear
+ 1733  ls
+ 1734  pwd
+ 1735  git pull origin backend
+ 1736  ls
+ 1737  ls Server
+ 1738  history
+ 1739  ls
+ 1740  ls -la
+ 1741  history | grep export
+ 1742  nano ~/.bashrc 
+ 1743  sudo shutdown now
+ 1744  cd Cryptography/semester2/lab3/challenge2/
+ 1745  ls
+ 1746  rm example_password*
+ 1747  ls
+ 1748  rm password*
+ 1749  ls
+ 1750  openssl rsa -pubin -in pubkey.pem -text -noout
+ 1751  ls
+ 1752  nano info_gathering.txt
+ 1753  ls
+ 1754  ls -la
+ 1755  python3 -m venv .venv
+ 1756  ls -la
+ 1757  source .venv/bin/activate
+ 1758  pip3 install rsactftool
+ 1759  pip install rsactftool
+ 1760  sudo apt install python3
+ 1761  pip install rsactftool
+ 1762  pip3 install rsactftool
+ 1763  nano hex_dec.py
+ 1764  python3 hex_dec.py 
+ 1765  nano hex_dec.py
+ 1766  python3 hex_dec.py 
+ 1767  nano hex_dec.py
+ 1768  python3 hex_dec.py 
+ 1769  nano get_d.py
+ 1770  python3 get_d.py 
+ 1771  pip3 install Crypto
+ 1772  python3 get_d.py 
+ 1773  nano get_d.py
+ 1774  python3 get_d.py 
+ 1775  nano get_d.py
+ 1776  python3 get_d.py 
+ 1777  pip3 install Crypto crypto pycryptodome
+ 1778  python3 get_d.py 
+ 1779  nano get_d.py
+ 1780  nano decrypt.py
+ 1781  cat encrypted_pass.txt 
+ 1782  nano decrypt.py
+ 1783  cat get_d.py 
+ 1784  nano decrypt.py
+ 1785  python3 decrypt.py 
+ 1786  nano decrypt.py
+ 1787  python3 decrypt.py 
+ 1788  nano decrypt.py
+ 1789  python3 decrypt.py 
+ 1790  nano decrypt.py
+ 1791  python3 decrypt.py 
+ 1792  nano decrypt.py
+ 1793  python3 decrypt.py 
+ 1794  nano decrypt.py
+ 1795  python3 decrypt.py 
+ 1796  nano decrypt.py
+ 1797  cat decrypt.py 
+ 1798  nano decrypt.py
+ 1799  echo "import base64
+ 1800  from Crypto.Util.number import inverse
+ 1801  p = 398075086424064937397125500550386491199064362342526708406385189575946388957261768583317
+ 1802  q = 472772146107435302536223071973048224632914695302097116459852171130520711256363590397527
+ 1803  n = p * q
+ 1804  d = 48318251158920145864930035723053089097690375168562443830554407970661009102774592695057202204701378327623682075089028698815133956650193819978456750305738325912711134934968241
+ 1805  cipher_original = "e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA"
+ 1806  # Decode base64 → bytes → integer
+ 1807  c_bytes = base64.b64decode(cipher_original)
+ 1808  c = int(c_bytes.hex(), 16)
+ 1809  m = pow(c, d, n)
+ 1810  plaintext = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+ 1811  print(plaintext.decode())" > decrypt.py 
+ 1812  python3 decrypt.py 
+ 1813  nano decrypt.py
+ 1814  python3 decrypt.py 
+ 1815  echo "import base64
+ 1816  p = 398075086424064937397125500550386491199064362342526708406385189575946388957261768583317
+ 1817  q = 472772146107435302536223071973048224632914695302097116459852171130520711256363590397527
+ 1818  n = p * q
+ 1819  d = 48318251158920145864930035723053089097690375168562443830554407970661009102774592695057202204701378327623682075089028698815133956650193819978456750305738325912711134934968241
+ 1820  cipher_original = "e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA"
+ 1821  c_bytes = base64.b64decode(cipher_original + "==")  # add padding just in case
+ 1822  c = int(c_bytes.hex(), 16)
+ 1823  m = pow(c, d, n)
+ 1824  plaintext = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+ 1825  # Diagnostic — run these all and tell me what you see
+ 1826  print(f"m hex = {hex(m)}")
+ 1827  print(f"raw   = {plaintext}")
+ 1828  # Try all encodings
+ 1829  for enc in ['utf-8', 'latin-1', 'ascii']:;     try:
+ 1830  echo "import base64
+ 1831  p = 398075086424064937397125500550386491199064362342526708406385189575946388957261768583317
+ 1832  q = 472772146107435302536223071973048224632914695302097116459852171130520711256363590397527
+ 1833  n = p * q
+ 1834  d = 48318251158920145864930035723053089097690375168562443830554407970661009102774592695057202204701378327623682075089028698815133956650193819978456750305738325912711134934968241
+ 1835  cipher_original = "e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA"
+ 1836  c_bytes = base64.b64decode(cipher_original + "==")  # add padding just in case
+ 1837  c = int(c_bytes.hex(), 16)
+ 1838  m = pow(c, d, n)
+ 1839  plaintext = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+ 1840  # Diagnostic — run these all and tell me what you see
+ 1841  print(f"m hex = {hex(m)}")
+ 1842  print(f"raw   = {plaintext}")
+ 1843  # Try all encodings
+ 1844  for enc in ['utf-8', 'latin-1', 'ascii']:;     try:
+ 1845  echo "" >decrypt.py 
+ 1846  cat decrypt.py 
+ 1847  nano decrypt.py 
+ 1848  python3 decrypt.py 
+ 1849  openssl base64 -d -in encrypted_pass.txt -out ciphertext.bin
+ 1850  cat encrypted_pass.txt 
+ 1851  nano decrypt.py 
+ 1852  echo "" > decrypt.py 
+ 1853  nano decrypt.py 
+ 1854  python3 decrypt.py 
+ 1855  nano decrypt.py 
+ 1856  nano gemini_decrypt.py
+ 1857  cat decrypt.py 
+ 1858  python3 gemini_decrypt.py 
+ 1859  nano gemini_decrypt.py
+ 1860  cat hex_dec.py 
+ 1861  ls
+ 1862  cat get_d.py 
+ 1863  cat decrypt.py 
+ 1864  curl https://internships-tracker.onrender.com/
+ 1865  git branch
+ 1866  git add .
+ 1867  git commit -m "local add"
+ 1868  git checkout backend 
+ 1869  history
+ 1870  git branch 
+ 1871  git reset --hard origin/backend
+ 1872  ls
+ 1873  cd Serve
+ 1874  cd Server/
+ 1875  git reset --hard origin/backend
+ 1876  rm -r ../windows/
+ 1877  rm -r ../macos/
+ 1878  rm -r ../linux/
+ 1879  rm -r ../ios/
+ 1880  rm -r ../android/
+ 1881  rm -r ../.idea/
+ 1882  rm -r ../.dart_tool/
+ 1883  rm -r ../build/
+ 1884  rm -r ../.flutter-plugins-dependencies 
+ 1885  ls
+ 1886  npm run dev
+ 1887  git reset --hard origin/backend
+ 1888  npm run dev
+ 1889  npm ci
+ 1890  npm run dev
+ 1891  git add .
+ 1892  git commit -m "problem fixed"
+ 1893  git push -u origin backend 
+ 1894  npm run dev
+ 1895  ping google.com
+ 1896  clear
+ 1897  cd Cryptography/semester2/lab3/excercise3
+ 1898  clear
+ 1899  lcea
+ 1900  clear
+ 1901  lsof t
+ 1902  lsof -t
+ 1903  which lsof
+ 1904  lsof -help
+ 1905  lsof -p
+ 1906  lsof -P
+ 1907  clear
+ 1908  lsof -i
+ 1909  lsof -n
+ 1910  lsof -i -P -n
+ 1911  systemctl status apache2
+ 1912  a2enmod ssl
+ 1913  sudo a2enmod ssl
+ 1914  systemctl restart apache2
+ 1915  ls /etc/apache2/sites-available/default-ssl.conf 
+ 1916  cat /etc/apache2/sites-available/default-ssl.conf 
+ 1917  cat /etc/apache2/sites-available/default-ssl.conf | grep 'SSLCertificate'
+ 1918  pwd
+ 1919  ls
+ 1920  cd ../excercise2/
+ 1921  ls
+ 1922  pwd
+ 1923  nano /etc/apache2/sites-available/default-ssl.conf
+ 1924  cat pub.pem 
+ 1925  cat letsencrypt.pem 
+ 1926  nano /etc/apache2/sites-available/default-ssl.conf
+ 1927  sudo nano /etc/apache2/sites-available/default-ssl.conf
+ 1928  ls
+ 1929  sudo nano /etc/apache2/sites-available/default-ssl.conf
+ 1930  sudo a2ensite default-ssl.conf 
+ 1931  systemctl restart apache2
+ 1932  git clone https://github.com/drwetter/testssl.sh.git
+ 1933  cd testssl.sh/
+ 1934  ./testssl.sh https://localhost
+ 1935  clear
+ 1936  sudo systemctl stop apache2.service 
+ 1937  flutter build
+ 1938  studio
+ 1939  echo 'export PATH="$PATH:/home/hyphen-ba/Downloads/android-studio-panda3-linux/android-studio/bin/studio"' >> ./.bashrc 
+ 1940  nano ./.bashrc 
+ 1941  studio
+ 1942  source ~/.bashrc
+ 1943  studio
+ 1944  nano ./.bashrc 
+ 1945  source ~/.bashrc
+ 1946  studio
+ 1947  clear
+ 1948  sudo apt install ./teamviewer_15.76.5_amd64.deb 
+ 1949  ls
+ 1950  docker build -t hello-image .
+ 1951  exit
+ 1952  curl http://curl ifconfig.me
+ 1953  curl http://54.224.152.147
+ 1954  curl http://54.224.152.147:4000/
+ 1955  curl http://54.224.152.147:4000
+ 1956  curl http://54.224.152.147:80
+ 1957  clear
+ 1958  curl http://54.224.152.147:4000
+ 1959  exit
+ 1960  ssh -i ./.ssh/ssh_key.pem ec2-user@54.224.152.147
+ 1961  exit
+ 1962  curl http://54.224.152.147:8080
+ 1963  exit
+ 1964  mv Downloads/ssh_key.pem ./.ssh/
+ 1965  ls ./.ssh/
+ 1966  clear
+ 1967  ping 3.92.3.233
+ 1968  ping 13.223.98.36
+ 1969  cd ./.ssh/
+ 1970  chmod 400 "ssh_key.pem"
+ 1971  ssh -i "ssh_key.pem" ec2-user@ec2-3-92-3-233.compute-1.amazonaws.com
+ 1972  cd ~
+ 1973  ssh -i "ssh_key.pem" ec2-user@ec2-3-92-3-233.compute-1.amazonaws.com
+ 1974  cd .ssh/
+ 1975  ssh -i "ssh_key.pem" ec2-user@ec2-3-92-3-233.compute-1.amazonaws.com
+ 1976  rm ssh_key.pem 
+ 1977  cd ..
+ 1978  ssh -i ./.ssh/ssh_key.pem ec2-user@54.224.152.147
+ 1979  sudo ls ./.local/share/
+ 1980  ls
+ 1981  mkdir tp_adb
+ 1982  cd tp_adb/
+ 1983  /usr/bin/python3 /home/hyphen-ba/tp_mosi/file_attente.py
+ 1984  history
+ 1985  history > history.txt

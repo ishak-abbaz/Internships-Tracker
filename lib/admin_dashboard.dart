@@ -4,12 +4,21 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'theme.dart';
-import 'admin_dashboard.dart';
 import 'mentor_dashboard.dart';
 import 'intern_dashboard.dart';
 import 'models/department_model.dart';
+import 'models/intern_model.dart';
+import 'models/mentor_model.dart';
 import 'services/admin_department_service.dart';
 import 'services/api_exception.dart';
+import 'providers/adminInterns_provider.dart';
+import 'providers/adminInternsList_provider.dart';
+import 'providers/adminMentors_provider.dart';
+import 'providers/createIntern_form_provider.dart';
+import 'screens/intern_assignment_screen.dart';
+import 'screens/attendance_management_screen.dart';
+import 'screens/evaluation_management_screen.dart';
+import 'screens/training_module_management_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Entry point
@@ -26,88 +35,136 @@ void main() {
   runApp(const ProLinkApp());
 }
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  late AdminInternsListNotifier _pendingProvider;
+  late AdminInternsListNotifier _internsProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _pendingProvider = AdminInternsListNotifier();
+    _pendingProvider.fetchPendingInterns();
+    _internsProvider = AdminInternsListNotifier();
+    _internsProvider.fetchInterns();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       // ── THE THREE LINES MENU (DRAWER) - Unchanged ──
-      drawer: Drawer(
-        backgroundColor: AppColors.surface,
-        child: Column(
-          children: [
-            const DrawerHeader(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.hub_rounded, color: AppColors.greenLight, size: 50),
-                    SizedBox(height: 10),
-                    Text("ADMIN PORTAL", style: TextStyle(color: Colors.white, fontSize: 12, letterSpacing: 1.2)),
-                  ],
+      drawer: ClipRRect(
+        borderRadius: const BorderRadius.only(topRight: Radius.circular(0), bottomRight: Radius.circular(0)),
+        child: Drawer(
+          backgroundColor: AppColors.surface,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const DrawerHeader(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.hub_rounded, color: AppColors.greenLight, size: 50),
+                              SizedBox(height: 10),
+                              Text("ADMIN PORTAL", style: TextStyle(color: Colors.white, fontSize: 12, letterSpacing: 1.2)),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // 1. Core Navigation
+                      _drawerTile(context, Icons.dashboard, "Dashboard", () => Navigator.pop(context)),
+
+                      _drawerTile(context, Icons.business, "Departments", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageDepartmentsPage()));
+                      }),
+
+                      // 2. Academic & Scheduling
+                      _drawerTile(context, Icons.calendar_today, "Schedules", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleManagementPage()));
+                      }),
+
+                      // NEW: Policy & Documents Screen
+                      _drawerTile(context, Icons.menu_book_rounded, "Policy Handbooks", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PolicyManagementPage()));
+                      }),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Divider(color: AppColors.border),
+                      ),
+
+                      // 3. User Management
+                      _drawerTile(context, Icons.people, "Manage Interns", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageInternsPage()));
+                      }),
+
+                      _drawerTile(context, Icons.school, "Manage Mentors", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageMentorsPage()));
+                      }),
+
+                      _drawerTile(context, Icons.assignment_ind, "Intern Assignments", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const InternAssignmentScreen()));
+                      }),
+
+                      _drawerTile(context, Icons.fact_check, "Attendance", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceManagementScreen()));
+                      }),
+
+                      _drawerTile(context, Icons.grade, "Evaluations", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EvaluationManagementScreen()));
+                      }),
+
+                      _drawerTile(context, Icons.school_outlined, "Training Modules", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const TrainingModuleManagementScreen()));
+                      }),
+
+                      // 4. System & Exit
+                      _drawerTile(context, Icons.settings, "Settings", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminSettingsPage()));
+                      }),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // 1. Core Navigation
-            _drawerTile(context, Icons.dashboard, "Dashboard", () => Navigator.pop(context)),
+              const Divider(color: AppColors.border, height: 1),
+              _drawerTile(context, Icons.analytics_outlined, "Reports & Analytics", () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen()));
+              }),
 
-            _drawerTile(context, Icons.business, "Departments", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageDepartmentsPage()));
-            }),
-
-            // 2. Academic & Scheduling
-            _drawerTile(context, Icons.calendar_today, "Schedules", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleManagementPage()));
-            }),
-
-            // NEW: Policy & Documents Screen
-            _drawerTile(context, Icons.menu_book_rounded, "Policy Handbooks", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const PolicyManagementPage()));
-            }),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Divider(color: AppColors.border),
-            ),
-
-            // 3. User Management
-            _drawerTile(context, Icons.people, "Manage Interns", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageInternsPage()));
-            }),
-
-            _drawerTile(context, Icons.school, "Manage Mentors", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageMentorsPage()));
-            }),
-
-            // 4. System & Exit
-            _drawerTile(context, Icons.settings, "Settings", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminSettingsPage()));
-            }),
-
-            const Spacer(),
-            _drawerTile(context, Icons.analytics_outlined, "Reports & Analytics", () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen()));
-            }),
-
-            _drawerTile(
-                context,
-                Icons.logout,
-                "Logout",
-                    () => Navigator.pushReplacementNamed(context, '/login'),
-                color: Colors.redAccent
-            ),
-            const SizedBox(height: 20),
-          ],
+              _drawerTile(
+                  context,
+                  Icons.logout,
+                  "Logout",
+                      () => Navigator.pushReplacementNamed(context, '/login'),
+                  color: Colors.redAccent
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
       appBar: AppBar(
@@ -138,8 +195,65 @@ class AdminDashboard extends StatelessWidget {
             Text("Review and approve new student registrations.",
                 style: TextStyle(color: AppColors.grey.withOpacity(0.7), fontSize: 13)),
             const SizedBox(height: 15),
-            _invitationCard(context, "Lina Bouzid", "AI Department"),
-            _invitationCard(context, "Omar Khelil", "Web Dev"),
+            
+            AnimatedBuilder(
+              animation: _pendingProvider,
+              builder: (context, child) {
+                // Loading state
+                if (_pendingProvider.pendingLoading)
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                      ),
+                    ),
+                  );
+                
+                // Error state
+                if (_pendingProvider.error != null)
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red, size: 40),
+                          const SizedBox(height: 10),
+                          Text(
+                            "❌ Error loading pending interns",
+                            style: TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: () => _pendingProvider.fetchPendingInterns(),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green),
+                            child: const Text("Retry"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                
+                // Empty state
+                if (_pendingProvider.pendingInternsList.isEmpty)
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        "✅ No pending interns",
+                        style: TextStyle(color: AppColors.grey, fontSize: 14),
+                      ),
+                    ),
+                  );
+                
+                // Pending interns list
+                return Column(
+                  children: _pendingProvider.pendingInternsList.take(2).map((intern) {
+                    return _invitationCard(context, intern);
+                  }).toList(),
+                );
+              },
+            ),
 
             Center(
               child: TextButton(
@@ -150,7 +264,7 @@ class AdminDashboard extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => const AllRequestsPage())
                     );
                   },
-                  child: const Text("View All Requests", style: TextStyle(color: AppColors.greenLight))
+                  child: const Text("View Pending Requests", style: TextStyle(color: AppColors.greenLight))
               ),
             ),
 
@@ -162,30 +276,41 @@ class AdminDashboard extends StatelessWidget {
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 15),
 
-            Row(
-              children: [
-                Expanded(
-                    child: _buildSmallStatCard(
-                        "Active Interns",
-                        "128",
-                        AppColors.greenLight,
-                        Icons.groups_rounded // Icon for interns
-                    )
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _buildSmallStatCard(
-                        "Unassigned",
-                        "12",
-                        AppColors.red,
-                        Icons.person_off_rounded // Icon for unassigned
-                    )
-                ),
-              ],
+            AnimatedBuilder(
+              animation: _internsProvider,
+              builder: (context, child) {
+                final active = _internsProvider.activeInterns;
+                final unassigned = _internsProvider.unassignedInterns;
+                return Row(
+                  children: [
+                    Expanded(
+                        child: _buildSmallStatCard(
+                            "Active Interns",
+                            "$active",
+                            AppColors.greenLight,
+                            Icons.groups_rounded // Icon for interns
+                        )
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildSmallStatCard(
+                            "Unassigned",
+                            "$unassigned",
+                            AppColors.red,
+                            Icons.person_off_rounded // Icon for unassigned
+                        )
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 30),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const InternAssignmentScreen()));
+              },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
               label: const Text("Quick Assign Intern"),
               style: ElevatedButton.styleFrom(
@@ -268,6 +393,104 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
+  void _confirmApprovePending(InternModel intern) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Approve ${intern.fullName}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'They will gain access to the system.',
+          style: TextStyle(color: AppColors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _pendingProvider.approveIntern(intern.id);
+              if (!context.mounted) return;
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Intern approved successfully'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                _pendingProvider.fetchPendingInterns();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to approve intern'}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Approve', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRejectPending(InternModel intern) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Reject ${intern.fullName}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'They will NOT gain access to the system.',
+          style: TextStyle(color: AppColors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _pendingProvider.rejectIntern(intern.id);
+              if (!context.mounted) return;
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Intern rejected successfully'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                _pendingProvider.fetchPendingInterns();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to reject intern'}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Reject', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _drawerTile(BuildContext context, IconData icon, String title, VoidCallback onTap, {Color color = Colors.white}) {
     return ListTile(
       leading: Icon(icon, color: color == Colors.white ? AppColors.greenLight : color, size: 22),
@@ -283,7 +506,7 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _invitationCard(BuildContext context, String name, String dept) {
+  Widget _invitationCard(BuildContext context, InternModel intern) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
@@ -294,23 +517,45 @@ class AdminDashboard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(backgroundColor: AppColors.surface, child: Text(name[0], style: const TextStyle(color: AppColors.greenLight))),
+          CircleAvatar(
+            backgroundColor: AppColors.surface, 
+            child: Text(
+              intern.fullName[0].toUpperCase(), 
+              style: const TextStyle(color: AppColors.greenLight)
+            )
+          ),
           const SizedBox(width: 15),
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
+                    Text(
+                      intern.fullName, 
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
+                    Text(
+                      intern.department ?? 'N/A', 
+                      style: const TextStyle(color: AppColors.grey, fontSize: 12)
+                    ),
                   ]
               )
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ReviewRequestPage(name: name, department: dept)));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("Review"),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => _confirmApprovePending(intern),
+                icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: () => _confirmRejectPending(intern),
+                icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 28),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+              ),
+            ],
           )
         ],
       ),
@@ -325,45 +570,6 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _invitationCard(BuildContext context, String name, String dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border)
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: AppColors.surface, child: Text(name[0])),
-          const SizedBox(width: 15),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-                  ]
-              )
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Navigate to the Review Request Page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReviewRequestPage(name: name, department: dept),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green),
-            child: const Text("Accept"),
-          )
-        ],
-      ),
-    );
-  }
   Widget _buildStatCard(String title, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -526,12 +732,33 @@ class ManageMentorsPage extends StatefulWidget {
 }
 
 class _ManageMentorsPageState extends State<ManageMentorsPage> {
-  // Demo Data - You can expand this list
-  final List<Map<String, dynamic>> mentors = [
-    {"name": "Dr. Amine Rahmani", "specialty": "Machine Learning", "interns": 5, "email": "rahmani.a@univ-constantine2.dz"},
-    {"name": "Prof. Sarah Zenati", "specialty": "Software Eng", "interns": 3, "email": "s.zenati@univ-constantine2.dz"},
-    {"name": "M. Karim Loukil", "specialty": "Cybersecurity", "interns": 8, "email": "k.loukil@univ-constantine2.dz"},
-  ];
+  final AdminMentorsNotifier _mentorsNotifier = AdminMentorsNotifier();
+  final AdminDepartmentService _departmentService = AdminDepartmentService();
+  List<DepartmentModel> _departments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _mentorsNotifier.fetchMentors();
+    _fetchDepartments();
+  }
+
+  Future<void> _fetchDepartments() async {
+    try {
+      final depts = await _departmentService.fetchDepartments();
+      setState(() => _departments = depts);
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 404) {
+        setState(() => _departments = []);
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load departments: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -548,65 +775,61 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Statistics Summary
-          _buildMentorStats(),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search Mentors",
-                hint: "Name or Specialty...",
-                icon: Icons.search,
+      body: AnimatedBuilder(
+        animation: _mentorsNotifier,
+        builder: (context, child) {
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: _mentorsNotifier.search,
+                  decoration: proLinkInputDecoration(
+                    label: "Search Mentors",
+                    hint: "Name...",
+                    icon: Icons.search,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // List of Mentors
-          Expanded(
-            child: ListView.builder(
-              itemCount: mentors.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final mentor = mentors[index];
-                return _mentorCard(mentor, index);
-              },
-            ),
-          ),
-        ],
+              if (_mentorsNotifier.isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                )
+              else if (_mentorsNotifier.error != null)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    _mentorsNotifier.error ?? 'Failed to load mentors',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _mentorsNotifier.mentors.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemBuilder: (context, index) {
+                      final mentor = _mentorsNotifier.mentors[index];
+                      return _mentorCard(mentor, index);
+                    },
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
   // Statistics Header
-  Widget _buildMentorStats() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _miniStat("Total Mentors", "${mentors.length}", AppColors.gold),
-          _miniStat("Total Capacity", "45", AppColors.greenLight),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-      ],
-    );
-  }
+  // REMOVED: Total Mentors and Total Capacity stats
 
   // Individual Mentor Card with Popup Menu
-  Widget _mentorCard(Map<String, dynamic> mentor, int index) {
+  Widget _mentorCard(MentorModel mentor, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -619,22 +842,21 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
         leading: CircleAvatar(
           radius: 25,
           backgroundColor: AppColors.surface,
-          child: Text(mentor['name'][0],
+          child: Text(mentor.fullName.isNotEmpty ? mentor.fullName[0] : 'M',
               style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
         ),
-        title: Text(mentor['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(mentor.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(mentor['specialty'], style: const TextStyle(color: AppColors.greenLight, fontSize: 12)),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.people_outline, color: AppColors.grey, size: 14),
-                const SizedBox(width: 4),
-                Text("Supervising: ${mentor['interns']} Interns",
-                    style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-              ],
+            Text(
+              mentor.departmentId != null 
+                ? "Dept: ${mentor.department?.code ?? mentor.departmentId}" 
+                : "No Department",
+              style: TextStyle(
+                color: mentor.departmentId != null ? AppColors.greenLight : AppColors.grey, 
+                fontSize: 12
+              )
             ),
           ],
         ),
@@ -647,9 +869,19 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
           ),
           onSelected: (value) {
             if (value == 'view') {
-              _showMentorInfo(context, mentor);
+              _showMentorInfo(context, {
+                'id': mentor.id,
+                'name': mentor.fullName,
+                'email': mentor.email,
+                'department': mentor.department != null 
+                    ? "${mentor.department!.name} (${mentor.department!.code})" 
+                    : mentor.departmentId ?? 'N/A',
+                'specialization': mentor.specialization ?? 'N/A'
+              });
+            } else if (value == 'edit') {
+              _showEditMentorDialog(context, mentor);
             } else if (value == 'delete') {
-              _confirmDeleteMentor(index);
+              _confirmDeleteMentor(mentor.id);
             }
           },
           itemBuilder: (context) => [
@@ -660,6 +892,16 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
                   Icon(Icons.badge_outlined, color: AppColors.greenLight, size: 20),
                   SizedBox(width: 10),
                   Text("View Info", style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined, color: AppColors.gold, size: 20),
+                  SizedBox(width: 10),
+                  Text("Edit", style: TextStyle(color: AppColors.gold)),
                 ],
               ),
             ),
@@ -703,37 +945,14 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
             ),
             const Divider(color: AppColors.border, height: 30),
 
-            // 1. Official Email
-            _infoRow(Icons.alternate_email, "University Gmail", mentor['email']),
+            // University Email
+            _infoRow(Icons.alternate_email, "University Gmail", (mentor['email'] ?? 'N/A').toString()),
 
-            // 2. Specialty
-            _infoRow(Icons.workspace_premium, "Specialty", mentor['specialty']),
+            // Department
+            _infoRow(Icons.business, "Department", (mentor['department'] ?? 'N/A').toString()),
 
-            // 3. Department (Added)
-            _infoRow(Icons.business, "Department", mentor['dept'] ?? "Computer Science"),
-
-            // 4. Phone (Added)
-            _infoRow(Icons.phone, "Contact", mentor['phone'] ?? "No Phone Added"),
-
-            // 5. DIPLOMA VIEW ROW
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.verified_user, color: AppColors.greenLight, size: 18),
-                  const SizedBox(width: 12),
-                  const Text("Diploma:", style: TextStyle(color: AppColors.grey, fontSize: 13)),
-                  const Spacer(),
-                  TextButton(
-                      onPressed: () {
-                        // Logic to open the PDF/Image
-                      },
-                      child: const Text("View File",
-                          style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))
-                  )
-                ],
-              ),
-            ),
+            // Specialization
+            _infoRow(Icons.workspace_premium, "Specialization", (mentor['specialization'] ?? 'N/A').toString()),
 
             const SizedBox(height: 20),
             SizedBox(
@@ -773,90 +992,127 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
   }
 
   // Create Mentor Form
-  // 1. Updated Registration Form
   void _showAddMentorDialog(BuildContext context) {
+    final TextEditingController fullNameController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController specializationController = TextEditingController();
+    String? selectedDepartmentId;
+    bool isLoading = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.bg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Register New Mentor",
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 20, right: 20, top: 20
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Register New Mentor",
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
 
-              // Full Name
-              TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Full Name", hint: "Dr. Name", icon: Icons.person)),
-              const SizedBox(height: 15),
+                // Full Name
+                TextField(
+                    controller: fullNameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(label: "Full Name", hint: "Dr. Name", icon: Icons.person)),
+                const SizedBox(height: 15),
 
-              // SPECIALIZED FIELD: University Gmail
-              TextField(
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppColors.greenLight),
-                  decoration: proLinkInputDecoration(
-                      label: "University Gmail",
-                      hint: "username@univ-constantine2.dz",
-                      icon: Icons.alternate_email
-                  )),
-              const SizedBox(height: 15),
+                // University Gmail
+                TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: AppColors.greenLight),
+                    decoration: proLinkInputDecoration(
+                        label: "University Gmail",
+                        hint: "username@univ-constantine2.dz",
+                        icon: Icons.alternate_email
+                    )),
+                const SizedBox(height: 15),
 
-              TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Specialty", hint: "e.g. AI", icon: Icons.workspace_premium)),
-              const SizedBox(height: 20),
+                // Password
+                TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                        label: "Password",
+                        hint: "Enter password",
+                        icon: Icons.lock
+                    )),
+                const SizedBox(height: 15),
 
-              // NEW: DIPLOMA UPLOAD SPACE
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(" Verification Document", style: TextStyle(color: AppColors.grey, fontSize: 13)),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  // Logic to pick file/image will go here
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Opening File Picker...")));
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload_file, color: AppColors.greenLight),
-                      SizedBox(width: 10),
-                      Text("Upload Mentor Diploma (PDF/JPG)", style: TextStyle(color: Colors.white, fontSize: 13)),
-                    ],
-                  ),
+                // Department Dropdown
+                _buildMentorDropdown(
+                  "Department",
+                  _departments.map((d) => d.name).toList(),
+                  _departments.isNotEmpty ? _departments.first.name : null,
+                  (value) {
+                    setModalState(() {
+                      final selected = _departments.firstWhere(
+                        (d) => d.name == value,
+                        orElse: () => _departments.first,
+                      );
+                      selectedDepartmentId = selected.id;
+                    });
+                  },
                 ),
-              ),
+                const SizedBox(height: 15),
 
-              const SizedBox(height: 30),
+                // Specialization
+                TextField(
+                    controller: specializationController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                        label: "Specialization",
+                        hint: "e.g. AI, Web Development",
+                        icon: Icons.workspace_premium
+                    )),
+                const SizedBox(height: 30),
 
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                ElevatedButton(
+                  onPressed: isLoading ? null : () async {
+                    setModalState(() => isLoading = true);
+                    final result = await _mentorsNotifier.createMentor(
+                      fullName: fullNameController.text,
+                      email: emailController.text,
+                      password: passwordController.text,
+                      departmentId: selectedDepartmentId ?? _departments.first.id,
+                      specialization: specializationController.text,
+                    );
+                    
+                    if (!mounted) return;
+                    Navigator.pop(context);
+                    if (result != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Mentor created successfully'), backgroundColor: Colors.green),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_mentorsNotifier.error ?? 'Failed to create mentor'), backgroundColor: Colors.redAccent),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.green,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("CREATE MENTOR ACCOUNT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
-                child: const Text("CREATE MENTOR ACCOUNT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 30),
-            ],
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
@@ -866,7 +1122,7 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
 
 
   // Delete Confirmation
-  void _confirmDeleteMentor(int index) {
+  void _confirmDeleteMentor(String mentorId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -876,14 +1132,175 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           TextButton(
-              onPressed: () {
-                setState(() => mentors.removeAt(index));
+              onPressed: () async {
                 Navigator.pop(context);
+                final success = await _mentorsNotifier.deleteMentor(mentorId);
+                if (mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Mentor removed successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(_mentorsNotifier.error ?? 'Failed to remove mentor'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                }
               },
               child: const Text("Remove", style: TextStyle(color: Colors.redAccent))
           ),
         ],
       ),
+    );
+  }
+
+  // Edit Mentor Dialog
+  void _showEditMentorDialog(BuildContext context, MentorModel mentor) {
+    final TextEditingController fullNameController = TextEditingController(text: mentor.fullName);
+    final TextEditingController emailController = TextEditingController(text: mentor.email);
+    final TextEditingController specializationController = TextEditingController(text: mentor.specialization);
+    String? selectedDepartmentId = mentor.departmentId;
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 20, right: 20, top: 20
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Edit Mentor",
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+
+                // Full Name
+                TextField(
+                    controller: fullNameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(label: "Full Name", hint: "Dr. Name", icon: Icons.person)),
+                const SizedBox(height: 15),
+
+                // University Gmail
+                TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: AppColors.greenLight),
+                    decoration: proLinkInputDecoration(
+                        label: "University Gmail",
+                        hint: "username@univ-constantine2.dz",
+                        icon: Icons.alternate_email
+                    )),
+                const SizedBox(height: 15),
+
+                // Department Dropdown
+                _buildMentorDropdown(
+                  "Department",
+                  ['Select Department', ..._departments.map((d) => d.name)],
+                  (selectedDepartmentId != null && _departments.any((d) => d.id == selectedDepartmentId)) 
+                    ? _departments.firstWhere((d) => d.id == selectedDepartmentId).name 
+                    : 'Select Department',
+                  (value) {
+                    setModalState(() {
+                      if (value == 'Select Department') {
+                        selectedDepartmentId = null;
+                      } else {
+                        final selected = _departments.firstWhere(
+                          (d) => d.name == value,
+                        );
+                        selectedDepartmentId = selected.id;
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 15),
+
+                // Specialization
+                TextField(
+                    controller: specializationController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                        label: "Specialization",
+                        hint: "e.g. AI, Web Development",
+                        icon: Icons.workspace_premium
+                    )),
+                const SizedBox(height: 30),
+
+                ElevatedButton(
+                  onPressed: isLoading ? null : () async {
+                    setModalState(() => isLoading = true);
+                    final result = await _mentorsNotifier.updateMentor(
+                      id: mentor.id,
+                      fullName: fullNameController.text,
+                      email: emailController.text,
+                      departmentId: selectedDepartmentId,
+                      specialization: specializationController.text,
+                    );
+                    
+                    if (!mounted) return;
+                    Navigator.pop(context);
+                    if (result != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Mentor updated successfully'), backgroundColor: Colors.green),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_mentorsNotifier.error ?? 'Failed to update mentor'), backgroundColor: Colors.redAccent),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("UPDATE MENTOR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method for dropdown in manage mentors
+  Widget _buildMentorDropdown(String label, List<String> items, String? value, Function(String?) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
+        const SizedBox(height: 5),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              dropdownColor: AppColors.surface,
+              value: value,
+              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1152,7 +1569,11 @@ class _ManageDepartmentsPageState extends State<ManageDepartmentsPage> {
       setState(() => _departments = items);
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.message);
+      if (e.statusCode == 404) {
+        setState(() => _departments = []);
+      } else {
+        setState(() => _error = e.message);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = 'Unable to load departments.');
@@ -1788,12 +2209,22 @@ class ManageInternsPage extends StatefulWidget {
 }
 
 class _ManageInternsPageState extends State<ManageInternsPage> {
-  // Demo Data
-  final List<Map<String, String>> interns = [
-    {"name": "Lina Bouzid", "dept": "AI", "nr": "20203501", "status": "Active"},
-    {"name": "Omar Khelil", "dept": "Web", "nr": "20203502", "status": "Active"},
-    {"name": "Yassine Ben", "dept": "Mobile", "nr": "20203503", "status": "Pending"},
-  ];
+  final TextEditingController _searchController = TextEditingController();
+  late AdminInternsListNotifier _internsProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _internsProvider = AdminInternsListNotifier();
+    // Fetch interns when page loads
+    _internsProvider.fetchInterns();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1810,36 +2241,117 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // ── QUICK STATS ──
-          _buildTopStats(),
+      body: AnimatedBuilder(
+        animation: _internsProvider,
+        builder: (context, child) {
+          return Column(
+            children: [
+              // ── QUICK STATS ──
+              _buildTopStats(),
 
-          // ── SEARCH BAR ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search Interns",
-                hint: "Search by Name or Registration NR...",
-                icon: Icons.search,
+              // ── SEARCH BAR ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (query) => _internsProvider.searchInterns(query),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Search Interns",
+                    hint: "Search by Name or Registration NR...",
+                    icon: Icons.search,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // ── INTERN LIST ──
-          Expanded(
-            child: ListView.builder(
-              itemCount: interns.length,
-              padding: const EdgeInsets.all(16),
-              itemBuilder: (context, index) {
-                final item = interns[index];
-                return _internCard(item, index);
-              },
-            ),
-          ),
-        ],
+              // ── LOADING STATE ──
+              if (_internsProvider.isLoading)
+                const Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          "Loading interns...",
+                          style: TextStyle(color: AppColors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              // ── ERROR STATE ──
+              else if (_internsProvider.error != null)
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 60,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _internsProvider.error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => _internsProvider.fetchInterns(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.green,
+                            ),
+                            child: const Text("Retry"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              // ── EMPTY STATE ──
+              else if (_internsProvider.interns.isEmpty)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          color: AppColors.grey,
+                          size: 60,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "No interns found",
+                          style: TextStyle(color: AppColors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              // ── INTERN LIST ──
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _internsProvider.interns.length,
+                    padding: const EdgeInsets.all(16),
+                    itemBuilder: (context, index) {
+                      final intern = _internsProvider.interns[index];
+                      return _internCard(intern, index);
+                    },
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1850,9 +2362,9 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _miniStat("Total", "${interns.length}", Colors.blue),
-          _miniStat("Active", "110", AppColors.green),
-          _miniStat("M1/M2", "45", AppColors.gold),
+          _miniStat("Total", "${_internsProvider.totalInterns}", Colors.blue),
+          _miniStat("Active", "${_internsProvider.activeInterns}", AppColors.green),
+          _miniStat("Pending", "${_internsProvider.pendingInterns}", AppColors.gold),
         ],
       ),
     );
@@ -1867,7 +2379,9 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
     );
   }
 
-  Widget _internCard(Map<String, String> data, int index) {
+  Widget _internCard(InternModel intern, int index) {
+    final isPending = intern.account_status == 'pending';
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -1875,97 +2389,190 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.surface,
-          child: Text(data['name']![0], style: const TextStyle(color: AppColors.greenLight)),
-        ),
-        title: Text(data['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Text("NR: ${data['nr']} • ${data['dept']}", style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-
-        // ── THE THREE DOTS MENU ──
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: AppColors.grey),
-          color: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          onSelected: (value) {
-            if (value == 'view') {
-              _showInternInfo(context, data);
-            } else if (value == 'delete') {
-              _confirmDelete(index);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Row(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            // ── AVATAR & INFO ──
+            CircleAvatar(
+              backgroundColor: AppColors.surface,
+              child: Text(intern.fullName[0].toUpperCase(), style: const TextStyle(color: AppColors.greenLight)),
+            ),
+            const SizedBox(width: 12),
+            
+            // ── NAME & DEPARTMENT ──
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.greenLight, size: 20),
-                  SizedBox(width: 10),
-                  Text("View Info", style: TextStyle(color: Colors.white)),
+                  Text(intern.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text("${intern.department ?? 'N/A'}", 
+                    style: const TextStyle(color: AppColors.grey, fontSize: 11)),
                 ],
               ),
             ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                  SizedBox(width: 10),
-                  Text("Delete", style: TextStyle(color: Colors.redAccent)),
-                ],
+            
+            // ── APPROVAL BUTTONS (Only for pending interns) ──
+            if (isPending) ...[
+              IconButton(
+                onPressed: () => _confirmApprove(intern),
+                icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: () => _confirmReject(intern),
+                icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 28),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+              ),
+            ],
+            
+            // ── THREE DOTS MENU ──
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.grey),
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) {
+                if (value == 'view') {
+                  _showInternInfo(context, intern);
+                } else if (value == 'edit') {
+                  _showEditInternDialog(context, intern);
+                } else if (value == 'delete') {
+                  _confirmDelete(intern);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'view',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.greenLight, size: 20),
+                      SizedBox(width: 10),
+                      Text("View Info", style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                      SizedBox(width: 10),
+                      Text("Edit", style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                      SizedBox(width: 10),
+                      Text("Delete", style: TextStyle(color: Colors.redAccent)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-  void _showInternInfo(BuildContext context, Map<String, String> data) {
+
+  void _showInternInfo(BuildContext context, InternModel intern) {
+    // Fetch department and mentor data when dialog opens
+    Future.delayed(Duration.zero, () {
+      if (intern.departmentId != null) {
+        _internsProvider.fetchDepartmentById(intern.departmentId!);
+      }
+      if (intern.mentorId != null) {
+        _internsProvider.fetchMentorById(intern.mentorId!);
+      }
+    });
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.bg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: AppColors.border)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: AppColors.greenDeep,
-              child: Text(data['name']![0], style: const TextStyle(fontSize: 30, color: Colors.white)),
-            ),
-            const SizedBox(height: 15),
-            Text(data['name']!, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            Text("Intern Student", style: TextStyle(color: AppColors.greenLight.withOpacity(0.8), fontSize: 14)),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: AppColors.greenDeep,
+                  child: Text(intern.fullName[0].toUpperCase(), style: const TextStyle(fontSize: 30, color: Colors.white)),
+                ),
+                const SizedBox(height: 15),
+                Text(intern.fullName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                Text("Intern Student", style: TextStyle(color: AppColors.greenLight.withOpacity(0.8), fontSize: 14)),
 
-            const Divider(color: AppColors.border, height: 30),
+                const Divider(color: AppColors.border, height: 30),
 
-            // Academic Info Rows
-            _infoRow(Icons.numbers, "Registration NR", data['nr']!),
-            _infoRow(Icons.school, "Specialty", data['dept']!),
-            _infoRow(Icons.calendar_month, "Academic Year", "Master 1 (M1)"), // Example detail
-            _infoRow(Icons.phone, "Phone Number", "0661 00 00 00"),
+                // Academic Info Rows with Dynamic Loading
+                _infoRow(Icons.email_outlined, "Email", intern.email),
+                
+                // Department - Load code from API
+                AnimatedBuilder(
+                  animation: _internsProvider,
+                  builder: (context, child) {
+                    String displayValue = 'Loading...';
+                    if (!_internsProvider.loadingDepartment) {
+                      if (intern.departmentId != null) {
+                        // You could extend this to also show department code from cache
+                        displayValue = intern.department ?? 'N/A';
+                      } else {
+                        displayValue = 'N/A';
+                      }
+                    }
+                    return _infoRow(Icons.school, "Department", displayValue);
+                  },
+                ),
+                
+                // Mentor - Load full name from API
+                AnimatedBuilder(
+                  animation: _internsProvider,
+                  builder: (context, child) {
+                    String displayValue = 'Loading...';
+                    if (!_internsProvider.loadingMentor) {
+                      if (intern.mentorId != null) {
+                        // You could extend this to lookup mentor name from cache
+                        displayValue = intern.mentor ?? 'Not Assigned';
+                      } else {
+                        displayValue = 'Not Assigned';
+                      }
+                    }
+                    return _infoRow(Icons.person_outlined, "Mentor", displayValue);
+                  },
+                ),
+                
+                _infoRow(Icons.info_outline, "Status", intern.account_status),
 
-            const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-            // Close Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface),
-                child: const Text("Close", style: TextStyle(color: Colors.white)),
-              ),
-            )
-          ],
+                // Close Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface),
+                    child: const Text("Close", style: TextStyle(color: Colors.white)),
+                  ),
+                )
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-// Helper for the Info Rows
   Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1985,21 +2592,364 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
     );
   }
 
-  void _confirmDelete(int index) {
+  void _confirmDelete(InternModel intern) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text("Remove Intern?", style: TextStyle(color: Colors.white)),
-        content: const Text("All academic records for this student will be deleted."),
+        content: Text("Delete ${intern.fullName}? All academic records will be removed.", style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           TextButton(
-              onPressed: () {
-                setState(() => interns.removeAt(index));
-                Navigator.pop(context);
-              },
-              child: const Text("Delete", style: TextStyle(color: Colors.redAccent))
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _internsProvider.deleteIntern(intern.id);
+              if (!context.mounted) return;
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("✅ Intern deleted successfully"),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("❌ ${_internsProvider.error ?? 'Failed to delete intern'}"),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditInternDialog(BuildContext context, InternModel intern) {
+    final TextEditingController _fullNameController = TextEditingController(text: intern.fullName);
+    final TextEditingController _emailController = TextEditingController(text: intern.email);
+    String? _selectedDepartmentId = intern.departmentId;
+    String? _selectedMentorId = intern.mentorId;
+    final _formNotifier = CreateInternFormNotifier();
+
+    _formNotifier.initializeFormData();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Edit Intern",
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+
+                // Full Name
+                TextField(
+                  controller: _fullNameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(label: "Full Name", hint: "John Doe", icon: Icons.person),
+                ),
+                const SizedBox(height: 15),
+
+                // Email
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Email",
+                    hint: "username@univ-constantine2.dz",
+                    icon: Icons.alternate_email,
+                  ),
+                ),
+                const SizedBox(height: 15),
+
+                // Department Dropdown
+                AnimatedBuilder(
+                  animation: _formNotifier,
+                  builder: (context, child) {
+                    if (_formNotifier.departmentsLoading) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text("Loading departments...", style: TextStyle(color: AppColors.grey)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          dropdownColor: AppColors.surface,
+                          value: _selectedDepartmentId,
+                          hint: const Text("Select Department", style: TextStyle(color: AppColors.grey)),
+                          items: _formNotifier.departments
+                              .map((dept) => DropdownMenuItem(
+                                  value: dept.id,
+                                  child: Text(dept.name, style: const TextStyle(color: Colors.white))))
+                              .toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedDepartmentId = val;
+                              _selectedMentorId = null;
+                            });
+                            if (val != null) {
+                              _formNotifier.fetchMentorsByDepartment(val);
+                            } else {
+                              _formNotifier.clearMentors();
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 15),
+
+                // Mentor Dropdown
+                AnimatedBuilder(
+                  animation: _formNotifier,
+                  builder: (context, child) {
+                    final isMentorDisabled = _selectedDepartmentId == null;
+
+                    if (_selectedDepartmentId != null && _formNotifier.mentorsLoading) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text("Loading mentors...", style: TextStyle(color: AppColors.grey)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isMentorDisabled ? AppColors.surface.withOpacity(0.5) : AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isMentorDisabled ? AppColors.border.withOpacity(0.5) : AppColors.border,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          dropdownColor: AppColors.surface,
+                          value: _selectedMentorId,
+                          disabledHint: const Text("Select Department First", style: TextStyle(color: AppColors.greyDark)),
+                          hint: const Text("Select Mentor", style: TextStyle(color: AppColors.grey)),
+                          items: isMentorDisabled
+                              ? <DropdownMenuItem<String>>[]
+                              : _formNotifier.mentors
+                                  .map((mentor) {
+                                    final name = mentor['full_name'] ?? mentor['fullName'] ?? 'Unknown';
+                                    final id = (mentor['_id'] ?? mentor['id'] ?? '').toString();
+                                    return DropdownMenuItem<String>(
+                                        value: id, child: Text(name, style: const TextStyle(color: Colors.white)));
+                                  })
+                                  .toList(),
+                          onChanged: isMentorDisabled ? null : (val) => setState(() => _selectedMentorId = val),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 25),
+
+                // Save Button
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_fullNameController.text.isEmpty || _emailController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("⚠️ Please fill in all required fields"),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final updateData = {
+                      'full_name': _fullNameController.text.trim(),
+                      'email': _emailController.text.trim(),
+                      if (_selectedDepartmentId != null) 'department_id': _selectedDepartmentId,
+                      if (_selectedMentorId != null) 'mentor_id': _selectedMentorId,
+                    };
+
+                    final success = await _internsProvider.updateIntern(intern.id, updateData);
+
+                    if (!context.mounted) return;
+
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("✅ Intern updated successfully"),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("❌ ${_internsProvider.error ?? 'Failed to update intern'}"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("SAVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+
+                const SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmApprove(InternModel intern) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text("Approve Intern?", style: TextStyle(color: Colors.white)),
+        content: Text("Approve ${intern.fullName}? They will gain access to the system.",
+            style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _internsProvider.approveIntern(intern.id);
+              if (!context.mounted) return;
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("✅ Intern approved successfully"),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("❌ ${_internsProvider.error ?? 'Failed to approve intern'}"),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            child: const Text("Approve", style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmReject(InternModel intern) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text("Reject Intern?", style: TextStyle(color: Colors.white)),
+        content: Text("Reject ${intern.fullName}? They will NOT gain access to the system.",
+            style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _internsProvider.rejectIntern(intern.id);
+              if (!context.mounted) return;
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("✅ Intern rejected successfully"),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("❌ ${_internsProvider.error ?? 'Failed to reject intern'}"),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            child: const Text("Reject", style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -2008,107 +2958,367 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
 
   // ── THE DETAILED "MANY INFO" DIALOG ──
   void _showAddInternDialog(BuildContext context) {
-    // Controller for the new specialized field
-    final TextEditingController _uniEmailController = TextEditingController();
+    // Controllers for form fields
+    final TextEditingController _fullNameController = TextEditingController();
+    final TextEditingController _emailController = TextEditingController();
+    final TextEditingController _passwordController = TextEditingController();
+    final CreateInternNotifier _internNotifier = CreateInternNotifier();
+    final CreateInternFormNotifier _formNotifier = CreateInternFormNotifier();
+    String? _selectedMentorId;
+    String? _selectedDepartmentId;
+
+    // Initialize form data when dialog opens
+    _formNotifier.initializeFormData();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.bg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Official University Registration",
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 20, right: 20, top: 20
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Create new Intern",
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
 
-              // Standard Info
-              TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Full Name", hint: "Ahmed Benali", icon: Icons.person)
-              ),
-              const SizedBox(height: 15),
+                // Full Name
+                TextField(
+                    controller: _fullNameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(label: "Full Name", hint: "John Doe", icon: Icons.person)
+                ),
+                const SizedBox(height: 15),
 
-              // SPECIALIZED FIELD: University Gmail
-              TextField(
-                  controller: _uniEmailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppColors.greenLight), // Highlighted color
-                  decoration: proLinkInputDecoration(
-                      label: "University Gmail",
-                      hint: "username@univ-constantine2.dz",
-                      icon: Icons.alternate_email
-                  )
-              ),
-              const SizedBox(height: 15),
+                // Email
+                TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: AppColors.greenLight),
+                    decoration: proLinkInputDecoration(
+                        label: "Email",
+                        hint: "username@univ-constantine2.dz",
+                        icon: Icons.alternate_email
+                    )
+                ),
+                const SizedBox(height: 15),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                        style: const TextStyle(color: Colors.white),
-                        decoration: proLinkInputDecoration(label: "Registration NR", hint: "2020...", icon: Icons.numbers)
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Internship Duration Picker Space
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        // Logic to pick start/end date
-                        await showDateRangePicker(context: context, firstDate: DateTime.now(), lastDate: DateTime(2030));
-                      },
-                      icon: const Icon(Icons.date_range, size: 16, color: AppColors.greenLight),
-                      label: const Text("Set Dates", style: TextStyle(color: Colors.white, fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.border),
-                          padding: const EdgeInsets.symmetric(vertical: 18)
+                // Password
+                TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                        label: "Password",
+                        hint: "Enter initial password",
+                        icon: Icons.lock
+                    )
+                ),
+                const SizedBox(height: 15),
+
+                // Department Dropdown (with loading state)
+                AnimatedBuilder(
+                  animation: _formNotifier,
+                  builder: (context, child) {
+                    if (_formNotifier.departmentsLoading) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text("Loading departments...", style: TextStyle(color: AppColors.grey)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (_formNotifier.departmentsError != null) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          "❌ ${_formNotifier.departmentsError}",
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              // Mentor Assignment Dropdown Space
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          dropdownColor: AppColors.surface,
+                          value: _selectedDepartmentId,
+                          hint: const Text("Select Department", style: TextStyle(color: AppColors.grey)),
+                          items: _formNotifier.departments
+                              .map((dept) => DropdownMenuItem(
+                                  value: dept.id,
+                                  child: Text(dept.name, style: const TextStyle(color: Colors.white))))
+                              .toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedDepartmentId = val;
+                              _selectedMentorId = null; // Reset mentor when department changes
+                            });
+                            if (val != null) {
+                              _formNotifier.fetchMentorsByDepartment(val);
+                            } else {
+                              _formNotifier.clearMentors();
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    dropdownColor: AppColors.surface,
-                    hint: const Text("Select Mentor", style: TextStyle(color: AppColors.grey)),
-                    items: ["Dr. Rahmani", "Prof. Zenati"].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(color: Colors.white)))).toList(),
-                    onChanged: (val) {},
-                  ),
-                ),
-              ),
+                const SizedBox(height: 15),
 
-              const SizedBox(height: 25),
+                // Mentor Assignment Dropdown (with loading state, only enabled if department selected)
+                AnimatedBuilder(
+                  animation: _formNotifier,
+                  builder: (context, child) {
+                    final isMentorDisabled = _selectedDepartmentId == null;
 
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                    if (_selectedDepartmentId != null && _formNotifier.mentorsLoading) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text("Loading mentors...", style: TextStyle(color: AppColors.grey)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (_selectedDepartmentId != null && _formNotifier.mentorsError != null) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          "❌ ${_formNotifier.mentorsError}",
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isMentorDisabled ? AppColors.surface.withOpacity(0.5) : AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isMentorDisabled ? AppColors.border.withOpacity(0.5) : AppColors.border,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          dropdownColor: AppColors.surface,
+                          value: _selectedMentorId,
+                          disabledHint: const Text(
+                            "Select Department First",
+                            style: TextStyle(color: AppColors.greyDark),
+                          ),
+                          hint: const Text("Select Mentor", style: TextStyle(color: AppColors.grey)),
+                          items: isMentorDisabled ? <DropdownMenuItem<String>>[]
+                              : _formNotifier.mentors
+                                  .map((mentor) {
+                                    final name = mentor['full_name'] ?? mentor['fullName'] ?? 'Unknown';
+                                    final id = (mentor['_id'] ?? mentor['id'] ?? '').toString();
+                                    return DropdownMenuItem<String>(
+                                        value: id,
+                                        child: Text(name, style: const TextStyle(color: Colors.white)));
+                                  })
+                                  .toList(),
+                          onChanged: isMentorDisabled
+                              ? null
+                              : (val) {
+                                  setState(() => _selectedMentorId = val);
+                                },
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                child: const Text("VALIDATE & ASSIGN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 30),
-            ],
+
+                const SizedBox(height: 25),
+
+                AnimatedBuilder(
+                  animation: _internNotifier,
+                  builder: (context, child) {
+                    return ElevatedButton(
+                      onPressed: () async {
+                        print('═══════════════════════════════════════════════════════════');
+                        print('🎯 CREATE BUTTON PRESSED!');
+                        print('═══════════════════════════════════════════════════════════');
+
+                        // Validate ONLY required fields
+                        String? validationError;
+
+                        if (_fullNameController.text.isEmpty) {
+                          validationError = "⚠️ Please enter full name";
+                        } else if (_emailController.text.isEmpty) {
+                          validationError = "⚠️ Please enter email";
+                        } else if (_passwordController.text.isEmpty) {
+                          validationError = "⚠️ Please enter password";
+                        }
+
+                        if (validationError != null) {
+                          print('⛔ Validation Error: $validationError');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(validationError),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+
+                        print('✅ Validation passed - Department & Mentor are OPTIONAL');
+                        
+                        if (_selectedDepartmentId != null) print('Department ID: $_selectedDepartmentId');
+                        if (_selectedMentorId != null) print('Mentor ID: $_selectedMentorId');
+
+                        // Show request body for debugging
+                        final requestBody = {
+                          'full_name': _fullNameController.text.trim(),
+                          'email': _emailController.text.trim(),
+                          'password': _passwordController.text,
+                          if (_selectedDepartmentId != null) 'department_id': _selectedDepartmentId,
+                          if (_selectedMentorId != null) 'mentor_id': _selectedMentorId,
+                        };
+
+                        print('═══════════════════════════════════════════════════════════');
+                        print('📋 REQUEST BODY FROM UI:');
+                        print(requestBody.toString());
+                        print('═══════════════════════════════════════════════════════════');
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("⏳ Creating intern... Check console for request details"),
+                            backgroundColor: AppColors.greenLight,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+
+                        print('🚀 Calling _internNotifier.createIntern()...');
+
+                        // Call provider to create intern
+                        final success = await _internNotifier.createIntern(
+                          fullName: _fullNameController.text.trim(),
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text,
+                          department: _selectedDepartmentId,
+                          mentor: _selectedMentorId,
+                        );
+
+                        print('🔄 Returned from _internNotifier.createIntern() - success: $success');
+
+                        if (!context.mounted) return;
+
+                        if (success) {
+                          print('✅ SUCCESS: Intern created');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("✅ ${_internNotifier.message ?? 'Intern created successfully'}"),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          Future.delayed(const Duration(seconds: 1), () {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              if (mounted) {
+                                setState(() {
+                                  // Refresh the list
+                                  _internsProvider.fetchInterns();
+                                });
+                              }
+                            }
+                          });
+                        } else {
+                          print('❌ FAILED: ${_internNotifier.error}');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("❌ ${_internNotifier.error ?? 'Failed to create intern'}"),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: _internNotifier.isLoading ? AppColors.grey : AppColors.green,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                      ),
+                      child: _internNotifier.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text("CREATE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    );
+                  },
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
@@ -2341,17 +3551,29 @@ class _ReviewRequestPageState extends State<ReviewRequestPage> {
     );
   }
 }
-class AllRequestsPage extends StatelessWidget {
+class AllRequestsPage extends StatefulWidget {
   const AllRequestsPage({super.key});
 
-  // Example data list
-  final List<Map<String, String>> allRequests = const [
-    {"name": "Lina Bouzid", "dept": "AI Department"},
-    {"name": "Omar Khelil", "dept": "Web Dev"},
-    {"name": "James Smith", "dept": "Business Admin"},
-    {"name": "Sophia Lee", "dept": "Software Engineering"},
-    {"name": "Ahmed Rayan", "dept": "Cybersecurity"},
-  ];
+  @override
+  State<AllRequestsPage> createState() => _AllRequestsPageState();
+}
+
+class _AllRequestsPageState extends State<AllRequestsPage> {
+  late AdminInternsListNotifier _pendingProvider;
+  TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _pendingProvider = AdminInternsListNotifier();
+    _pendingProvider.fetchPendingInterns();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2369,6 +3591,7 @@ class AllRequestsPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(20),
             child: TextField(
+              controller: _searchController,
               style: const TextStyle(color: Colors.white),
               decoration: proLinkInputDecoration(
                 label: "Search Requests",
@@ -2379,13 +3602,70 @@ class AllRequestsPage extends StatelessWidget {
           ),
 
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: allRequests.length,
-              itemBuilder: (context, index) {
-                final request = allRequests[index];
-                // Reusing your existing invitation card design
-                return _requestCard(context, request['name']!, request['dept']!);
+            child: AnimatedBuilder(
+              animation: _pendingProvider,
+              builder: (context, child) {
+                // Loading state
+                if (_pendingProvider.pendingLoading)
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.greenLight),
+                    ),
+                  );
+
+                // Error state
+                if (_pendingProvider.error != null)
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red, size: 60),
+                          const SizedBox(height: 16),
+                          Text(
+                            _pendingProvider.error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => _pendingProvider.fetchPendingInterns(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.green,
+                            ),
+                            child: const Text("Retry"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+
+                // Empty state
+                if (_pendingProvider.pendingInternsList.isEmpty)
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, color: AppColors.grey, size: 60),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "✅ No pending requests",
+                          style: TextStyle(color: AppColors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+
+                // Pending interns list
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _pendingProvider.pendingInternsList.length,
+                  itemBuilder: (context, index) {
+                    final intern = _pendingProvider.pendingInternsList[index];
+                    return _requestCard(context, intern);
+                  },
+                );
               },
             ),
           ),
@@ -2394,40 +3674,162 @@ class AllRequestsPage extends StatelessWidget {
     );
   }
 
-  // Custom version of your card for the full list
-  Widget _requestCard(BuildContext context, String name, String dept) {
+  // Card with approve/decline circular buttons (same as ManageInterns)
+  Widget _requestCard(BuildContext context, InternModel intern) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border)
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            // ── AVATAR & INFO ──
+            CircleAvatar(
               backgroundColor: AppColors.surface,
-              child: Text(name[0], style: const TextStyle(color: AppColors.greenLight))
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-              ],
+              child: Text(
+                intern.fullName[0].toUpperCase(),
+                style: const TextStyle(color: AppColors.greenLight),
+              ),
             ),
+            const SizedBox(width: 12),
+
+            // ── NAME & DEPARTMENT ──
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    intern.fullName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    intern.department ?? 'N/A',
+                    style: const TextStyle(color: AppColors.grey, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── APPROVE & REJECT BUTTONS ──
+            IconButton(
+              onPressed: () => _confirmApproveRequest(intern),
+              icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: () => _confirmRejectRequest(intern),
+              icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 28),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmApproveRequest(InternModel intern) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Approve ${intern.fullName}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'They will gain access to the system.',
+          style: TextStyle(color: AppColors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.grey)),
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ReviewRequestPage(name: name, department: dept))
-              );
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _pendingProvider.approveIntern(intern.id);
+              if (!context.mounted) return;
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Intern approved successfully'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                _pendingProvider.fetchPendingInterns();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to approve intern'}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
-            icon: const Icon(Icons.arrow_forward_ios, color: AppColors.greenLight, size: 18),
+            child: const Text('Approve', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRejectRequest(InternModel intern) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Reject ${intern.fullName}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'They will NOT gain access to the system.',
+          style: TextStyle(color: AppColors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await _pendingProvider.rejectIntern(intern.id);
+              if (!context.mounted) return;
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Intern rejected successfully'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                _pendingProvider.fetchPendingInterns();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to reject intern'}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Reject', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),

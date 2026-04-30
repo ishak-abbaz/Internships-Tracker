@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 import 'theme.dart';
+import 'screens/attendance_management_screen.dart';
+import 'screens/evaluation_management_screen.dart';
+import 'screens/intern_assignment_screen.dart';
+import 'screens/training_module_management_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Mentor Dashboard - Refactored (No Chart Version)
@@ -367,6 +371,58 @@ class _MentorDashboardState extends State<MentorDashboard>
               Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ModuleManagementScreen())
+              );
+            },
+          ),
+
+          _drawerItem(
+            Icons.assignment_ind,
+            'Intern Assignments',
+            false,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const InternAssignmentScreen())
+              );
+            },
+          ),
+
+          _drawerItem(
+            Icons.fact_check,
+            'Attendance',
+            false,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AttendanceManagementScreen())
+              );
+            },
+          ),
+
+          _drawerItem(
+            Icons.grade,
+            'Evaluations',
+            false,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EvaluationManagementScreen())
+              );
+            },
+          ),
+
+          _drawerItem(
+            Icons.school_outlined,
+            'Training Modules',
+            false,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TrainingModuleManagementScreen())
               );
             },
           ),
