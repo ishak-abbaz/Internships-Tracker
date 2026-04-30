@@ -61,7 +61,15 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid password" });
 
-    // 3. Generate JWT
+    // 3. Block intern login until admin approval
+    if (user.user_role === 'Student') {
+      const isApproved = user.account_status === 'approved' && user.is_validated_by_admin === true;
+      if (!isApproved) {
+        return res.status(403).json({ msg: 'Account pending admin approval' });
+      }
+    }
+
+    // 4. Generate JWT
     const token = jwt.sign(
       {
         id: user._id,
@@ -71,7 +79,7 @@ exports.login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // 4. Return response with token (for mobile apps like Flutter)
+    // 5. Return response with token (for mobile apps like Flutter)
     res.status(200).json({
       msg: "Login successful",
       accessToken: token,

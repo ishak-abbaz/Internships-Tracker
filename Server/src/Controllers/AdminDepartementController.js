@@ -1,4 +1,6 @@
 const Department = require('../Models/departmentModel');
+const Policy = require('../Models/policyModel');
+const Schedule = require('../Models/scheduleModel');
 const mongoose = require('mongoose');
 
 exports.createDepartment = async (req, res) => {
@@ -62,9 +64,22 @@ exports.getDepartmentById = async (req, res) => {
 			return res.status(404).json({ msg: 'Department not found' });
 		}
 
+		const [schedules, policies] = await Promise.all([
+			Schedule.find({
+				department_id: department._id,
+				is_active: { $ne: false }
+			}).sort({ created_at: -1 }),
+			Policy.find({
+				department_id: department._id,
+				is_active: { $ne: false }
+			}).sort({ created_at: -1 })
+		]);
+
 		res.status(200).json({
 			msg: 'Department fetched successfully',
-			department
+			department,
+			schedules,
+			policies
 		});
 	} catch (err) {
 		res.status(500).json({ msg: 'Failed to fetch department', error: err.message });

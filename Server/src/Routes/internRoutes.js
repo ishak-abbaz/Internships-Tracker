@@ -10,6 +10,8 @@ const {
   getMyWorkId,
   uploadWorkIdPhoto,
   downloadWorkIdPhoto,
+  getMyDepartment,
+  getMyProfile,
   getMyEvaluations
 } = require('../Controllers/internController');
 
@@ -34,6 +36,8 @@ router.get('/assignment', getMyInternshipAssignment);
 router.get('/schedules', getMySchedules);
 router.get('/training-modules', getMyTrainingModules);
 router.get('/training-modules/:moduleId/download', downloadTrainingModuleById);
+router.get('/department', getMyDepartment);
+router.get('/profile', getMyProfile);
 router.get('/work-id', getMyWorkId);
 router.post('/work-id/photo', imageUpload.single('file'), uploadWorkIdPhoto);
 router.get('/evaluations', getMyEvaluations);
