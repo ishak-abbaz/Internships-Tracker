@@ -12,7 +12,7 @@ const {
 
 const { protect, restrictTo } = require('../Middleware/auth');
 
-router.use(protect, restrictTo('Mentor')); // Protect all attendance routes for mentors only
+router.use(protect, restrictTo('Mentor', 'Admin')); // Protect all attendance routes for mentors only
 
 // Mark attendance - mentor marks student attendance
 router.post('/attendance', markAttendance);

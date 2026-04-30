@@ -4,6 +4,7 @@ const User = require('../Models/userModel');
 const Intern = require('../Models/internModel');
 const Mentor = require('../Models/mentorModel');
 const Admin = require('../Models/adminModel');
+const Department = require('../Models/departmentModel');
 const { generateVerificationToken, sendVerificationEmail } = require('../utils/sendEmail');
 
 const VALID_ROLES = ['Student', 'Mentor', 'Admin'];
@@ -82,6 +83,10 @@ const createUser = async ({ full_name, email, password, user_role = 'Student', d
     }
     if (!mongoose.Types.ObjectId.isValid(department_id)) {
       throw buildError('Invalid department_id', 400);
+    }
+    const deptExists = await Department.exists({ _id: department_id });
+    if (!deptExists) {
+      throw buildError('Department not found', 404);
     }
   }
 
@@ -231,8 +236,14 @@ const updateInternById = async (internId, payload = {}) => {
   }
 
   // Validate department_id if provided
-  if (payload.department_id && !mongoose.Types.ObjectId.isValid(payload.department_id)) {
-    throw buildError('Invalid department_id', 400);
+  if (payload.department_id) {
+    if (!mongoose.Types.ObjectId.isValid(payload.department_id)) {
+      throw buildError('Invalid department_id', 400);
+    }
+    const deptExists = await Department.exists({ _id: payload.department_id });
+    if (!deptExists) {
+      throw buildError('Department not found', 404);
+    }
   }
 
   const updatableFields = [
@@ -357,11 +368,24 @@ const updateMentorById = async (mentorId, payload = {}) => {
     throw buildError('Mentor not found', 404);
   }
 
+  // Validate department_id if provided (allow null to unassign)
+  if (payload.department_id) {
+    if (!mongoose.Types.ObjectId.isValid(payload.department_id)) {
+      throw buildError('Invalid department_id', 400);
+    }
+    const deptExists = await Department.exists({ _id: payload.department_id });
+    if (!deptExists) {
+      throw buildError('Department not found', 404);
+    }
+  }
+
   const updatableFields = [
     'full_name',
     'account_status',
     'is_email_verified',
-    'is_validated_by_admin'
+    'is_validated_by_admin',
+    'department_id',
+    'specialization'
   ];
 
   for (const field of updatableFields) {
