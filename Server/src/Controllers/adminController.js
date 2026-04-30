@@ -293,6 +293,8 @@ exports.approveIntern = async (req, res) => {
     }
 
     intern.account_status = 'approved';
+    intern.is_email_verified = true;
+    intern.is_validated_by_admin = true;
 
     if (!intern.work_id) {
       intern.work_id = await generateNextWorkId();
