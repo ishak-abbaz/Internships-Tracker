@@ -14,27 +14,27 @@ const {
     protect
 } = require('../Middleware/auth');
 
-router.use(protect);
+router.use(restrictTo('Admin', 'Mentor'));
 
 /**
  * Get all training modules (with filters)
  * GET /api/mentors/training-modules
  * Query params: activeOnly (true/false, default: false)
  */
-router.get('/', restrictTo('Admin'), getAllTrainingModules);
+router.get('/', getAllTrainingModules);
 
 /**
  * Get training module by ID
  * GET /api/mentors/training-modules/:moduleId
  */
-router.get('/:moduleId', restrictTo('Admin', 'Mentor'), getTrainingModuleById);
+router.get('/:moduleId', getTrainingModuleById);
 
 /**
  * Get all training modules for a department
  * GET /api/mentors/training-modules/department/:departmentCode
  * Query params: activeOnly (true/false, default: true)
  */
-router.get('/department/:departmentCode', restrictTo('Admin', 'Mentor'), getModulesByDepartment);
+router.get('/department/:departmentCode', getModulesByDepartment);
 
 // ==================== PROTECTED ROUTES (Mentor Only) ====================
 
@@ -44,7 +44,7 @@ router.get('/department/:departmentCode', restrictTo('Admin', 'Mentor'), getModu
  * Body: { title, description, url, departmentCode }
  * Auth: Required (Mentor)
  */
-router.post('/', restrictTo('Admin', 'Mentor'), createTrainingModule);
+router.post('/', createTrainingModule);
 
 /**
  * Get all training modules created by the mentor (current user)
@@ -52,7 +52,7 @@ router.post('/', restrictTo('Admin', 'Mentor'), createTrainingModule);
  * Query params: activeOnly (true/false, default: false)
  * Auth: Required (Mentor)
  */
-router.get('/mentor/:mentorId', restrictTo('Admin', 'Mentor'), getModulesByMentor);
+router.get('/mentor/:mentorId', getModulesByMentor);
 
 /**
  * Update training module
@@ -60,13 +60,13 @@ router.get('/mentor/:mentorId', restrictTo('Admin', 'Mentor'), getModulesByMento
  * Body: { title?, description?, url?, is_active? }
  * Auth: Required (Mentor who created the module)
  */
-router.patch('/:moduleId', restrictTo('Admin', 'Mentor'), updateTrainingModule);
+router.patch('/:moduleId', updateTrainingModule);
 
 /**
  * Delete training module
  * DELETE /api/mentors/training-modules/:moduleId
  * Auth: Required (Mentor who created the module)
  */
-router.delete('/:moduleId', restrictTo('Admin', 'Mentor'), deleteTrainingModule);
+router.delete('/:moduleId', deleteTrainingModule);
 
 module.exports = router;
