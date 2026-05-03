@@ -243,6 +243,25 @@ exports.approveIntern = async (req, res) => {
   try {
     const { internId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(internId)) {
+      return res.status(400).json({ msg: 'Invalid intern id' });
+    }
+
+    const intern = await Intern.findById(internId);
+    if (!intern) {
+      return res.status(404).json({ msg: 'Intern not found' });
+    }
+
+    intern.account_status = 'approved';
+    intern.is_email_verified = true;
+    intern.is_validated_by_admin = true;
+
+    if (!intern.work_id) {
+      intern.work_id = await generateNextWorkId();
+    }
+
+    await intern.save();
+
     const approvedIntern = await adminService.updateInternById(internId, { 
       account_status: 'approved' 
     });
