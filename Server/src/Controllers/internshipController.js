@@ -14,32 +14,39 @@ exports.createInternship = async (req, res) => {
     const { intern_id } = req.params;
     const {
       mentor_name,
-      department_code
+      department_code,
+      subject,
+      start_date,
+      end_date
     } = req.body;
 
     // Validate required fields
-    if (!intern_id || !mentor_name || !department_code) {
+    if (!intern_id || !mentor_name || !department_code || !subject || !start_date || !end_date) {
       return res.status(400).json({
-        msg: 'Please provide all required fields: intern_id (in URL), mentor_name, and department_code'
+        msg: '❌ Error: Please provide all required fields: intern_id (in URL), mentor_name, and department_code',
+        error: 'Missing required fields'
       });
     }
 
-    // Find Department by Code
-    const department = await Department.findOne({ code: department_code.toUpperCase() });
-    if (!department) {
-      return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
-    }
-
-    // Find Mentor by full name
+    // Lookup mentor by name
     const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
     if (!mentor) {
       return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
+    }
+
+    // Lookup department by code
+    const department = await Department.findOne({ code: department_code });
+    if (!department) {
+      return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
     }
 
     const assignment = await createInternshipAssignment({
       intern_id,
       mentor_id: mentor._id,
       department_id: department._id,
+      subject,
+      start_date,
+      end_date,
       assigned_by_admin_id: req.user.id
     });
 
@@ -147,31 +154,14 @@ exports.getMentorAssignments = async (req, res) => {
 exports.updateInternship = async (req, res) => {
   try {
     const { id } = req.params;
-    const { mentor_name, department_code } = req.body;
-
-    // Validate that at least one field is provided
-    if (!mentor_name && !department_code) {
-      return res.status(400).json({
-        msg: 'Provide at least one field to update (mentor_name or department_code)'
-      });
-    }
+    const { mentor_id, department_id, subject, start_date, end_date } = req.body;
 
     const updateData = {};
-    if (mentor_name) {
-      const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
-      if (!mentor) {
-        return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
-      }
-      updateData.mentor_id = mentor._id;
-    }
-    
-    if (department_code) {
-      const department = await Department.findOne({ code: department_code.toUpperCase() });
-      if (!department) {
-        return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
-      }
-      updateData.department_id = department._id;
-    }
+    if (mentor_id) updateData.mentor_id = mentor_id;
+    if (department_id) updateData.department_id = department_id;
+    if (subject) updateData.subject = subject;
+    if (start_date) updateData.start_date = start_date;
+    if (end_date) updateData.end_date = end_date;
     
     const assignment = await updateInternshipAssignment(id, updateData);
 

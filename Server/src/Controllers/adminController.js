@@ -183,46 +183,6 @@ exports.updateInternById = async (req, res) => {
     const payload = req.body;
 
     const updatedIntern = await adminService.updateInternById(internId, payload);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ msg: 'Invalid user id' });
-    }
-
-    let user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
-    }
-
-    if (user.account_status !== 'pending') {
-      return res.status(400).json({ msg: `Cannot approve a ${user.account_status} account` });
-    }
-
-    if (user.user_role === 'Student') {
-      const intern = await Intern.findById(id);
-      if (!intern) {
-        return res.status(404).json({ msg: 'Intern profile not found' });
-      }
-
-      intern.account_status = 'approved';
-      intern.account_reviewed_at = new Date();
-      intern.account_reviewed_by = req.user._id;
-      intern.is_email_verified = true;
-      intern.is_validated_by_admin = true;
-
-      if (!intern.work_id) {
-        intern.work_id = await generateNextWorkId();
-      }
-
-      await intern.save();
-      user = intern;
-    } else {
-      user.account_status = 'approved';
-      user.account_reviewed_at = new Date();
-      user.account_reviewed_by = req.user._id;
-      user.is_email_verified = true;
-      await user.save();
-    }
 
     res.status(200).json({
       success: true,
@@ -283,24 +243,9 @@ exports.approveIntern = async (req, res) => {
   try {
     const { internId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(internId)) {
-      return res.status(400).json({ msg: 'Invalid intern id' });
-    }
-
-    const intern = await Intern.findById(internId);
-    if (!intern) {
-      return res.status(404).json({ msg: 'Intern not found' });
-    }
-
-    intern.account_status = 'approved';
-
-    if (!intern.work_id) {
-      intern.work_id = await generateNextWorkId();
-    }
-
-    await intern.save();
-
-    const approvedIntern = await adminService.getInternById(internId);
+    const approvedIntern = await adminService.updateInternById(internId, { 
+      account_status: 'approved' 
+    });
 
     res.status(200).json({
       success: true,

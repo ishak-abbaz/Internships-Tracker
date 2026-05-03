@@ -31,6 +31,31 @@ exports.markAttendance = async (req, res) => {
 };
 
 /**
+ * Get all attendance records
+ * GET /api/mentors/attendance
+ */
+exports.getAllAttendances = async (req, res) => {
+  try {
+    const { limit = 50, page = 1 } = req.query;
+
+    const result = await mentorService.getAllAttendances(
+      parseInt(limit),
+      parseInt(page)
+    );
+
+    res.status(200).json({
+      msg: 'All attendance records retrieved successfully',
+      data: result
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      msg: error.message || 'Error retrieving attendances',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get attendance by ID
  * GET /api/mentors/attendance/:attendanceId
  */

@@ -101,6 +101,40 @@ exports.createAttendance = async ({ internId, mentorId, attendanceDate, status, 
 };
 
 /**
+ * Get all attendance records (with pagination)
+ *
+ * @param {number} limit - Records per page (default: 50)
+ * @param {number} page - Page number (default: 1)
+ * @returns {object} Paginated attendance records
+ */
+exports.getAllAttendances = async (limit = 50, page = 1) => {
+  try {
+    const skip = (page - 1) * limit;
+
+    const [attendances, total] = await Promise.all([
+      Attendance.find({})
+        .populate('intern_id', 'full_name email')
+        .populate('mentor_id', 'full_name email')
+        .populate('marked_by_mentor_id', 'full_name email')
+        .sort({ attendance_date: -1 })
+        .limit(limit)
+        .skip(skip),
+      Attendance.countDocuments({})
+    ]);
+
+    return {
+      data: attendances,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
  * Get attendance record by its ID
  * 
  * @param {string} attendanceId - The attendance record ID

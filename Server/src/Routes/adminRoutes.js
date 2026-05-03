@@ -20,7 +20,7 @@ const {createUser,
 const { protect, restrictTo } = require('../Middleware/auth');
 
 // Protect all admin review routes
-router.use(protect, restrictTo('Admin'));
+router.use(protect, restrictTo('Admin', 'Mentor'));
 
 router.post('/users', createUser);
 router.get('/interns', listInterns);
