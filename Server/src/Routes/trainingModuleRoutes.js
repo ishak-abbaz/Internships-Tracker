@@ -14,7 +14,7 @@ const {
     protect
 } = require('../Middleware/auth');
 
-router.use(restrictTo('Admin', 'Mentor'));
+router.use(protect);
 
 /**
  * Get all training modules (with filters)
@@ -44,7 +44,7 @@ router.get('/department/:departmentCode', getModulesByDepartment);
  * Body: { title, description, url, departmentCode }
  * Auth: Required (Mentor)
  */
-router.post('/', createTrainingModule);
+router.post('/', restrictTo('Admin', 'Mentor'), createTrainingModule);
 
 /**
  * Get all training modules created by the mentor (current user)
@@ -60,13 +60,13 @@ router.get('/mentor/:mentorId', getModulesByMentor);
  * Body: { title?, description?, url?, is_active? }
  * Auth: Required (Mentor who created the module)
  */
-router.patch('/:moduleId', updateTrainingModule);
+router.patch('/:moduleId', restrictTo('Admin', 'Mentor'), updateTrainingModule);
 
 /**
  * Delete training module
  * DELETE /api/mentors/training-modules/:moduleId
  * Auth: Required (Mentor who created the module)
  */
-router.delete('/:moduleId', deleteTrainingModule);
+router.delete('/:moduleId', restrictTo('Admin', 'Mentor'), deleteTrainingModule);
 
 module.exports = router;
