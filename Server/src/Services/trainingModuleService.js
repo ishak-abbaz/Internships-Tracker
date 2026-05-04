@@ -106,6 +106,10 @@ exports.createTrainingModule = async ({
     });
 
     await newModule.save();
+
+    // Populate creator info before returning
+    await newModule.populate('created_by_mentor_id', 'name email');
+
     return newModule;
   } catch (error) {
     throw error;
@@ -217,7 +221,10 @@ exports.updateTrainingModule = async (moduleId, mentorId, updateData) => {
       throw buildError('Training module not found', 404);
     }
 
-    if (module.created_by_mentor_id.toString() !== mentorId && (await User.findById(mentorId))?.role !== 'Admin') {
+    const user = await User.findById(mentorId);
+    const isAdmin = user?.user_role === 'Admin';
+
+    if (module.created_by_mentor_id.toString() !== mentorId && !isAdmin) {
       throw buildError('Only the creator of this module or an Admin can update it', 403);
     }
 
@@ -242,6 +249,10 @@ exports.updateTrainingModule = async (moduleId, mentorId, updateData) => {
     });
 
     await module.save();
+
+    // Populate creator info before returning
+    await module.populate('created_by_mentor_id', 'name email');
+
     return module;
   } catch (error) {
     throw error;
@@ -266,7 +277,10 @@ exports.deleteTrainingModule = async (moduleId, mentorId) => {
       throw buildError('Training module not found', 404);
     }
 
-    if (module.created_by_mentor_id.toString() !== mentorId && (await User.findById(mentorId))?.role !== 'Admin') {
+    const user = await User.findById(mentorId);
+    const isAdmin = user?.user_role === 'Admin';
+
+    if (module.created_by_mentor_id.toString() !== mentorId && !isAdmin) {
       throw buildError('Only the creator of this module or an Admin can delete it', 403);
     }
 
