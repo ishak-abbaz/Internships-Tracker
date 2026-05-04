@@ -7,7 +7,8 @@ import '../theme.dart';
 
 class AttendanceManagementScreen extends StatefulWidget {
   final String? mentorId;
-  const AttendanceManagementScreen({super.key, this.mentorId});
+  final bool isAdmin;
+  const AttendanceManagementScreen({super.key, this.mentorId, this.isAdmin = false});
 
   @override
   State<AttendanceManagementScreen> createState() => _AttendanceManagementScreenState();
@@ -104,7 +105,7 @@ class _AttendanceManagementScreenState extends State<AttendanceManagementScreen>
   }
 
   Widget _buildInternSelection(AdminInternsListNotifier internsNotifier) {
-    final interns = widget.mentorId == null 
+    final interns = widget.isAdmin
         ? internsNotifier.interns 
         : internsNotifier.interns.where((i) => i.mentorId == widget.mentorId).toList();
 

@@ -53,12 +53,12 @@ class EvaluationModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'intern_id': internId,
-      'mentor_id': mentorId,
-      'week_label': weekLabel,
-      'overall_mark': overallMark,
+      'internId': internId,
+      'mentorId': mentorId,
+      'weekLabel': weekLabel,
+      'overallMark': overallMark,
       'feedback': feedback,
-      'evaluated_at': evaluatedAt.toIso8601String(),
+      'evaluatedAt': evaluatedAt.toIso8601String(),
     };
   }
 }

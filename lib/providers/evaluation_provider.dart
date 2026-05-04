@@ -81,7 +81,6 @@ class EvaluationNotifier extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       await _apiService.post(ApiConfig.evaluations, body: evaluation.toJson(), token: token);
-      await fetchAll();
       return true;
     } catch (e) {
       _error = e.toString();
@@ -107,7 +106,6 @@ class EvaluationNotifier extends ChangeNotifier {
         if (overallMark != null) 'overallMark': overallMark,
         if (feedback != null) 'feedback': feedback,
       }, token: token);
-      await fetchAll();
       return true;
     } catch (e) {
       _error = e.toString();

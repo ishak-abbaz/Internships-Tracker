@@ -14,7 +14,7 @@ class EvaluationManagementScreen extends StatefulWidget {
 
   const EvaluationManagementScreen({
     super.key,
-    this.isAdmin = true,
+    this.isAdmin = false,
     this.mentorId,
   });
 
@@ -115,6 +115,7 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                             itemCount: evaluationNotifier.records.length,
                             itemBuilder: (context, index) => _EvaluationTile(
                               evaluation: evaluationNotifier.records[index],
+                              isAdmin: widget.isAdmin,
                               onEdit: () => _showEditDialog(context, evaluationNotifier.records[index]),
                               onDelete: () => _showDeleteConfirm(context, evaluationNotifier.records[index]),
                             ),
@@ -187,6 +188,11 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
     String? dialogInternId = _selectedInternId;
     String? dialogMentorId = widget.isAdmin ? _selectedMentorId : widget.mentorId;
 
+    final allInterns = context.read<AdminInternsListNotifier>().interns;
+    final interns = widget.isAdmin 
+        ? allInterns 
+        : allInterns.where((i) => i.mentorId == widget.mentorId).toList();
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -211,7 +217,7 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                   const SizedBox(height: 16),
                   _buildDropdown<InternModel>(
                     label: 'Intern',
-                    items: context.read<AdminInternsListNotifier>().interns,
+                    items: interns,
                     value: dialogInternId,
                     itemLabel: (i) => i.fullName,
                     itemValue: (i) => i.id,
@@ -404,6 +410,9 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
     if (confirmed == true && context.mounted) {
       final success = await context.read<EvaluationNotifier>().deleteEvaluation(evaluation.id);
       if (context.mounted) {
+        if (success) {
+          _fetchEvaluations();
+        }
         showProAlert(
           context,
           title: success ? 'Success' : 'Error',
@@ -439,11 +448,13 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
 
 class _EvaluationTile extends StatelessWidget {
   final EvaluationModel evaluation;
+  final bool isAdmin;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _EvaluationTile({
     required this.evaluation,
+    required this.isAdmin,
     required this.onEdit,
     required this.onDelete,
   });
@@ -486,10 +497,11 @@ class _EvaluationTile extends StatelessWidget {
                       evaluation.internName ?? 'Unknown Intern',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
-                    Text(
-                      'Mentor: ${evaluation.mentorName ?? 'Unknown'}',
-                      style: const TextStyle(color: AppColors.grey, fontSize: 13),
-                    ),
+                    if (isAdmin)
+                      Text(
+                        'Mentor: ${evaluation.mentorName ?? 'Unknown'}',
+                        style: const TextStyle(color: AppColors.grey, fontSize: 13),
+                      ),
                   ],
                 ),
               ),
