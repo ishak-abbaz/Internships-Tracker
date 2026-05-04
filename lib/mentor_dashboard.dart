@@ -304,8 +304,6 @@ class _InternDetailScreen extends StatelessWidget {
               child: Column(
                 children: [
                   _infoRow(Icons.email_outlined, "Email Address", intern.email),
-                  const Divider(color: AppColors.border, height: 32),
-                  _infoRow(Icons.badge_outlined, "Registration Number", intern.registrationNr),
                 ],
               ),
             ),

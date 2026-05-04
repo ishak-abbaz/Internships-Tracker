@@ -153,6 +153,51 @@ InputDecoration proLinkInputDecoration({
 //  Shared UI Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Professional Alert Dialog
+void showProAlert(BuildContext context, {required String title, required String message, bool isError = false}) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      child: glassCard(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle_outline,
+              color: isError ? AppColors.red : AppColors.greenLight,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.grey, fontSize: 14, fontFamily: 'Poppins'),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: GradientButton(
+                label: 'Dismiss',
+                onTap: () => Navigator.pop(context),
+                colors: isError 
+                  ? [AppColors.red, AppColors.red.withOpacity(0.8)] 
+                  : [AppColors.green, AppColors.greenLight],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 /// Glassmorphism card
 Widget glassCard({required Widget child, double radius = 20, EdgeInsets? padding}) {
   return ClipRRect(

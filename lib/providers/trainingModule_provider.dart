@@ -106,7 +106,7 @@ class TrainingModuleNotifier extends ChangeNotifier {
       _modules = [created, ..._modules];
       return true;
     } catch (e) {
-      _error = 'Failed to create module: ${e.toString()}';
+      _error = e is ApiException ? e.message : 'Failed to create module';
       return false;
     } finally {
       _isLoading = false;
@@ -127,7 +127,7 @@ class TrainingModuleNotifier extends ChangeNotifier {
       }
       return true;
     } catch (e) {
-      _error = 'Failed to update module: ${e.toString()}';
+      _error = e is ApiException ? e.message : 'Failed to update module';
       return false;
     } finally {
       _isLoading = false;
@@ -145,7 +145,7 @@ class TrainingModuleNotifier extends ChangeNotifier {
       _modules.removeWhere((m) => m.id == moduleId);
       return true;
     } catch (e) {
-      _error = 'Failed to delete module: ${e.toString()}';
+      _error = e is ApiException ? e.message : 'Failed to delete module';
       return false;
     } finally {
       _isLoading = false;

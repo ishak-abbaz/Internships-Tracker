@@ -395,19 +395,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Intern approved successfully'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Success',
+                  message: 'Intern approved successfully',
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('❌ ${notifier.error ?? 'Failed to approve intern'}'),
-                    backgroundColor: Colors.red,
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Error',
+                  message: notifier.error ?? 'Failed to approve intern',
+                  isError: true,
                 );
               }
             },
@@ -444,19 +442,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Intern rejected successfully'),
-                    backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Success',
+                  message: 'Intern rejected successfully',
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('❌ ${notifier.error ?? 'Failed to reject intern'}'),
-                    backgroundColor: Colors.red,
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Error',
+                  message: notifier.error ?? 'Failed to reject intern',
+                  isError: true,
                 );
               }
             },
@@ -590,8 +586,11 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
         return;
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load departments: $e')),
+        showProAlert(
+          context,
+          title: 'Error',
+          message: 'Failed to load departments: $e',
+          isError: true,
         );
       }
     }
@@ -931,12 +930,17 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
                     if (!mounted) return;
                     Navigator.pop(context);
                     if (result != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Mentor created successfully'), backgroundColor: Colors.green),
+                      showProAlert(
+                        context,
+                        title: 'Success',
+                        message: 'Mentor created successfully',
                       );
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_mentorsNotifier.error ?? 'Failed to create mentor'), backgroundColor: Colors.redAccent),
+                      showProAlert(
+                        context,
+                        title: 'Error',
+                        message: _mentorsNotifier.error ?? 'Failed to create mentor',
+                        isError: true,
                       );
                     }
                   },
@@ -976,18 +980,17 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
                 final success = await _mentorsNotifier.deleteMentor(mentorId);
                 if (mounted) {
                   if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Mentor removed successfully'),
-                        backgroundColor: Colors.green,
-                      ),
+                    showProAlert(
+                      context,
+                      title: 'Success',
+                      message: 'Mentor removed successfully',
                     );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_mentorsNotifier.error ?? 'Failed to remove mentor'),
-                        backgroundColor: Colors.redAccent,
-                      ),
+                    showProAlert(
+                      context,
+                      title: 'Error',
+                      message: _mentorsNotifier.error ?? 'Failed to remove mentor',
+                      isError: true,
                     );
                   }
                 }
@@ -1092,12 +1095,17 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
                     if (!mounted) return;
                     Navigator.pop(context);
                     if (result != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Mentor updated successfully'), backgroundColor: Colors.green),
+                      showProAlert(
+                        context,
+                        title: 'Success',
+                        message: 'Mentor updated successfully',
                       );
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_mentorsNotifier.error ?? 'Failed to update mentor'), backgroundColor: Colors.redAccent),
+                      showProAlert(
+                        context,
+                        title: 'Error',
+                        message: _mentorsNotifier.error ?? 'Failed to update mentor',
+                        isError: true,
                       );
                     }
                   },
@@ -1767,16 +1775,24 @@ class _ManageDepartmentsPageState extends State<ManageDepartmentsPage> {
                 await _departmentService.deleteDepartment(dept.id);
                 if (!mounted) return;
                 setState(() => _departments = _departments.where((item) => item.id != dept.id).toList());
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(content: Text('Department deleted successfully.')),
+                showProAlert(
+                  this.context,
+                  title: 'Success',
+                  message: 'Department deleted successfully.',
                 );
               } on ApiException catch (e) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text(e.message)),
+                showProAlert(
+                  this.context,
+                  title: 'Error',
+                  message: e.message,
+                  isError: true,
                 );
               } catch (_) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(content: Text('Unable to delete department.')),
+                showProAlert(
+                  this.context,
+                  title: 'Error',
+                  message: 'Unable to delete department.',
+                  isError: true,
                 );
               }
             },
@@ -1853,8 +1869,10 @@ class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
         widget.onUpdated?.call(updated);
         if (!mounted) return;
         Navigator.pop(context);
-        ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-          const SnackBar(content: Text('Department updated successfully.')),
+        showProAlert(
+          widget.parentContext,
+          title: 'Success',
+          message: 'Department updated successfully.',
         );
       } else {
         final created = await widget.service.createDepartment(
@@ -1865,8 +1883,10 @@ class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
         widget.onCreated?.call(created);
         if (!mounted) return;
         Navigator.pop(context);
-        ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-          const SnackBar(content: Text('Department created successfully.')),
+        showProAlert(
+          widget.parentContext,
+          title: 'Success',
+          message: 'Department created successfully.',
         );
       }
     } on ApiException catch (e) {
@@ -2174,11 +2194,11 @@ class _PolicyManagementPageState extends State<PolicyManagementPage> {
                   {'is_active': val},
                 );
                 if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(context.read<AdminOfficeNotifier>().error ?? "Failed to update status"),
-                      backgroundColor: Colors.red,
-                    ),
+                  showProAlert(
+                    context,
+                    title: "Update Failed",
+                    message: context.read<AdminOfficeNotifier>().error ?? "Failed to update status",
+                    isError: true,
                   );
                 }
               },
@@ -2633,20 +2653,17 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
               if (!context.mounted) return;
               
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("✅ Intern deleted successfully"),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: "Success",
+                  message: "Intern deleted successfully",
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("❌ ${_internsProvider.error ?? 'Failed to delete intern'}"),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 3),
-                  ),
+                showProAlert(
+                  context,
+                  title: "Error",
+                  message: _internsProvider.error ?? 'Failed to delete intern',
+                  isError: true,
                 );
               }
             },
@@ -2850,11 +2867,11 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
                 ElevatedButton(
                   onPressed: () async {
                     if (_fullNameController.text.isEmpty || _emailController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("⚠️ Please fill in all required fields"),
-                          backgroundColor: Colors.orange,
-                        ),
+                      showProAlert(
+                        context,
+                        title: "Incomplete Form",
+                        message: "Please fill in all required fields",
+                        isError: true,
                       );
                       return;
                     }
@@ -2871,19 +2888,18 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
                     if (!context.mounted) return;
 
                     if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("✅ Intern updated successfully"),
-                          backgroundColor: Colors.green,
-                        ),
+                      showProAlert(
+                        context,
+                        title: "Success",
+                        message: "Intern updated successfully",
                       );
                       Navigator.pop(context);
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("❌ ${_internsProvider.error ?? 'Failed to update intern'}"),
-                          backgroundColor: Colors.red,
-                        ),
+                      showProAlert(
+                        context,
+                        title: "Error",
+                        message: _internsProvider.error ?? 'Failed to update intern',
+                        isError: true,
                       );
                     }
                   },
@@ -2921,20 +2937,17 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("✅ Intern approved successfully"),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: "Approved",
+                  message: "Intern approved successfully",
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("❌ ${_internsProvider.error ?? 'Failed to approve intern'}"),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 3),
-                  ),
+                showProAlert(
+                  context,
+                  title: "Error",
+                  message: _internsProvider.error ?? 'Failed to approve intern',
+                  isError: true,
                 );
               }
             },
@@ -2962,20 +2975,17 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("✅ Intern rejected successfully"),
-                    backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: "Rejected",
+                  message: "Intern rejected successfully",
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("❌ ${_internsProvider.error ?? 'Failed to reject intern'}"),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 3),
-                  ),
+                showProAlert(
+                  context,
+                  title: "Error",
+                  message: _internsProvider.error ?? 'Failed to reject intern',
+                  isError: true,
                 );
               }
             },
@@ -3245,12 +3255,11 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
 
                         if (validationError != null) {
                           print('⛔ Validation Error: $validationError');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(validationError),
-                              backgroundColor: Colors.orange,
-                              duration: const Duration(seconds: 3),
-                            ),
+                          showProAlert(
+                            context,
+                            title: "Invalid Input",
+                            message: validationError,
+                            isError: true,
                           );
                           return;
                         }
@@ -3274,14 +3283,6 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
                         print(requestBody.toString());
                         print('═══════════════════════════════════════════════════════════');
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("⏳ Creating intern... Check console for request details"),
-                            backgroundColor: AppColors.greenLight,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-
                         print('🚀 Calling _internNotifier.createIntern()...');
 
                         // Call provider to create intern
@@ -3299,12 +3300,10 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
 
                         if (success) {
                           print('✅ SUCCESS: Intern created');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("✅ ${_internNotifier.message ?? 'Intern created successfully'}"),
-                              backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 3),
-                            ),
+                          showProAlert(
+                            context,
+                            title: "Success",
+                            message: _internNotifier.message ?? 'Intern created successfully',
                           );
                           Future.delayed(const Duration(seconds: 1), () {
                             if (context.mounted) {
@@ -3319,12 +3318,11 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
                           });
                         } else {
                           print('❌ FAILED: ${_internNotifier.error}');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("❌ ${_internNotifier.error ?? 'Failed to create intern'}"),
-                              backgroundColor: Colors.red,
-                              duration: const Duration(seconds: 3),
-                            ),
+                          showProAlert(
+                            context,
+                            title: "Creation Failed",
+                            message: _internNotifier.error ?? 'Failed to create intern',
+                            isError: true,
                           );
                         }
                       },
@@ -3441,21 +3439,20 @@ class _ReviewRequestPageState extends State<ReviewRequestPage> {
   void _handleAction(bool isApproved) {
     if (!isApproved && _reasonController.text.trim().isEmpty) {
       // If rejecting, make sure they wrote a reason
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please provide a reason for rejection"),
-          backgroundColor: Colors.redAccent,
-        ),
+      showProAlert(
+        context,
+        title: "Reason Required",
+        message: "Please provide a reason for rejection",
+        isError: true,
       );
       return;
     }
 
     // Success Message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isApproved ? "${widget.name} Approved!" : "Request Rejected"),
-        backgroundColor: isApproved ? AppColors.green : Colors.red,
-      ),
+    showProAlert(
+      context,
+      title: isApproved ? "Request Approved" : "Request Rejected",
+      message: isApproved ? "${widget.name} has been approved." : "The request has been rejected.",
     );
     Navigator.pop(context);
   }
@@ -3794,19 +3791,17 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Intern approved successfully'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Success',
+                  message: 'Intern approved successfully',
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('❌ ${notifier.error ?? 'Failed to approve intern'}'),
-                    backgroundColor: Colors.red,
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Error',
+                  message: notifier.error ?? 'Failed to approve intern',
+                  isError: true,
                 );
               }
             },
@@ -3843,19 +3838,17 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Intern rejected successfully'),
-                    backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 2),
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Success',
+                  message: 'Intern rejected successfully',
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('❌ ${notifier.error ?? 'Failed to reject intern'}'),
-                    backgroundColor: Colors.red,
-                  ),
+                showProAlert(
+                  context,
+                  title: 'Error',
+                  message: notifier.error ?? 'Failed to reject intern',
+                  isError: true,
                 );
               }
             },

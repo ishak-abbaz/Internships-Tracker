@@ -232,8 +232,13 @@ class _TrainingModuleManagementScreenState extends State<TrainingModuleManagemen
 
                         if (mounted) {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(success ? (isEditing ? 'Updated' : 'Created') : notifier.error ?? 'Failed')),
+                          showProAlert(
+                            context,
+                            title: success ? (isEditing ? 'Updated' : 'Created') : 'Error',
+                            message: success 
+                                ? 'Training module has been ${isEditing ? 'updated' : 'created'} successfully.' 
+                                : (notifier.error ?? 'Failed to process request'),
+                            isError: !success,
                           );
                         }
                       },
@@ -262,8 +267,11 @@ class _TrainingModuleManagementScreenState extends State<TrainingModuleManagemen
               Navigator.pop(context);
               final success = await context.read<TrainingModuleNotifier>().deleteModule(module.id);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(success ? 'Deleted' : 'Delete failed')),
+                showProAlert(
+                  context,
+                  title: success ? 'Deleted' : 'Error',
+                  message: success ? 'The module has been removed.' : 'Delete failed',
+                  isError: !success,
                 );
               }
             },

@@ -470,11 +470,6 @@ class ProfessionalIDPage extends StatelessWidget {
                       final bytes = result.files.single.bytes!;
                       final fileName = result.files.single.name;
 
-                      // Show loading
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Uploading photo...")),
-                      );
-
                       final token = await AuthService().getToken();
                       final uri = Uri.parse("${ApiConfig.baseUrl}${ApiConfig.internWorkId}/photo");
                       
@@ -490,20 +485,28 @@ class ProfessionalIDPage extends StatelessWidget {
                       final response = await request.send();
 
                       if (response.statusCode == 200) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Photo uploaded successfully!")),
+                        showProAlert(
+                          context,
+                          title: "Upload Successful",
+                          message: "Your photo has been updated.",
                         );
                         // Refresh assignment to get new photo URL
                         context.read<InternshipAssignmentNotifier>().fetchMyAssignment();
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Upload failed: ${response.statusCode}")),
+                        showProAlert(
+                          context,
+                          title: "Upload Failed",
+                          message: "Server returned error: ${response.statusCode}",
+                          isError: true,
                         );
                       }
                     }
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Error: $e")),
+                    showProAlert(
+                      context,
+                      title: "Error",
+                      message: e.toString(),
+                      isError: true,
                     );
                   }
                 },
@@ -1269,8 +1272,11 @@ class ModuleDetailPage extends StatelessWidget {
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Could not launch URL")),
+                showProAlert(
+                  context,
+                  title: "Action Failed",
+                  message: "Could not launch the requested URL.",
+                  isError: true,
                 );
               }
             },
@@ -1490,20 +1496,22 @@ class TrainingFilesPage extends StatelessWidget {
               Icons.download_rounded,
               color: AppColors.greenLight,
             ),
-            onPressed: () => _handleFileAction(context, "Downloading $name..."),
+            onPressed: () => _handleFileAction(context, "Download Started", "Downloading $name..."),
           ),
           IconButton(
             icon: const Icon(Icons.open_in_new_rounded, color: AppColors.grey),
-            onPressed: () => _handleFileAction(context, "Opening $name..."),
+            onPressed: () => _handleFileAction(context, "Open Document", "Opening $name..."),
           ),
         ],
       ),
     );
   }
 
-  void _handleFileAction(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.surface),
+  void _handleFileAction(BuildContext context, String title, String message) {
+    showProAlert(
+      context,
+      title: title,
+      message: message,
     );
   }
 }
