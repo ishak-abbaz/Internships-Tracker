@@ -85,6 +85,31 @@ class AttendanceService {
     );
   }
 
+  Future<Map<String, dynamic>> getAttendanceStats(String internId) async {
+    final token = await _requireToken();
+    final response = await _apiService.get(
+      ApiConfig.mentorAttendanceStats(internId),
+      token: token,
+    );
+    return (response['data'] ?? response) as Map<String, dynamic>;
+  }
+
+  Future<List<AttendanceModel>> getAllAttendances() async {
+    final token = await _requireToken();
+    final response = await _apiService.get(
+      ApiConfig.mentorAttendance,
+      token: token,
+    );
+    
+    // Based on the response structure provided: {"data": {"data": [...]}}
+    final wrapper = response['data'] ?? response;
+    final items = (wrapper['data'] ?? <dynamic>[]) as List<dynamic>;
+    
+    return items
+        .map((item) => AttendanceModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<String> _requireToken() async {
     final token = await _authService.getToken();
     if (token == null || token.isEmpty) {

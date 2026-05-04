@@ -21,7 +21,7 @@ router.use(protect);
 router.post('/:intern_id', restrictTo('Admin'), createInternship);
 
 // Get all internship assignments (Admin)
-router.get('/', restrictTo('Admin'), getAllInternships);
+router.get('/', restrictTo('Admin', 'Mentor'), getAllInternships);
 
 router.get('/:id', restrictTo('Admin'), getInternshipById);
 

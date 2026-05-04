@@ -12,13 +12,13 @@ const {
 const { protect, restrictTo } = require('../Middleware/auth');
 
 // Protect all department routes
-router.use(protect, restrictTo('Admin'));
+router.use(protect);
 
-// Department CRUD (Admin only)
-router.post('/createdep', createDepartment);
-router.get('/getAlldep', getAllDepartments);
-router.get('/:id', getDepartmentById);
-router.patch('/updatedep/:id', updateDepartment);
-router.delete('/delete/:id', deleteDepartment);
+// Department CRUD
+router.post('/createdep', restrictTo('Admin'), createDepartment);
+router.get('/getAlldep', restrictTo('Admin', 'Mentor', 'Student'), getAllDepartments);
+router.get('/:id', restrictTo('Admin', 'Mentor', 'Student'), getDepartmentById);
+router.patch('/updatedep/:id', restrictTo('Admin'), updateDepartment);
+router.delete('/delete/:id', restrictTo('Admin'), deleteDepartment);
 
 module.exports = router;

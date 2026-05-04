@@ -24,6 +24,26 @@ const scheduleSchema = new mongoose.Schema({
     maxlength: 20,
     default: null
   },
+  academic_year: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  group: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  teacher_name: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  module_name: {
+    type: String,
+    trim: true,
+    default: null
+  },
   file_url: {
     type: String,
     required: true,

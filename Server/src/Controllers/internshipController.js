@@ -7,7 +7,6 @@ const {
   updateInternshipAssignment,
   deleteInternshipAssignment
 } = require('../Services/internshipService');
-const { sendSuccess, sendError } = require('../utils/response');
 
 // Create new internship assignment (Admin only)
 exports.createInternship = async (req, res) => {
@@ -15,52 +14,50 @@ exports.createInternship = async (req, res) => {
     const { intern_id } = req.params;
     const {
       mentor_name,
-      department_code
+      department_code,
+      subject,
+      start_date,
+      end_date
     } = req.body;
 
     // Validate required fields
-    if (!intern_id || !mentor_name || !department_code) {
-      return sendError(res, {
-        status: 400,
-        msg: 'Please provide all required fields: intern_id (in URL), mentor_name, and department_code'
+    if (!intern_id || !mentor_name || !department_code || !subject || !start_date || !end_date) {
+      return res.status(400).json({
+        msg: '❌ Error: Please provide all required fields: intern_id (in URL), mentor_name, and department_code',
+        error: 'Missing required fields'
       });
     }
 
-    // Find Department by Code
-    const department = await Department.findOne({ code: department_code.toUpperCase() });
-    if (!department) {
-      return sendError(res, {
-        status: 404,
-        msg: `Department with code '${department_code}' not found`
-      });
-    }
-
-    // Find Mentor by full name
+    // Lookup mentor by name
     const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
     if (!mentor) {
-      return sendError(res, {
-        status: 404,
-        msg: `Mentor with name '${mentor_name}' not found`
-      });
+      return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
+    }
+
+    // Lookup department by code
+    const department = await Department.findOne({ code: department_code });
+    if (!department) {
+      return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
     }
 
     const assignment = await createInternshipAssignment({
       intern_id,
       mentor_id: mentor._id,
       department_id: department._id,
+      subject,
+      start_date,
+      end_date,
       assigned_by_admin_id: req.user.id
     });
 
-    return sendSuccess(res, {
-      status: 201,
+    res.status(201).json({
       msg: 'Internship assignment created successfully',
-      data: assignment
+      assignment
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to create internship assignment',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };
@@ -80,16 +77,15 @@ exports.getAllInternships = async (req, res) => {
 
     const assignments = await getAllInternshipAssignments(filters);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Internship assignments fetched successfully',
-      data: { count: assignments.length, items: assignments }
+      count: assignments.length,
+      assignments
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to fetch internship assignments',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };
@@ -101,16 +97,14 @@ exports.getInternshipById = async (req, res) => {
 
     const assignment = await getInternshipAssignmentById(id);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Internship assignment fetched successfully',
-      data: assignment
+      assignment
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to fetch internship assignment',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };
@@ -122,16 +116,15 @@ exports.getInternAssignments = async (req, res) => {
 
     const assignments = await getAssignmentsByInternId(intern_id);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Intern assignments fetched successfully',
-      data: { count: assignments.length, items: assignments }
+      count: assignments.length,
+      assignments
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to fetch intern assignments',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };
@@ -144,16 +137,15 @@ exports.getMentorAssignments = async (req, res) => {
 
     const assignments = await getAssignmentsByMentorId(mentor_id);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Mentor assignments fetched successfully',
-      data: { count: assignments.length, items: assignments }
+      count: assignments.length,
+      assignments
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to fetch mentor assignments',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };
@@ -162,51 +154,25 @@ exports.getMentorAssignments = async (req, res) => {
 exports.updateInternship = async (req, res) => {
   try {
     const { id } = req.params;
-    const { mentor_name, department_code } = req.body;
-
-    // Validate that at least one field is provided
-    if (!mentor_name && !department_code) {
-      return sendError(res, {
-        status: 400,
-        msg: 'Provide at least one field to update (mentor_name or department_code)'
-      });
-    }
+    const { mentor_id, department_id, subject, start_date, end_date } = req.body;
 
     const updateData = {};
-    if (mentor_name) {
-      const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
-      if (!mentor) {
-        return sendError(res, {
-          status: 404,
-          msg: `Mentor with name '${mentor_name}' not found`
-        });
-      }
-      updateData.mentor_id = mentor._id;
-    }
-    
-    if (department_code) {
-      const department = await Department.findOne({ code: department_code.toUpperCase() });
-      if (!department) {
-        return sendError(res, {
-          status: 404,
-          msg: `Department with code '${department_code}' not found`
-        });
-      }
-      updateData.department_id = department._id;
-    }
+    if (mentor_id) updateData.mentor_id = mentor_id;
+    if (department_id) updateData.department_id = department_id;
+    if (subject) updateData.subject = subject;
+    if (start_date) updateData.start_date = start_date;
+    if (end_date) updateData.end_date = end_date;
     
     const assignment = await updateInternshipAssignment(id, updateData);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Internship assignment updated successfully',
-      data: assignment
+      assignment
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to update internship assignment',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };
@@ -218,16 +184,14 @@ exports.deleteInternship = async (req, res) => {
 
     const assignment = await deleteInternshipAssignment(id);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Internship assignment deleted successfully',
-      data: assignment
+      assignment
     });
   } catch (err) {
-    return sendError(res, {
-      status: err.status || 500,
+    res.status(err.status || 500).json({
       msg: err.message || 'Failed to delete internship assignment',
-      data: { error: err.message }
+      error: err.message
     });
   }
 };

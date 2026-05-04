@@ -3,6 +3,17 @@ import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/adminInternsList_provider.dart';
+import 'providers/adminMentors_provider.dart';
+import 'providers/createIntern_form_provider.dart';
+import 'providers/trainingModule_provider.dart';
+import 'providers/evaluation_provider.dart';
+import 'providers/internship_assignment_provider.dart';
+import 'providers/attendance_provider.dart';
+import 'providers/adminDepartments_provider.dart';
+import 'providers/admin_office_provider.dart';
 import 'theme.dart';
 import 'admin_dashboard.dart';
 import 'mentor_dashboard.dart';
@@ -30,18 +41,97 @@ class ProLinkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pro-Link',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      home: const LoginPage(),
-      routes: {
-        '/login':      (context) => const LoginPage(),
-        '/register':   (context) => const RegisterPage(),
-        '/admin':      (context) =>  AdminDashboard(),
-        '/mentor':     (context) => const MentorDashboard(),
-        '/intern':     (context) => const InternDashboard(),
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AdminInternsListNotifier()),
+        ChangeNotifierProvider(create: (_) => AdminMentorsNotifier()),
+        ChangeNotifierProvider(create: (_) => CreateInternFormNotifier()),
+        ChangeNotifierProvider(create: (_) => TrainingModuleNotifier()),
+        ChangeNotifierProvider(create: (_) => EvaluationNotifier()),
+        ChangeNotifierProvider(create: (_) => InternshipAssignmentNotifier()),
+        ChangeNotifierProvider(create: (_) => AttendanceNotifier()),
+        ChangeNotifierProvider(create: (_) => AdminDepartmentsNotifier()),
+        ChangeNotifierProvider(create: (_) => AdminOfficeNotifier()),
+      ],
+      child: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          return MaterialApp(
+            title: 'Pro-Link',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.dark,
+            home: const SplashPage(),
+            routes: {
+              '/login':      (context) => const LoginPage(),
+              '/register':   (context) => const RegisterPage(),
+              '/admin':      (context) =>  AdminDashboard(),
+              '/mentor':     (context) {
+                return const MentorDashboard();
+              },
+              '/intern':     (context) => const InternDashboard(),
+            },
+          );
+        }
+      ),
+    );
+  }
+}
+
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuth();
+    });
+  }
+
+  Future<void> _checkAuth() async {
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.autoLogin();
+    
+    if (!mounted) return;
+
+    if (authProvider.isAuthenticated) {
+      final user = authProvider.currentUser!;
+      final role = user.userRole.toLowerCase();
+      String? route;
+
+      if (role == 'admin') {
+        route = '/admin';
+      } else if (role == 'mentor') {
+        route = '/mentor';
+      } else if (role == 'student' || role == 'intern') {
+        route = '/intern';
+      }
+
+      if (route != null) {
+        Navigator.pushReplacementNamed(
+          context, 
+          route
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFF070D09),
+      body: Center(
+        child: CircularProgressIndicator(color: Color(0xFF39FF14)),
+      ),
     );
   }
 }
@@ -211,13 +301,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     });
 
     try {
-      final result = await _authService.login(
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.login(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
       );
 
       if (!mounted) return;
-      final role = result.user.userRole.toLowerCase();
+
+      if (!success) {
+        setState(() => _loginError = authProvider.error);
+        return;
+      }
+
+      final user = authProvider.currentUser!;
+      final role = user.userRole.toLowerCase();
       String? route;
 
       if (role == 'admin') {
@@ -229,13 +327,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       }
 
       if (route == null) {
-        setState(() => _loginError = 'Unsupported account role: ${result.user.userRole}');
+        setState(() => _loginError = 'Unsupported account role: ${user.userRole}');
         return;
       }
 
-      Navigator.pushReplacementNamed(context, route);
-    } on ApiException catch (e) {
-      setState(() => _loginError = e.message);
+      Navigator.pushReplacementNamed(
+        context, 
+        route
+      );
     } catch (_) {
       setState(() => _loginError = 'Unable to login. Please try again.');
     } finally {

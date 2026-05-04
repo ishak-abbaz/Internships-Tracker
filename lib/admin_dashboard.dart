@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -9,12 +13,17 @@ import 'intern_dashboard.dart';
 import 'models/department_model.dart';
 import 'models/intern_model.dart';
 import 'models/mentor_model.dart';
+import 'models/admin_office_models.dart';
 import 'services/admin_department_service.dart';
 import 'services/api_exception.dart';
 import 'providers/adminInterns_provider.dart';
 import 'providers/adminInternsList_provider.dart';
+import 'providers/internship_assignment_provider.dart';
 import 'providers/adminMentors_provider.dart';
+import 'providers/adminDepartments_provider.dart';
 import 'providers/createIntern_form_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/admin_office_provider.dart';
 import 'screens/intern_assignment_screen.dart';
 import 'screens/attendance_management_screen.dart';
 import 'screens/evaluation_management_screen.dart';
@@ -43,20 +52,20 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  late AdminInternsListNotifier _pendingProvider;
-  late AdminInternsListNotifier _internsProvider;
 
   @override
   void initState() {
     super.initState();
-    _pendingProvider = AdminInternsListNotifier();
-    _pendingProvider.fetchPendingInterns();
-    _internsProvider = AdminInternsListNotifier();
-    _internsProvider.fetchInterns();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdminInternsListNotifier>().fetchPendingInterns();
+      context.read<AdminInternsListNotifier>().fetchInterns();
+      context.read<InternshipAssignmentNotifier>().fetchAssignments();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
     return Scaffold(
       backgroundColor: AppColors.bg,
       // ── THE THREE LINES MENU (DRAWER) - Unchanged ──
@@ -70,14 +79,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      const DrawerHeader(
+                      DrawerHeader(
+                        decoration: const BoxDecoration(
+                          color: AppColors.card,
+                        ),
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.hub_rounded, color: AppColors.greenLight, size: 50),
-                              SizedBox(height: 10),
-                              Text("ADMIN PORTAL", style: TextStyle(color: Colors.white, fontSize: 12, letterSpacing: 1.2)),
+                              CircleAvatar(
+                                radius: 30,
+                                backgroundColor: AppColors.greenLight.withOpacity(0.1),
+                                child: Text(
+                                  user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : "A",
+                                  style: const TextStyle(color: AppColors.greenLight, fontSize: 24, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                user?.fullName ?? "Admin User",
+                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                user?.email ?? "admin@example.com",
+                                style: TextStyle(color: AppColors.grey.withOpacity(0.7), fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ],
                           ),
                         ),
@@ -95,12 +125,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       _drawerTile(context, Icons.calendar_today, "Schedules", () {
                         Navigator.pop(context);
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleManagementPage()));
-                      }),
-
-                      // NEW: Policy & Documents Screen
-                      _drawerTile(context, Icons.menu_book_rounded, "Policy Handbooks", () {
-                        Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PolicyManagementPage()));
                       }),
 
                       const Padding(
@@ -131,12 +155,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
                       _drawerTile(context, Icons.grade, "Evaluations", () {
                         Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EvaluationManagementScreen()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EvaluationManagementScreen(isAdmin: true)));
                       }),
 
                       _drawerTile(context, Icons.school_outlined, "Training Modules", () {
                         Navigator.pop(context);
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const TrainingModuleManagementScreen()));
+                      }),
+
+                      _drawerTile(context, Icons.menu_book, "Policies", () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PolicyManagementPage()));
                       }),
 
                       // 4. System & Exit
@@ -149,18 +178,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               ),
 
-              const Divider(color: AppColors.border, height: 1),
-              _drawerTile(context, Icons.analytics_outlined, "Reports & Analytics", () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen()));
-              }),
-
-              _drawerTile(
-                  context,
-                  Icons.logout,
-                  "Logout",
-                      () => Navigator.pushReplacementNamed(context, '/login'),
-                  color: Colors.redAccent
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: GradientButton(
+                  label: "Logout",
+                  icon: Icons.logout,
+                  onTap: () {
+                    context.read<AuthProvider>().logout();
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                ),
               ),
               const SizedBox(height: 10),
             ],
@@ -178,17 +206,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. TOP SEARCH BAR (From Photo 1)
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(
-                label: "Search",
-                hint: "Search Intern Records...",
-                icon: Icons.search,
-              ),
-            ),
-            const SizedBox(height: 25),
-
             // 2. PENDING VALIDATIONS SECTION
             const Text("Pending Intern Validations",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -196,11 +213,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 style: TextStyle(color: AppColors.grey.withOpacity(0.7), fontSize: 13)),
             const SizedBox(height: 15),
             
-            AnimatedBuilder(
-              animation: _pendingProvider,
-              builder: (context, child) {
+            Consumer<AdminInternsListNotifier>(
+              builder: (context, provider, child) {
                 // Loading state
-                if (_pendingProvider.pendingLoading)
+                if (provider.pendingLoading)
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(20),
@@ -211,21 +227,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   );
                 
                 // Error state
-                if (_pendingProvider.error != null)
+                if (provider.error != null)
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          Icon(Icons.error_outline, color: Colors.red, size: 40),
+                          const Icon(Icons.error_outline, color: Colors.red, size: 40),
                           const SizedBox(height: 10),
-                          Text(
+                          const Text(
                             "❌ Error loading pending interns",
                             style: TextStyle(color: Colors.red, fontSize: 12),
                           ),
                           const SizedBox(height: 10),
                           ElevatedButton(
-                            onPressed: () => _pendingProvider.fetchPendingInterns(),
+                            onPressed: () => provider.fetchPendingInterns(),
                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.green),
                             child: const Text("Retry"),
                           ),
@@ -235,7 +251,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   );
                 
                 // Empty state
-                if (_pendingProvider.pendingInternsList.isEmpty)
+                if (provider.pendingInternsList.isEmpty)
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -248,7 +264,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 
                 // Pending interns list
                 return Column(
-                  children: _pendingProvider.pendingInternsList.take(2).map((intern) {
+                  children: provider.pendingInternsList.take(2).map((intern) {
                     return _invitationCard(context, intern);
                   }).toList(),
                 );
@@ -270,34 +286,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
             const SizedBox(height: 20),
 
-            // 3. ASSIGNMENTS SECTION (The Stats Grid from Photo 1)
             // 3. ASSIGNMENTS SECTION
             const Text("Assignments",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 15),
 
-            AnimatedBuilder(
-              animation: _internsProvider,
-              builder: (context, child) {
-                final active = _internsProvider.activeInterns;
-                final unassigned = _internsProvider.unassignedInterns;
+            Consumer<InternshipAssignmentNotifier>(
+              builder: (context, provider, child) {
+                final total = provider.assignments.length;
+                final active = provider.assignments.where((a) {
+                  final now = DateTime.now();
+                  return a.startDate.isBefore(now) && a.endDate.isAfter(now);
+                }).length;
+                
                 return Row(
                   children: [
                     Expanded(
                         child: _buildSmallStatCard(
-                            "Active Interns",
+                            "Active Internships",
                             "$active",
                             AppColors.greenLight,
-                            Icons.groups_rounded // Icon for interns
+                            Icons.assignment_turned_in_rounded
                         )
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                         child: _buildSmallStatCard(
-                            "Unassigned",
-                            "$unassigned",
-                            AppColors.red,
-                            Icons.person_off_rounded // Icon for unassigned
+                            "Total Assignments",
+                            "$total",
+                            AppColors.orange,
+                            Icons.assignment_rounded
                         )
                     ),
                   ],
@@ -305,29 +323,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
               },
             ),
             const SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: () {
+            GradientButton(
+              label: "Manage Assignments",
+              icon: Icons.assignment_ind_rounded,
+              onTap: () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const InternAssignmentScreen()));
               },
-              icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: const Text("Quick Assign Intern"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor : AppColors.green,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
             ),
 
-            const SizedBox(height: 30),
-
-            // 4. RESOURCE CENTER (From Photo 1)
-            const Text("Resource Center",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            _buildResourceTile("Office Schedule", "Uploaded (v2.1)", Icons.check_circle, AppColors.greenLight),
-            _buildResourceTile("Policy Handbook", "Missing", Icons.error_outline, AppColors.red),
           ],
         ),
       ),
@@ -364,35 +369,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildResourceTile(String title, String status, IconData icon, Color statusColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.description, color: Colors.white, size: 24),
-        ),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Row(
-          children: [
-            Icon(icon, size: 14, color: statusColor),
-            const SizedBox(width: 5),
-            Text(status, style: TextStyle(color: statusColor, fontSize: 12)),
-          ],
-        ),
-        trailing: const Icon(Icons.file_download_outlined, color: AppColors.grey),
-      ),
-    );
-  }
-
   void _confirmApprovePending(InternModel intern) {
     showDialog(
       context: context,
@@ -414,7 +390,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await _pendingProvider.approveIntern(intern.id);
+              final notifier = context.read<AdminInternsListNotifier>();
+              final success = await notifier.approveIntern(intern.id);
               if (!context.mounted) return;
 
               if (success) {
@@ -425,11 +402,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     duration: Duration(seconds: 2),
                   ),
                 );
-                _pendingProvider.fetchPendingInterns();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to approve intern'}'),
+                    content: Text('❌ ${notifier.error ?? 'Failed to approve intern'}'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -463,7 +439,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await _pendingProvider.rejectIntern(intern.id);
+              final notifier = context.read<AdminInternsListNotifier>();
+              final success = await notifier.rejectIntern(intern.id);
               if (!context.mounted) return;
 
               if (success) {
@@ -474,11 +451,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     duration: Duration(seconds: 2),
                   ),
                 );
-                _pendingProvider.fetchPendingInterns();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to reject intern'}'),
+                    content: Text('❌ ${notifier.error ?? 'Failed to reject intern'}'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -534,7 +510,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                     ),
                     Text(
-                      intern.department ?? 'N/A', 
+                      "${intern.department ?? 'N/A'}${intern.departmentCode != null ? ' (${intern.departmentCode})' : ''}", 
                       style: const TextStyle(color: AppColors.grey, fontSize: 12)
                     ),
                   ]
@@ -585,145 +561,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
   }
-class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
-
-  @override
-  State<ReportsScreen> createState() => _ReportsScreenState();
-}
-
-class _ReportsScreenState extends State<ReportsScreen> {
-  // --- MOCK DATA FOR ATTENDANCE ---
-  final List<Map<String, dynamic>> attendanceData = [
-    {"name": "Ahmed Benali", "dept": "AI", "present": "95%", "status": "Excellent"},
-    {"name": "Sara Zeghidi", "dept": "Web", "present": "82%", "status": "Good"},
-    {"name": "Mourad Kasmi", "dept": "Cyber", "present": "60%", "status": "Warning"},
-  ];
-
-  // --- MOCK DATA FOR EVALUATIONS ---
-  final List<Map<String, dynamic>> evaluationData = [
-    {"intern": "Ahmed Benali", "mentor": "Dr. Rahmani", "score": 18.5, "comment": "Highly Proactive"},
-    {"intern": "Sara Zeghidi", "mentor": "Prof. Zenati", "score": 14.0, "comment": "Good progress"},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text("University Reports"),
-        backgroundColor: Colors.transparent,
-        actions: [
-          // THE EXPORT BUTTON
-          TextButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Generating PDF/Excel Report..."), backgroundColor: AppColors.green),
-              );
-            },
-            icon: const Icon(Icons.download_rounded, color: AppColors.greenLight),
-            label: const Text("Export", style: TextStyle(color: AppColors.greenLight)),
-          ),
-          const SizedBox(width: 10),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionHeader("Attendance Summary"),
-            _buildAttendanceTable(),
-            const SizedBox(height: 30),
-            _sectionHeader("Evaluation Summaries"),
-            _buildEvaluationList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(title, style: const TextStyle(color: AppColors.gold, fontSize: 16, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  // --- ATTENDANCE TABLE ---
-  Widget _buildAttendanceTable() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: DataTable(
-        columnSpacing: 15,
-        headingRowColor: MaterialStateProperty.all(AppColors.surface),
-        columns: const [
-          DataColumn(label: Text("Intern", style: TextStyle(color: AppColors.grey))),
-          DataColumn(label: Text("Dept", style: TextStyle(color: AppColors.grey))),
-          DataColumn(label: Text("Present", style: TextStyle(color: AppColors.grey))),
-          DataColumn(label: Text("Status", style: TextStyle(color: AppColors.grey))),
-        ],
-        rows: attendanceData.map((data) => DataRow(
-          cells: [
-            DataCell(Text(data['name'], style: const TextStyle(color: Colors.white, fontSize: 12))),
-            DataCell(Text(data['dept'], style: const TextStyle(color: Colors.white, fontSize: 12))),
-            DataCell(Text(data['present'], style: const TextStyle(color: AppColors.greenLight, fontSize: 12))),
-            DataCell(Text(data['status'], style: TextStyle(
-                color: data['status'] == 'Warning' ? Colors.redAccent : Colors.white,
-                fontSize: 11, fontWeight: FontWeight.bold
-            ))),
-          ],
-        )).toList(),
-      ),
-    );
-  }
-
-  // --- EVALUATION LIST ---
-  Widget _buildEvaluationList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: evaluationData.length,
-      itemBuilder: (context, index) {
-        final eval = evaluationData[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppColors.surface,
-                child: Text("${eval['score']}", style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(eval['intern'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text("Mentor: ${eval['mentor']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-                  ],
-                ),
-              ),
-              Text(eval['comment'], style: const TextStyle(color: AppColors.greenLight, fontSize: 11, fontStyle: FontStyle.italic)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
 class ManageMentorsPage extends StatefulWidget {
   const ManageMentorsPage({super.key});
 
@@ -979,12 +816,14 @@ class _ManageMentorsPageState extends State<ManageMentorsPage> {
         children: [
           Icon(icon, color: AppColors.grey, size: 18),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
+                Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
           )
         ],
       ),
@@ -1313,43 +1152,41 @@ class ScheduleManagementPage extends StatefulWidget {
 }
 
 class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
-  // ── DATA MODEL ──
-  List<Map<String, String>> schedules = [
-    {
-      "dept": "AI Department",
-      "class": "Master 1",
-      "group": "Group 02",
-      "teacher": "Dr. Amine Rahmani",
-      "subject": "Deep Learning",
-    },
-    {
-      "dept": "Web Development",
-      "class": "L3",
-      "group": "Group 01",
-      "teacher": "Prof. Sarah Zenati",
-      "subject": "Advanced CSS",
-    },
-  ];
-
-  List<Map<String, String>> filteredSchedules = [];
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _teacherController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  File? _selectedFile;
 
   @override
   void initState() {
     super.initState();
-    filteredSchedules = schedules;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdminOfficeNotifier>().fetchSchedules();
+      context.read<AdminDepartmentsNotifier>().fetchDepartments();
+    });
   }
 
-  // ── SEARCH LOGIC ──
-  void _filterSchedules(String query) {
-    setState(() {
-      filteredSchedules = schedules.where((s) {
-        final match = s['dept']!.toLowerCase().contains(query.toLowerCase()) ||
-            s['teacher']!.toLowerCase().contains(query.toLowerCase()) ||
-            s['class']!.toLowerCase().contains(query.toLowerCase());
-        return match;
-      }).toList();
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _teacherController.dispose();
+    _subjectController.dispose();
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile(StateSetter setModalState) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setModalState(() {
+        _selectedFile = File(result.files.single.path!);
+      });
+    }
   }
 
   // ── UPDATED ADD DIALOG ──
@@ -1357,6 +1194,10 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
     String? selectedDept;
     String? selectedClass;
     String? selectedGroup;
+    _teacherController.clear();
+    _subjectController.clear();
+    _titleController.clear();
+    _selectedFile = null;
 
     showModalBottomSheet(
       context: context,
@@ -1376,8 +1217,28 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
 
+                TextField(
+                  controller: _titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(label: "Schedule Title", hint: "e.g. Spring 2026 AI Dept", icon: Icons.title),
+                ),
+                const SizedBox(height: 15),
+
                 // Department Pick
-                _customDropdown("Department", ["AI Department", "Web Dev"], selectedDept, (v) => setModalState(() => selectedDept = v)),
+                Consumer<AdminDepartmentsNotifier>(
+                  builder: (context, deptNotifier, _) {
+                    final depts = deptNotifier.departments;
+                    return _customDropdown(
+                      "Department",
+                      depts.map((d) => d.name).toList(),
+                      selectedDept != null ? depts.firstWhere((d) => d.id == selectedDept).name : null,
+                      (v) {
+                        final dept = depts.firstWhere((d) => d.name == v);
+                        setModalState(() => selectedDept = dept.id);
+                      }
+                    );
+                  }
+                ),
 
                 const SizedBox(height: 15),
                 Row(
@@ -1393,6 +1254,7 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
                 const SizedBox(height: 15),
                 // Teacher Name
                 TextField(
+                  controller: _teacherController,
                   style: const TextStyle(color: Colors.white),
                   decoration: proLinkInputDecoration(label: "Teacher Name", hint: "Dr. Full Name", icon: Icons.person_pin),
                 ),
@@ -1400,19 +1262,43 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
                 const SizedBox(height: 15),
                 // Subject/Module
                 TextField(
+                  controller: _subjectController,
                   style: const TextStyle(color: Colors.white),
                   decoration: proLinkInputDecoration(label: "Module/Subject", hint: "e.g. Mathematics", icon: Icons.book),
                 ),
 
                 const SizedBox(height: 20),
                 // Upload PDF Button
-                _uploadBox(),
+                InkWell(
+                  onTap: () => _pickFile(setModalState),
+                  child: _uploadBox(_selectedFile, label: "Upload Time-Table PDF"),
+                ),
 
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50)),
-                  child: const Text("SAVE SCHEDULE"),
+                Consumer<AdminOfficeNotifier>(
+                  builder: (context, notifier, child) {
+                    return ElevatedButton(
+                      onPressed: notifier.isLoading ? null : () async {
+                        if (_titleController.text.isEmpty) return;
+                        final success = await notifier.createSchedule(
+                          title: _titleController.text,
+                          teacherName: _teacherController.text,
+                          moduleName: _subjectController.text,
+                          academicYear: selectedClass,
+                          group: selectedGroup,
+                          departmentId: selectedDept,
+                          file: _selectedFile,
+                        );
+                        if (success && mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50)),
+                      child: notifier.isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text("SAVE SCHEDULE"),
+                    );
+                  }
                 ),
                 const SizedBox(height: 30),
               ],
@@ -1428,31 +1314,49 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text("Schedules"), backgroundColor: Colors.transparent),
-      body: Column(
-        children: [
-          // ── SEARCH BAR ──
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _filterSchedules,
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Search Schedule", hint: "Teacher, Dept, or Class...", icon: Icons.search),
-            ),
-          ),
+      body: Consumer<AdminOfficeNotifier>(
+        builder: (context, notifier, child) {
+          final query = _searchController.text.toLowerCase();
+          final filteredSchedules = notifier.schedules.where((s) {
+            return s.title.toLowerCase().contains(query) ||
+                (s.teacherName?.toLowerCase().contains(query) ?? false) ||
+                (s.departmentName?.toLowerCase().contains(query) ?? false);
+          }).toList();
 
-          // ── LIST ──
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredSchedules.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final s = filteredSchedules[index];
-                return _scheduleCard(s);
-              },
-            ),
-          ),
-        ],
+          if (notifier.isLoading && notifier.schedules.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return Column(
+            children: [
+              // ── SEARCH BAR ──
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(label: "Search Schedule", hint: "Teacher, Dept, or Title...", icon: Icons.search),
+                ),
+              ),
+
+              // ── LIST ──
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => notifier.fetchSchedules(),
+                  child: ListView.builder(
+                    itemCount: filteredSchedules.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemBuilder: (context, index) {
+                      final s = filteredSchedules[index];
+                      return _scheduleCard(s);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.green,
@@ -1463,7 +1367,7 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
   }
 
   // ── UI HELPERS ──
-  Widget _scheduleCard(Map<String, String> s) {
+  Widget _scheduleCard(OfficeSchedule s) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
@@ -1474,66 +1378,90 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(s['dept']!, style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-                child: Text("${s['class']} - ${s['group']}", style: const TextStyle(color: Colors.white, fontSize: 10)),
-              )
+              Expanded(child: Text(s.title, style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold))),
+              if (s.academicYear != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
+                  child: Text("${s.academicYear} ${s.group ?? ''}", style: const TextStyle(color: Colors.white, fontSize: 10)),
+                )
             ],
           ),
           const SizedBox(height: 10),
-          Text(s['subject']!, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+          if (s.moduleName != null)
+            Text(s.moduleName!, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 5),
           Row(
             children: [
-              const Icon(Icons.person_outline, color: AppColors.grey, size: 14),
-              const SizedBox(width: 5),
-              Text("Teacher: ${s['teacher']}", style: const TextStyle(color: AppColors.grey, fontSize: 13)),
+              if (s.teacherName != null) ...[
+                const Icon(Icons.person_outline, color: AppColors.grey, size: 14),
+                const SizedBox(width: 5),
+                Text("Teacher: ${s.teacherName}", style: const TextStyle(color: AppColors.grey, fontSize: 13)),
+              ],
+              const Spacer(),
+              if (s.fileUrl != null)
+                TextButton.icon(
+                  onPressed: () async {
+                    final url = Uri.parse(s.fileUrl!);
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.picture_as_pdf, size: 16),
+                  label: const Text("View", style: TextStyle(fontSize: 12)),
+                ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: AppColors.red, size: 20),
+                onPressed: () => context.read<AdminOfficeNotifier>().deleteSchedule(s.id),
+              ),
             ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _customDropdown(String label, List<String> items, String? value, Function(String?) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        const SizedBox(height: 5),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              dropdownColor: AppColors.surface,
-              value: value,
-              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
-              onChanged: onChanged,
-            ),
+// ── SHARED UI COMPONENTS ──
+
+Widget _customDropdown(String label, List<String> items, String? value, Function(String?) onChanged) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
+      const SizedBox(height: 5),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            isExpanded: true,
+            dropdownColor: AppColors.surface,
+            value: value,
+            items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
+            onChanged: onChanged,
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _uploadBox() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
-      child: const Column(
-        children: [
-          Icon(Icons.upload_file, color: AppColors.greenLight),
-          SizedBox(height: 10),
-          Text("Upload Time-Table PDF", style: TextStyle(color: AppColors.grey, fontSize: 12)),
-        ],
       ),
-    );
-  }
+    ],
+  );
+}
+
+Widget _uploadBox(File? file, {String label = "Select PDF Document"}) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
+    child: Column(
+      children: [
+        Icon(file != null ? Icons.check_circle : Icons.upload_file, color: file != null ? AppColors.green : AppColors.greenLight),
+        const SizedBox(height: 10),
+        Text(file != null ? "File: ${file.path.split('/').last}" : label, 
+          style: const TextStyle(color: AppColors.grey, fontSize: 12),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+      ],
+    ),
+  );
 }
 
 class ManageDepartmentsPage extends StatefulWidget {
@@ -2056,79 +1984,135 @@ class PolicyManagementPage extends StatefulWidget {
 }
 
 class _PolicyManagementPageState extends State<PolicyManagementPage> {
-  // ── DATA MODEL ──
-  List<Map<String, dynamic>> handbooks = [
-    {
-      "title": "Internship Rules 2026",
-      "isActive": true,
-      "versions": [
-        {"version": "v2.1", "date": "10/01/2026", "file": "rules_final.pdf"},
-        {"version": "v2.0", "date": "01/09/2025", "file": "rules_old.pdf"},
-      ]
-    },
-    {
-      "title": "Mentor Guidelines",
-      "isActive": false,
-      "versions": [
-        {"version": "v1.0", "date": "12/12/2025", "file": "mentor_guide.pdf"},
-      ]
-    },
-  ];
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _versionController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+  File? _selectedFile;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdminOfficeNotifier>().fetchPolicies();
+      context.read<AdminDepartmentsNotifier>().fetchDepartments();
+    });
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _versionController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile(StateSetter setModalState) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setModalState(() {
+        _selectedFile = File(result.files.single.path!);
+      });
+    }
+  }
 
   // ── ADD/UPLOAD DIALOG ──
   void _showUploadDialog() {
+    String? selectedDept;
+    _titleController.clear();
+    _versionController.clear();
+    _descController.clear();
+    _selectedFile = null;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.bg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Upload New Handbook",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Document Title", hint: "e.g. Code of Conduct", icon: Icons.description),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Version Number", hint: "v1.1", icon: Icons.history),
-            ),
-            const SizedBox(height: 20),
-
-            // Upload Area
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Upload New Handbook",
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: proLinkInputDecoration(label: "Document Title", hint: "e.g. Code of Conduct", icon: Icons.description),
               ),
-              child: const Column(
-                children: [
-                  Icon(Icons.upload_file, color: AppColors.greenLight, size: 30),
-                  SizedBox(height: 10),
-                  Text("Select PDF Document", style: TextStyle(color: AppColors.grey)),
-                ],
-              ),
-            ),
+              const SizedBox(height: 15),
 
-            const SizedBox(height: 25),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 55)),
-              child: const Text("PUBLISH DOCUMENT", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 30),
-          ],
+              // Department Pick
+              Consumer<AdminDepartmentsNotifier>(
+                builder: (context, deptNotifier, _) {
+                  final depts = deptNotifier.departments;
+                  return _customDropdown(
+                    "Department",
+                    depts.map((d) => d.name).toList(),
+                    selectedDept != null ? depts.firstWhere((d) => d.id == selectedDept).name : null,
+                    (v) {
+                      final dept = depts.firstWhere((d) => d.name == v);
+                      setModalState(() => selectedDept = dept.id);
+                    }
+                  );
+                }
+              ),
+              const SizedBox(height: 15),
+
+              TextField(
+                controller: _versionController,
+                style: const TextStyle(color: Colors.white),
+                decoration: proLinkInputDecoration(label: "Version Number", hint: "v1.1", icon: Icons.history),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: _descController,
+                style: const TextStyle(color: Colors.white),
+                decoration: proLinkInputDecoration(label: "Description", hint: "Optional brief info", icon: Icons.info_outline),
+              ),
+              const SizedBox(height: 20),
+
+              // Upload Area
+              InkWell(
+                onTap: () => _pickFile(setModalState),
+                child: _uploadBox(_selectedFile),
+              ),
+
+              const SizedBox(height: 25),
+              Consumer<AdminOfficeNotifier>(
+                builder: (context, notifier, child) {
+                  return ElevatedButton(
+                    onPressed: notifier.isLoading ? null : () async {
+                      if (_titleController.text.isEmpty) return;
+                      final success = await notifier.createPolicy(
+                        title: _titleController.text,
+                        version: _versionController.text,
+                        description: _descController.text,
+                        departmentId: selectedDept,
+                        file: _selectedFile,
+                      );
+                      if (success && mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 55)),
+                    child: notifier.isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("PUBLISH DOCUMENT", style: TextStyle(fontWeight: FontWeight.bold)),
+                  );
+                }
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
@@ -2139,13 +2123,23 @@ class _PolicyManagementPageState extends State<PolicyManagementPage> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text("Policy Handbooks"), backgroundColor: Colors.transparent),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: handbooks.length,
-        itemBuilder: (context, index) {
-          final doc = handbooks[index];
-          return _buildPolicyCard(doc, index);
-        },
+      body: Consumer<AdminOfficeNotifier>(
+        builder: (context, notifier, child) {
+          if (notifier.isLoading && notifier.policies.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return RefreshIndicator(
+            onRefresh: () => notifier.fetchPolicies(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: notifier.policies.length,
+              itemBuilder: (context, index) {
+                final doc = notifier.policies[index];
+                return _buildPolicyCard(doc, index);
+              },
+            ),
+          );
+        }
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.green,
@@ -2156,23 +2150,44 @@ class _PolicyManagementPageState extends State<PolicyManagementPage> {
   }
 
   // ── UI WIDGET: POLICY CARD ──
-  Widget _buildPolicyCard(Map<String, dynamic> doc, int index) {
+  Widget _buildPolicyCard(PolicyHandbook doc, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: doc['isActive'] ? AppColors.greenLight.withOpacity(0.3) : AppColors.border),
+        border: Border.all(color: doc.isActive ? AppColors.greenLight.withOpacity(0.3) : AppColors.border),
       ),
       child: ExpansionTile(
-        leading: Icon(Icons.menu_book, color: doc['isActive'] ? AppColors.greenLight : AppColors.grey),
-        title: Text(doc['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        trailing: Switch(
-          value: doc['isActive'],
-          activeColor: AppColors.greenLight,
-          onChanged: (val) {
-            setState(() => doc['isActive'] = val);
-          },
+        leading: Icon(Icons.menu_book, color: doc.isActive ? AppColors.greenLight : AppColors.grey),
+        title: Text(doc.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        subtitle: doc.description != null ? Text(doc.description!, style: const TextStyle(color: AppColors.grey, fontSize: 11)) : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: doc.isActive,
+              activeColor: AppColors.greenLight,
+              onChanged: (val) async {
+                final success = await context.read<AdminOfficeNotifier>().updatePolicy(
+                  doc.id,
+                  {'is_active': val},
+                );
+                if (!success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.read<AdminOfficeNotifier>().error ?? "Failed to update status"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.red, size: 20),
+              onPressed: () => context.read<AdminOfficeNotifier>().deletePolicy(doc.id),
+            ),
+          ],
         ),
         children: [
           const Divider(color: AppColors.border, height: 1),
@@ -2180,20 +2195,28 @@ class _PolicyManagementPageState extends State<PolicyManagementPage> {
             padding: EdgeInsets.all(12.0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text("Version History", style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text("Document Details", style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
           ),
-          // List versions
-          ...(doc['versions'] as List).map((v) => ListTile(
+          ListTile(
             dense: true,
             leading: const Icon(Icons.file_present, color: AppColors.grey, size: 18),
-            title: Text("Version ${v['version']}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-            subtitle: Text("Uploaded: ${v['date']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
+            title: Text("Version ${doc.version}", style: const TextStyle(color: Colors.white, fontSize: 13)),
+            subtitle: doc.createdAt != null 
+              ? Text("Uploaded: ${doc.createdAt!.toLocal().toString().split(' ')[0]}", style: const TextStyle(color: AppColors.grey, fontSize: 11))
+              : null,
             trailing: TextButton(
-              onPressed: () {},
+              onPressed: () async {
+                if (doc.fileUrl != null) {
+                  final url = Uri.parse(doc.fileUrl!);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
               child: const Text("View", style: TextStyle(color: Colors.blue)),
             ),
-          )),
+          ),
           const SizedBox(height: 10),
         ],
       ),
@@ -2406,7 +2429,7 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(intern.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                  Text("${intern.department ?? 'N/A'}", 
+                  Text("${intern.department ?? 'N/A'}${intern.departmentCode != null ? ' (${intern.departmentCode})' : ''}", 
                     style: const TextStyle(color: AppColors.grey, fontSize: 11)),
                 ],
               ),
@@ -2580,12 +2603,14 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
         children: [
           Icon(icon, color: AppColors.grey, size: 18),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
+                Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
           )
         ],
       ),
@@ -2639,7 +2664,12 @@ class _ManageInternsPageState extends State<ManageInternsPage> {
     String? _selectedMentorId = intern.mentorId;
     final _formNotifier = CreateInternFormNotifier();
 
-    _formNotifier.initializeFormData();
+    // Initial load of departments and mentors if department is already selected
+    _formNotifier.initializeFormData().then((_) {
+      if (_selectedDepartmentId != null) {
+        _formNotifier.fetchMentorsByDepartment(_selectedDepartmentId!);
+      }
+    });
 
     showModalBottomSheet(
       context: context,
@@ -3565,7 +3595,7 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
   @override
   void initState() {
     super.initState();
-    _pendingProvider = AdminInternsListNotifier();
+    _pendingProvider = context.read<AdminInternsListNotifier>();
     _pendingProvider.fetchPendingInterns();
   }
 
@@ -3711,7 +3741,7 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
                     ),
                   ),
                   Text(
-                    intern.department ?? 'N/A',
+                    "${intern.department ?? 'N/A'}${intern.departmentCode != null ? ' (${intern.departmentCode})' : ''}",
                     style: const TextStyle(color: AppColors.grey, fontSize: 11),
                   ),
                 ],
@@ -3759,7 +3789,8 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await _pendingProvider.approveIntern(intern.id);
+              final notifier = context.read<AdminInternsListNotifier>();
+              final success = await notifier.approveIntern(intern.id);
               if (!context.mounted) return;
 
               if (success) {
@@ -3770,11 +3801,10 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
                     duration: Duration(seconds: 2),
                   ),
                 );
-                _pendingProvider.fetchPendingInterns();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to approve intern'}'),
+                    content: Text('❌ ${notifier.error ?? 'Failed to approve intern'}'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -3808,7 +3838,8 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await _pendingProvider.rejectIntern(intern.id);
+              final notifier = context.read<AdminInternsListNotifier>();
+              final success = await notifier.rejectIntern(intern.id);
               if (!context.mounted) return;
 
               if (success) {
@@ -3819,11 +3850,10 @@ class _AllRequestsPageState extends State<AllRequestsPage> {
                     duration: Duration(seconds: 2),
                   ),
                 );
-                _pendingProvider.fetchPendingInterns();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('❌ ${_pendingProvider.error ?? 'Failed to reject intern'}'),
+                    content: Text('❌ ${notifier.error ?? 'Failed to reject intern'}'),
                     backgroundColor: Colors.red,
                   ),
                 );

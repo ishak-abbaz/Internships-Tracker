@@ -31,18 +31,10 @@ const deleteFromCloudinary = async (publicId) => {
 
 exports.createPolicyHandbook = async (req, res) => {
   try {
-    const { title, description, department_code, target_role, version } = req.body;
+    const { title, department_id, target_role, version, description } = req.body;
 
     if (!title)     return res.status(400).json({ msg: 'Title is required' });
     if (!req.file)  return res.status(400).json({ msg: 'PDF file is required' });
-
-    let department_id = null;
-    if (department_code) {
-      const department = await Department.findOne({ code: department_code.trim().toUpperCase() });
-      if (!department)
-        return res.status(400).json({ msg: 'Department code not found' });
-      department_id = department._id;
-    }
 
     const { secure_url, public_id } = await uploadToCloudinary(
       req.file.buffer,
@@ -52,15 +44,14 @@ exports.createPolicyHandbook = async (req, res) => {
     const policy = await Policy.create({
       title: title.trim(),
       description:   description   ?? null,
-      department_id: department_id,
-      department_code: department_code ? department_code.trim().toUpperCase() : null,
+      department_id: department_id || null,
       target_role:   target_role   || 'All',
       version:       version       || 1,
       file_url:       secure_url,
       file_public_id: public_id,
     });
 
-    res.status(201).json({ msg: 'Policy handbook uploaded successfully', policy });
+    res.status(201).json({ msg: 'Policy handbook uploaded successfully', handbook: policy });
   } catch (err) {
     res.status(500).json({ msg: 'Failed to upload policy handbook', error: err.message });
   }
@@ -69,11 +60,12 @@ exports.createPolicyHandbook = async (req, res) => {
 exports.getAllPolicyHandbooks = async (_req, res) => {
   try {
     const policies = await Policy.find().sort({ created_at: -1 });
-    res.status(200).json({ msg: 'Fetched successfully', count: policies.length, policies });
+    res.status(200).json({ msg: 'Fetched successfully', handbooks: policies });
   } catch (err) {
     res.status(500).json({ msg: 'Failed to fetch policies', error: err.message });
   }
 };
+
 
 exports.getPolicyHandbookById = async (req, res) => {
   try {
@@ -94,7 +86,8 @@ exports.updatePolicyHandbook = async (req, res) => {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(400).json({ msg: 'Invalid policy id' });
 
-    const { title, description, department_code, target_role, version } = req.body;
+    const { title, department_code, target_role, version } = req.body;
+    const description = req.body.description ?? req.body.Description;
     const hasChanges = title || description || department_code || target_role || version || req.file;
     if (!hasChanges) return res.status(400).json({ msg: 'Provide at least one field to update' });
 
@@ -154,20 +147,21 @@ exports.deletePolicyHandbook = async (req, res) => {
 
 exports.createOfficeSchedule = async (req, res) => {
   try {
-    const { title, description, department_code, version } = req.body;
+    const {
+      title,
+      department_id,
+      academic_year,
+      group,
+      teacher_name,
+      module_name,
+      version,
+      description
+    } = req.body;
 
     if (!title)
       return res.status(400).json({ msg: 'Title is required' });
     if (!req.file)
       return res.status(400).json({ msg: 'PDF file is required' });
-
-    let department_id = null;
-    if (department_code) {
-      const department = await Department.findOne({ code: department_code.trim().toUpperCase() });
-      if (!department)
-        return res.status(400).json({ msg: 'Department code not found' });
-      department_id = department._id;
-    }
 
     const { secure_url, public_id } = await uploadToCloudinary(
       req.file.buffer,
@@ -177,8 +171,11 @@ exports.createOfficeSchedule = async (req, res) => {
     const schedule = await Schedule.create({
       title: title.trim(),
       description: description ?? null,
-      department_id: department_id,
-      department_code: department_code ? department_code.trim().toUpperCase() : null,
+      department_id: department_id || null,
+      academic_year,
+      group,
+      teacher_name,
+      module_name,
       version: version || 1,
       file_url:       secure_url,
       file_public_id: public_id,
@@ -193,12 +190,13 @@ exports.createOfficeSchedule = async (req, res) => {
 
 exports.getAllOfficeSchedules = async (_req, res) => {
   try {
-    const schedules = await Schedule.find().sort({ created_at: -1 });
-    res.status(200).json({ msg: 'Fetched successfully', count: schedules.length, schedules });
+    const schedules = await Schedule.find().populate('department_id', 'name').sort({ created_at: -1 });
+    res.status(200).json({ msg: 'Fetched successfully', schedules });
   } catch (err) {
     res.status(500).json({ msg: 'Failed to fetch schedules', error: err.message });
   }
 };
+
 
 exports.getOfficeScheduleById = async (req, res) => {
   try {
@@ -219,7 +217,8 @@ exports.updateOfficeSchedule = async (req, res) => {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(400).json({ msg: 'Invalid schedule id' });
 
-    const { title, description, department_code, version } = req.body;
+    const { title, department_code, version } = req.body;
+    const description = req.body.description ?? req.body.Description;
 
     const hasChanges = title || description || department_code || version || req.file;
     if (!hasChanges) return res.status(400).json({ msg: 'Provide at least one field to update' });

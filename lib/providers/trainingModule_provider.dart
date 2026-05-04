@@ -14,6 +14,36 @@ class TrainingModuleNotifier extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  Future<void> fetchAllAdmin() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _modules = await _service.getAllModules();
+    } catch (e) {
+      _error = 'Failed to load modules: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchForIntern() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _modules = await _service.getInternModules();
+    } catch (e) {
+      _error = 'Failed to load modules: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchForMentor(String mentorId) async {
     _isLoading = true;
     _error = null;
@@ -55,20 +85,24 @@ class TrainingModuleNotifier extends ChangeNotifier {
   Future<bool> createModule({
     required String title,
     required String description,
-    required String url,
     required String departmentCode,
+    required String url,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final created = await _service.createModule(
+      final newModule = TrainingModuleModel(
+        id: '',
         title: title,
         description: description,
         url: url,
         departmentCode: departmentCode,
+        createdByMentorId: '',
+        isActive: true,
       );
+      final created = await _service.createModule(newModule);
       _modules = [created, ..._modules];
       return true;
     } catch (e) {
@@ -80,26 +114,14 @@ class TrainingModuleNotifier extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateModule({
-    required String moduleId,
-    String? title,
-    String? description,
-    String? url,
-    bool? isActive,
-  }) async {
+  Future<bool> updateModule(String id, Map<String, dynamic> updates) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final updated = await _service.updateModule(
-        moduleId: moduleId,
-        title: title,
-        description: description,
-        url: url,
-        isActive: isActive,
-      );
-      final index = _modules.indexWhere((m) => m.id == moduleId);
+      final updated = await _service.updateModule(id, updates);
+      final index = _modules.indexWhere((m) => m.id == id);
       if (index != -1) {
         _modules[index] = updated;
       }
@@ -124,6 +146,40 @@ class TrainingModuleNotifier extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = 'Failed to delete module: ${e.toString()}';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> markAsComplete(String moduleId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _service.markAsComplete(moduleId);
+      final index = _modules.indexWhere((m) => m.id == moduleId);
+      if (index != -1) {
+        final old = _modules[index];
+        _modules[index] = TrainingModuleModel(
+          id: old.id,
+          title: old.title,
+          description: old.description,
+          url: old.url,
+          departmentCode: old.departmentCode,
+          createdByMentorId: old.createdByMentorId,
+          mentorEmail: old.mentorEmail,
+          isActive: old.isActive,
+          isCompleted: true,
+          createdAt: old.createdAt,
+          updatedAt: old.updatedAt,
+        );
+      }
+      return true;
+    } catch (e) {
+      _error = 'Failed to mark as complete: ${e.toString()}';
       return false;
     } finally {
       _isLoading = false;

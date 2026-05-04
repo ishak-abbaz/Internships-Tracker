@@ -1,1 +1,6 @@
-updating the second mentor into
+Admin Screen:
+	- when open admin screen pending intern validations when approving or declining intern it doesn't update(it still exists when clicked as intern is pending so i can click multiple times), also same problem when entering pending interns page
+	- assignments needs to change from calculating number of interns to number of assignments and putting active internships and non active (or the right word needs to be used in here)
+	- button under assignments needs to contain go to assignments or something similar
+Mentor Screen:
+	- clicking intern in my interns should display only info of intern not contact(department also)

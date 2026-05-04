@@ -1,12 +1,12 @@
 
-const { sendError } = require('../utils/response');
+const jwt = require('jsonwebtoken');
+const User = require('../Models/userModel');
 
 // Global error handling middleware
 module.exports = (err, req, res, next) => {
   console.error(' Error:', err);
-  return sendError(res, {
-    status: 500,
+  res.status(500).json({
     msg: 'Internal server error',
-    data: { error: err.message }
+    error: err.message
   });
 };

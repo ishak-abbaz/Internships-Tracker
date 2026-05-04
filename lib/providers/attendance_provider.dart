@@ -14,6 +14,64 @@ class AttendanceNotifier extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  Map<String, dynamic>? _stats;
+  Map<String, dynamic>? get stats => _stats;
+
+  void clearStats() {
+    _stats = null;
+    notifyListeners();
+  }
+
+  Future<void> fetchAll() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _records = await _service.getAllAttendances();
+      _stats = null; // Clear stats when viewing all
+    } catch (e) {
+      _error = 'Failed to load all attendances: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchStats(String internId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _stats = await _service.getAttendanceStats(internId);
+    } catch (e) {
+      _error = 'Failed to load stats: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchForDate(DateTime date) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final dateIso = date.toIso8601String().split('T')[0];
+      _records = await _service.getAttendanceByDate(dateIso);
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 404) {
+        _records = [];
+      } else {
+        _error = 'Failed to load attendance for date: ${e.toString()}';
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchForIntern(String internId) async {
     _isLoading = true;
     _error = null;

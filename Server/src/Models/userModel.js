@@ -9,6 +9,7 @@ const user = new mongoose.Schema({
   full_name: {
     type: String,
     required: true,
+    unique: true,
     trim: true, // automatically removes spaces 
     maxlength: 255
   },

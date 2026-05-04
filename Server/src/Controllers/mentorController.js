@@ -1,5 +1,4 @@
 const mentorService = require('../Services/mentorService');
-const { sendSuccess, sendError } = require('../utils/response');
 
 // ==================== ATTENDANCE CONTROLLERS ====================
 
@@ -19,16 +18,39 @@ exports.markAttendance = async (req, res) => {
       notes
     });
 
-    return sendSuccess(res, {
-      status: 201,
+    res.status(201).json({
       msg: 'Attendance marked successfully',
       data: attendance
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error marking attendance',
-      data: { error: error.message }
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all attendance records
+ * GET /api/mentors/attendance
+ */
+exports.getAllAttendances = async (req, res) => {
+  try {
+    const { limit = 50, page = 1 } = req.query;
+
+    const result = await mentorService.getAllAttendances(
+      parseInt(limit),
+      parseInt(page)
+    );
+
+    res.status(200).json({
+      msg: 'All attendance records retrieved successfully',
+      data: result
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      msg: error.message || 'Error retrieving attendances',
+      error: error.message
     });
   }
 };
@@ -43,16 +65,14 @@ exports.getAttendanceById = async (req, res) => {
 
     const attendance = await mentorService.getAttendanceById(attendanceId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Attendance retrieved successfully',
       data: attendance
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving attendance',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -67,16 +87,14 @@ exports.getAttendanceByDate = async (req, res) => {
 
     const attendances = await mentorService.getAttendanceByDate(attendanceDate);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Attendance records retrieved successfully',
       data: attendances
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving attendance',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -96,16 +114,14 @@ exports.getInternAttendances = async (req, res) => {
       parseInt(page)
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Intern attendance records retrieved successfully',
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving attendance',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -124,16 +140,14 @@ exports.updateAttendance = async (req, res) => {
       notes
     });
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Attendance updated successfully',
       data: updatedAttendance
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error updating attendance',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -148,16 +162,14 @@ exports.deleteAttendance = async (req, res) => {
 
     const result = await mentorService.deleteAttendance(attendanceId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: result.msg,
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error deleting attendance',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -172,16 +184,14 @@ exports.getAttendanceStats = async (req, res) => {
 
     const stats = await mentorService.getAttendanceStats(internId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Attendance statistics retrieved successfully',
       data: stats
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving statistics',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };

@@ -2,23 +2,22 @@ const User = require('../Models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.JWT_SECRET;
-const { sendSuccess, sendError } = require('../utils/response');
 // Register Controller
 exports.register = async (req, res) => {
   try {
     const { full_name, email, password, passwordConfirm } = req.body;
 // 1. Validate inputs first
 if (!email.includes("@"))
-  return sendError(res, { status: 400, msg: 'Invalid email' });
+  return res.status(400).json({ msg: "Invalid email" });
 if (password.length < 6)
-  return sendError(res, { status: 400, msg: 'Password too short' });
+  return res.status(400).json({ msg: "Password too short" });
 if (password !== passwordConfirm)
-  return sendError(res, { status: 400, msg: 'Passwords do not match' });
+  return res.status(400).json({ msg: "Passwords do not match" });
 
 // 2. Then check database
 const existingUser = await User.findOne({ email });
 if (existingUser)
-  return sendError(res, { status: 400, msg: 'Email already exists' });
+  return res.status(400).json({ msg: "Email already exists" });
 
     // 3. Hash password
     const hashedPassword = await bcrypt.hash(password, 12); // 12 is for strength
@@ -33,23 +32,16 @@ if (existingUser)
     });
 
     // 5. Return success
-    return sendSuccess(res, {
-      status: 201,
-      msg: 'User created successfully.',
-      data: {
-        user: {
-          id: user._id,
-          full_name: user.full_name,
-          email: user.email,
-        },
+    res.status(201).json({
+      msg: "User created successfully.",
+      user: {
+        id: user._id,
+        full_name: user.full_name,
+        email: user.email,
       },
     });
   } catch (err) {
-    return sendError(res, {
-      status: 500,
-      msg: 'Signup failed',
-      data: { error: err.message }
-    });
+    res.status(500).json({ msg: "Signup failed", error: err.message });
   }
 };
 
@@ -63,13 +55,21 @@ exports.login = async (req, res) => {
 
     // 1. Check user
     const user = await User.findOne({ email });
-    if (!user) return sendError(res, { status: 400, msg: 'Invalid email' });
+    if (!user) return res.status(400).json({ msg: "Invalid email" });
 
     // 2. Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return sendError(res, { status: 400, msg: 'Invalid password' });
+    if (!isMatch) return res.status(400).json({ msg: "Invalid password" });
 
-    // 3. Generate JWT
+    // 3. Block intern login until admin approval
+    if (user.user_role === 'Student') {
+      const isApproved = user.account_status === 'approved' && user.is_validated_by_admin === true;
+      if (!isApproved) {
+        return res.status(403).json({ msg: 'Account pending admin approval' });
+      }
+    }
+
+    // 4. Generate JWT
     const token = jwt.sign(
       {
         id: user._id,
@@ -79,25 +79,18 @@ exports.login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // 4. Return response with token (for mobile apps like Flutter)
-    return sendSuccess(res, {
-      status: 200,
-      msg: 'Login successful',
-      data: {
-        accessToken: token,
-        user: {
-          id: user._id,
-          full_name: user.full_name,
-          email: user.email,
-          user_role: user.user_role,
-        },
+    // 5. Return response with token (for mobile apps like Flutter)
+    res.status(200).json({
+      msg: "Login successful",
+      accessToken: token,
+      user: {
+        id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        user_role: user.user_role,
       },
     });
   } catch (err) {
-    return sendError(res, {
-      status: 500,
-      msg: 'Login failed',
-      data: { error: err.message }
-    });
+    res.status(500).json({ msg: "Login failed", error: err.message });
   }
 };

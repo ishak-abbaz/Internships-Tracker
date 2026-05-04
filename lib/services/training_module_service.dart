@@ -11,88 +11,88 @@ class TrainingModuleService {
       : _apiService = apiService ?? ApiService(),
         _authService = authService ?? AuthService();
 
-  Future<TrainingModuleModel> createModule({
-    required String title,
-    required String description,
-    required String url,
-    required String departmentCode,
-  }) async {
+  Future<List<TrainingModuleModel>> getAllModules() async {
     final token = await _requireToken();
-    final response = await _apiService.post(
-      ApiConfig.mentorTrainingModules,
+    final response = await _apiService.get(
+      ApiConfig.trainingModules,
       token: token,
-      body: {
-        'title': title,
-        'description': description,
-        'url': url,
-        'departmentCode': departmentCode,
-      },
     );
-    final data = response['data'] ?? response;
-    return TrainingModuleModel.fromJson(data as Map<String, dynamic>);
+    final List<dynamic> data = response['data'] ?? [];
+    return data.map((json) => TrainingModuleModel.fromJson(json)).toList();
   }
 
   Future<List<TrainingModuleModel>> getModulesByDepartment(String departmentCode) async {
     final token = await _requireToken();
     final response = await _apiService.get(
-      '${ApiConfig.mentorTrainingModules}/department/$departmentCode?activeOnly=true',
+      ApiConfig.trainingModulesByDepartment(departmentCode),
       token: token,
     );
-    final items = (response['data'] ?? <dynamic>[]) as List<dynamic>;
-    return items
-        .map((item) => TrainingModuleModel.fromJson(item as Map<String, dynamic>))
-        .toList();
+    final List<dynamic> data = response['data'] ?? [];
+    return data.map((json) => TrainingModuleModel.fromJson(json)).toList();
   }
 
   Future<List<TrainingModuleModel>> getModulesByMentor(String mentorId) async {
     final token = await _requireToken();
     final response = await _apiService.get(
-      '${ApiConfig.mentorTrainingModules}/mentor/$mentorId',
+      ApiConfig.trainingModulesByMentor(mentorId),
       token: token,
     );
-    final items = (response['data'] ?? <dynamic>[]) as List<dynamic>;
-    return items
-        .map((item) => TrainingModuleModel.fromJson(item as Map<String, dynamic>))
-        .toList();
+    final List<dynamic> data = response['data'] ?? [];
+    return data.map((json) => TrainingModuleModel.fromJson(json)).toList();
   }
-
-  Future<TrainingModuleModel> updateModule({
-    required String moduleId,
-    String? title,
-    String? description,
-    String? url,
-    bool? isActive,
-  }) async {
+  
+  // For Interns
+  Future<List<TrainingModuleModel>> getInternModules() async {
     final token = await _requireToken();
-    final body = <String, dynamic>{};
-    if (title != null) body['title'] = title;
-    if (description != null) body['description'] = description;
-    if (url != null) body['url'] = url;
-    if (isActive != null) body['is_active'] = isActive;
-
-    final response = await _apiService.patch(
-      '${ApiConfig.mentorTrainingModules}/$moduleId',
+    final response = await _apiService.get(
+      ApiConfig.internTrainingModules,
       token: token,
-      body: body,
     );
-
-    final data = response['data'] ?? response;
-    return TrainingModuleModel.fromJson(data as Map<String, dynamic>);
+    final List<dynamic> data = response['data'] ?? response['modules'] ?? [];
+    return data.map((json) => TrainingModuleModel.fromJson(json)).toList();
   }
 
-  Future<void> deleteModule(String moduleId) async {
+  Future<TrainingModuleModel> createModule(TrainingModuleModel module) async {
+    final token = await _requireToken();
+    final response = await _apiService.post(
+      ApiConfig.trainingModules,
+      token: token,
+      body: module.toJson(),
+    );
+    final data = response['data'] ?? response;
+    return TrainingModuleModel.fromJson(data);
+  }
+
+  Future<TrainingModuleModel> updateModule(String id, Map<String, dynamic> updates) async {
+    final token = await _requireToken();
+    final response = await _apiService.patch(
+      ApiConfig.trainingModuleById(id),
+      token: token,
+      body: updates,
+    );
+    final data = response['data'] ?? response;
+    return TrainingModuleModel.fromJson(data);
+  }
+
+  Future<void> deleteModule(String id) async {
     final token = await _requireToken();
     await _apiService.delete(
-      '${ApiConfig.mentorTrainingModules}/$moduleId',
+      ApiConfig.trainingModuleById(id),
+      token: token,
+    );
+  }
+
+  Future<void> markAsComplete(String moduleId) async {
+    final token = await _requireToken();
+    await _apiService.post(
+      '${ApiConfig.internTrainingModules}/$moduleId/complete',
       token: token,
     );
   }
 
   Future<String> _requireToken() async {
     final token = await _authService.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Missing auth token. Please log in again.');
-    }
+    if (token == null) throw Exception('Authentication required');
     return token;
   }
 }

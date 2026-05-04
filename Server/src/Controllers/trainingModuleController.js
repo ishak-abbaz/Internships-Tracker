@@ -1,5 +1,4 @@
 const mentorModuleService = require('../Services/trainingModuleService');
-const { sendSuccess, sendError } = require('../utils/response');
 
 // ==================== TRAINING MODULE CONTROLLERS ====================
 
@@ -21,16 +20,14 @@ exports.createTrainingModule = async (req, res) => {
       mentorId
     });
 
-    return sendSuccess(res, {
-      status: 201,
+    res.status(201).json({
       msg: 'Training module created successfully',
       data: module
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error creating training module',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -44,16 +41,14 @@ exports.getTrainingModuleById = async (req, res) => {
 
     const module = await mentorModuleService.getTrainingModuleById(moduleId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Training module retrieved successfully',
       data: module
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving training module',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -72,16 +67,15 @@ exports.getModulesByDepartment = async (req, res) => {
       activeOnly === 'true'
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Training modules retrieved successfully',
-      data: { count: modules.length, items: modules }
+      count: modules.length,
+      data: modules
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving training modules',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -102,16 +96,15 @@ exports.getModulesByMentor = async (req, res) => {
       activeOnly === 'false'
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Your training modules retrieved successfully',
-      data: { count: modules.length, items: modules }
+      count: modules.length,
+      data: modules
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving your training modules',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -133,16 +126,14 @@ exports.updateTrainingModule = async (req, res) => {
       updateData
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Training module updated successfully',
       data: updatedModule
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error updating training module',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -159,16 +150,14 @@ exports.deleteTrainingModule = async (req, res) => {
 
     const result = await mentorModuleService.deleteTrainingModule(moduleId, mentorId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Training module deleted successfully',
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error deleting training module',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -184,16 +173,15 @@ exports.getAllTrainingModules = async (req, res) => {
 
     const modules = await mentorModuleService.getAllTrainingModules(activeOnly === 'true');
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'All training modules retrieved successfully',
-      data: { count: modules.length, items: modules }
+      count: modules.length,
+      data: modules
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving training modules',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };

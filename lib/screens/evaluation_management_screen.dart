@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/evaluation_model.dart';
 import '../models/intern_model.dart';
 import '../models/mentor_model.dart';
@@ -8,40 +9,60 @@ import '../providers/evaluation_provider.dart';
 import '../theme.dart';
 
 class EvaluationManagementScreen extends StatefulWidget {
-  const EvaluationManagementScreen({super.key});
+  final bool isAdmin;
+  final String? mentorId;
+
+  const EvaluationManagementScreen({
+    super.key,
+    this.isAdmin = true,
+    this.mentorId,
+  });
 
   @override
   State<EvaluationManagementScreen> createState() => _EvaluationManagementScreenState();
 }
 
 class _EvaluationManagementScreenState extends State<EvaluationManagementScreen> {
-  final EvaluationNotifier _notifier = EvaluationNotifier();
-  final AdminInternsListNotifier _internsNotifier = AdminInternsListNotifier();
-  final AdminMentorsNotifier _mentorsNotifier = AdminMentorsNotifier();
-  
   String? _selectedInternId;
   String? _selectedMentorId;
 
   @override
   void initState() {
     super.initState();
-    _notifier.fetchAll();
-    _internsNotifier.fetchInterns();
-    _mentorsNotifier.fetchMentors();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final evaluationNotifier = context.read<EvaluationNotifier>();
+      if (widget.isAdmin) {
+        evaluationNotifier.fetchAll();
+      } else if (widget.mentorId != null) {
+        _selectedMentorId = widget.mentorId;
+        evaluationNotifier.fetchForMentor(widget.mentorId!);
+      }
+      context.read<AdminInternsListNotifier>().fetchInterns();
+      context.read<AdminMentorsNotifier>().fetchMentors();
+    });
   }
 
   void _fetchEvaluations() {
+    final evaluationNotifier = context.read<EvaluationNotifier>();
     if (_selectedInternId != null) {
-      _notifier.fetchForIntern(_selectedInternId!);
+      evaluationNotifier.fetchForIntern(_selectedInternId!);
     } else if (_selectedMentorId != null) {
-      _notifier.fetchForMentor(_selectedMentorId!);
+      evaluationNotifier.fetchForMentor(_selectedMentorId!);
     } else {
-      _notifier.fetchAll();
+      evaluationNotifier.fetchAll();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final evaluationNotifier = context.watch<EvaluationNotifier>();
+    final internsNotifier = context.watch<AdminInternsListNotifier>();
+    final mentorsNotifier = context.watch<AdminMentorsNotifier>();
+
+    final interns = widget.isAdmin 
+        ? internsNotifier.interns 
+        : internsNotifier.interns.where((i) => i.mentorId == widget.mentorId).toList();
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -49,71 +70,75 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: AnimatedBuilder(
-        animation: Listenable.merge([_notifier, _internsNotifier, _mentorsNotifier]),
-        builder: (context, child) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildDropdown<InternModel>(
-                      label: 'Intern',
-                      items: _internsNotifier.interns,
-                      value: _selectedInternId,
-                      itemLabel: (intern) => intern.fullName,
-                      itemValue: (intern) => intern.id,
-                      onChanged: (id) {
-                        setState(() {
-                          _selectedInternId = id;
-                          _selectedMentorId = null;
-                        });
-                        if (id != null) {
-                          _notifier.fetchForIntern(id);
-                        } else {
-                          _notifier.fetchAll();
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildDropdown<MentorModel>(
-                      label: 'Mentor',
-                      items: _mentorsNotifier.mentors,
-                      value: _selectedMentorId,
-                      itemLabel: (mentor) => mentor.fullName,
-                      itemValue: (mentor) => mentor.id,
-                      onChanged: (id) {
-                        setState(() {
-                          _selectedMentorId = id;
-                          _selectedInternId = null;
-                        });
-                        if (id != null) {
-                          _notifier.fetchForMentor(id);
-                        } else {
-                          _notifier.fetchAll();
-                        }
-                      },
-                    ),
-                  ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildDropdown<InternModel>(
+                  label: 'Intern',
+                  items: interns,
+                  value: _selectedInternId,
+                  itemLabel: (intern) => intern.fullName,
+                  itemValue: (intern) => intern.id,
+                  onChanged: (id) {
+                    setState(() {
+                      _selectedInternId = id;
+                      _selectedMentorId = widget.isAdmin ? null : widget.mentorId;
+                    });
+                    if (id != null) {
+                      evaluationNotifier.fetchForIntern(id);
+                    } else {
+                      if (widget.isAdmin) {
+                        evaluationNotifier.fetchAll();
+                      } else if (widget.mentorId != null) {
+                        evaluationNotifier.fetchForMentor(widget.mentorId!);
+                      }
+                    }
+                  },
                 ),
-              ),
-              Expanded(
-                child: _notifier.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _notifier.error != null
-                        ? Center(child: Text(_notifier.error!, style: const TextStyle(color: AppColors.red)))
-                        : _notifier.records.isEmpty
-                            ? const Center(child: Text('No evaluations found', style: TextStyle(color: AppColors.grey)))
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                itemCount: _notifier.records.length,
-                                itemBuilder: (context, index) => _EvaluationTile(_notifier.records[index]),
-                              ),
-              ),
-            ],
-          );
-        },
+                const SizedBox(height: 12),
+                if (widget.isAdmin)
+                  _buildDropdown<MentorModel>(
+                    label: 'Mentor',
+                    items: mentorsNotifier.mentors,
+                    value: _selectedMentorId,
+                    itemLabel: (mentor) => mentor.fullName,
+                    itemValue: (mentor) => mentor.id,
+                    onChanged: (id) {
+                      setState(() {
+                        _selectedMentorId = id;
+                        _selectedInternId = null;
+                      });
+                      if (id != null) {
+                        evaluationNotifier.fetchForMentor(id);
+                      } else {
+                        evaluationNotifier.fetchAll();
+                      }
+                    },
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: evaluationNotifier.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : evaluationNotifier.error != null
+                    ? Center(child: Text(evaluationNotifier.error!, style: const TextStyle(color: AppColors.red)))
+                    : evaluationNotifier.records.isEmpty
+                        ? const Center(child: Text('No evaluations found', style: TextStyle(color: AppColors.grey)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: evaluationNotifier.records.length,
+                            itemBuilder: (context, index) => _EvaluationTile(
+                              evaluation: evaluationNotifier.records[index],
+                              onEdit: () => _showEditDialog(context, evaluationNotifier.records[index]),
+                              onDelete: () => _showDeleteConfirm(context, evaluationNotifier.records[index]),
+                            ),
+                          ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.greenLight,
@@ -178,7 +203,7 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
     final feedbackController = TextEditingController();
     int overallMark = 60;
     String? dialogInternId = _selectedInternId;
-    String? dialogMentorId = _selectedMentorId;
+    String? dialogMentorId = widget.isAdmin ? _selectedMentorId : widget.mentorId;
 
     await showModalBottomSheet(
       context: context,
@@ -204,21 +229,23 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                   const SizedBox(height: 16),
                   _buildDropdown<InternModel>(
                     label: 'Intern',
-                    items: _internsNotifier.interns,
+                    items: context.read<AdminInternsListNotifier>().interns,
                     value: dialogInternId,
                     itemLabel: (i) => i.fullName,
                     itemValue: (i) => i.id,
                     onChanged: (id) => setModalState(() => dialogInternId = id),
                   ),
-                  const SizedBox(height: 12),
-                  _buildDropdown<MentorModel>(
-                    label: 'Mentor',
-                    items: _mentorsNotifier.mentors,
-                    value: dialogMentorId,
-                    itemLabel: (m) => m.fullName,
-                    itemValue: (m) => m.id,
-                    onChanged: (id) => setModalState(() => dialogMentorId = id),
-                  ),
+                  if (widget.isAdmin) ...[
+                    const SizedBox(height: 12),
+                    _buildDropdown<MentorModel>(
+                      label: 'Mentor',
+                      items: context.read<AdminMentorsNotifier>().mentors,
+                      value: dialogMentorId,
+                      itemLabel: (m) => m.fullName,
+                      itemValue: (m) => m.id,
+                      onChanged: (id) => setModalState(() => dialogMentorId = id),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: weekLabelController,
@@ -254,13 +281,17 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                         weekLabel: weekLabelController.text.trim().isEmpty ? null : weekLabelController.text.trim(),
                         overallMark: overallMark,
                         feedback: feedbackController.text.trim().isEmpty ? null : feedbackController.text.trim(),
+                        evaluatedAt: DateTime.now(),
                       );
-                      final success = await _notifier.createEvaluation(evaluation);
+                      final success = await context.read<EvaluationNotifier>().createEvaluation(evaluation);
                       if (!context.mounted) return;
+                      if (success) {
+                        _fetchEvaluations();
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(success ? 'Evaluation saved' : _notifier.error ?? 'Save failed'),
+                          content: Text(success ? 'Evaluation saved' : context.read<EvaluationNotifier>().error ?? 'Save failed'),
                           backgroundColor: success ? AppColors.green : AppColors.red,
                         ),
                       );
@@ -279,6 +310,126 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _showEditDialog(BuildContext context, EvaluationModel evaluation) async {
+    final formKey = GlobalKey<FormState>();
+    final weekLabelController = TextEditingController(text: evaluation.weekLabel);
+    final feedbackController = TextEditingController(text: evaluation.feedback);
+    int overallMark = evaluation.overallMark;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Edit Evaluation',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 16),
+                  Text('Intern: ${evaluation.internName ?? 'Unknown'}', style: const TextStyle(color: AppColors.grey)),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: weekLabelController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(label: 'Week Label', hint: 'Week 1', icon: Icons.calendar_view_week),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Overall Mark: $overallMark', style: const TextStyle(color: Colors.white)),
+                  Slider(
+                    value: overallMark.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    label: '$overallMark',
+                    activeColor: AppColors.greenLight,
+                    onChanged: (value) => setModalState(() => overallMark = value.toInt()),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: feedbackController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(label: 'Feedback', hint: 'Good progress...', icon: Icons.feedback_outlined),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final success = await context.read<EvaluationNotifier>().updateEvaluation(
+                            evaluationId: evaluation.id,
+                            weekLabel: weekLabelController.text.trim(),
+                            overallMark: overallMark,
+                            feedback: feedbackController.text.trim(),
+                          );
+                      if (!context.mounted) return;
+                      if (success) {
+                        _fetchEvaluations();
+                      }
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success ? 'Evaluation updated' : context.read<EvaluationNotifier>().error ?? 'Update failed'),
+                          backgroundColor: success ? AppColors.green : AppColors.red,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.green,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('UPDATE EVALUATION', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDeleteConfirm(BuildContext context, EvaluationModel evaluation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Delete Evaluation', style: TextStyle(color: Colors.white)),
+        content: const Text('Are you sure you want to delete this evaluation?', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('DELETE', style: TextStyle(color: AppColors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await context.read<EvaluationNotifier>().deleteEvaluation(evaluation.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Evaluation deleted' : context.read<EvaluationNotifier>().error ?? 'Delete failed'),
+            backgroundColor: success ? AppColors.green : AppColors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _inputField({
@@ -306,8 +457,14 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
 
 class _EvaluationTile extends StatelessWidget {
   final EvaluationModel evaluation;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _EvaluationTile(this.evaluation);
+  const _EvaluationTile({
+    required this.evaluation,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   Color _markColor(int mark) {
     if (mark >= 80) return AppColors.greenLight;
@@ -354,17 +511,35 @@ class _EvaluationTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _markColor(evaluation.overallMark).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _markColor(evaluation.overallMark).withOpacity(0.5)),
-                ),
-                child: Text(
-                  '${evaluation.overallMark}%',
-                  style: TextStyle(color: _markColor(evaluation.overallMark), fontWeight: FontWeight.bold),
-                ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: AppColors.teal, size: 20),
+                    onPressed: onEdit,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: AppColors.red, size: 20),
+                    onPressed: onDelete,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _markColor(evaluation.overallMark).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _markColor(evaluation.overallMark).withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      '${evaluation.overallMark}%',
+                      style: TextStyle(color: _markColor(evaluation.overallMark), fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

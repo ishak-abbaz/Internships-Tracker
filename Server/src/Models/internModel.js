@@ -23,10 +23,7 @@ const internSchema = new mongoose.Schema({
     default: false
   },
   work_id: {
-    type: Number,
-    unique: true,
-    sparse: true,
-    default: null
+    type: Number
   },
   id_photo_url: {
     type: String,
@@ -42,8 +39,15 @@ const internSchema = new mongoose.Schema({
 
 internSchema.index({ mentor_id: 1 });
 internSchema.index({ department_id: 1 });
-// Partial unique index: only enforce uniqueness on non-null work_id values
-internSchema.index({ work_id: 1 }, { unique: true, sparse: true, partialFilterExpression: { work_id: { $ne: null } } });
+// Partial unique index: only enforce uniqueness on non-null, non-undefined work_id values
+internSchema.index(
+  { work_id: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { work_id: { $type: "number" } }
+  }
+);
 
 const Intern = User.discriminator('Intern', internSchema, 'Student');
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -13,7 +14,7 @@ class ApiService {
     String? token,
   }) async {
     final response = await http.get(_uri(endpoint), headers: _headers(token: token));
-    return _decodeOrThrow(response);
+    return handleResponse(response);
   }
 
   Future<Map<String, dynamic>> post(
@@ -33,7 +34,7 @@ class ApiService {
       headers: _headers(token: token),
       body: jsonEncode(body ?? <String, dynamic>{}),
     );
-    return _decodeOrThrow(response);
+    return handleResponse(response);
   }
 
   Future<Map<String, dynamic>> patch(
@@ -53,7 +54,27 @@ class ApiService {
       headers: _headers(token: token),
       body: jsonEncode(body ?? <String, dynamic>{}),
     );
-    return _decodeOrThrow(response);
+    return handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> put(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    final uri = _uri(endpoint);
+    print('═══════════════════════════════════════════════════════════');
+    print('📤 PUTTING TO: $uri');
+    print('Headers: ${_headers(token: token)}');
+    print('Body: ${jsonEncode(body ?? <String, dynamic>{})}');
+    print('═══════════════════════════════════════════════════════════');
+
+    final response = await http.put(
+      uri,
+      headers: _headers(token: token),
+      body: jsonEncode(body ?? <String, dynamic>{}),
+    );
+    return handleResponse(response);
   }
 
   Future<Map<String, dynamic>> delete(
@@ -61,7 +82,43 @@ class ApiService {
     String? token,
   }) async {
     final response = await http.delete(_uri(endpoint), headers: _headers(token: token));
-    return _decodeOrThrow(response);
+    return handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> postMultipart(
+    String endpoint, {
+    required Map<String, String> fields,
+    required File file,
+    required String fileFieldName,
+    String? token,
+  }) async {
+    final uri = _uri(endpoint);
+    print('═══════════════════════════════════════════════════════════');
+    print('📤 POST MULTIPART TO: $uri');
+    print('Fields: $fields');
+    print('File: ${file.path}');
+    print('═══════════════════════════════════════════════════════════');
+
+    final request = http.MultipartRequest('POST', uri);
+    
+    // Add headers
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    
+    // Add fields
+    request.fields.addAll(fields);
+    
+    // Add file
+    request.files.add(await http.MultipartFile.fromPath(
+      fileFieldName,
+      file.path,
+    ));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    return handleResponse(response);
   }
 
   Map<String, String> _headers({String? token}) {
@@ -76,7 +133,7 @@ class ApiService {
     return headers;
   }
 
-  Map<String, dynamic> _decodeOrThrow(http.Response response) {
+  Map<String, dynamic> handleResponse(http.Response response) {
     print('═══════════════════════════════════════════════════════════');
     print('🔍 API RESPONSE DEBUG INFO');
     print('═══════════════════════════════════════════════════════════');

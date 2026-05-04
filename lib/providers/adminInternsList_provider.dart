@@ -10,6 +10,7 @@ class AdminInternsListNotifier extends ChangeNotifier {
 
   List<InternModel> _interns = [];
   List<InternModel> _filteredInterns = [];
+  List<InternModel> _mentorInterns = [];
   bool _isLoading = false;
   String? _error;
   String _searchQuery = '';
@@ -22,6 +23,7 @@ class AdminInternsListNotifier extends ChangeNotifier {
 
   // Getters
   List<InternModel> get interns => _filteredInterns.isEmpty && _searchQuery.isEmpty ? _interns : _filteredInterns;
+  List<InternModel> get mentorInterns => _mentorInterns;
   bool get isLoading => _isLoading;
   String? get error => _error;
   int get totalInterns => _interns.length;
@@ -47,6 +49,28 @@ class AdminInternsListNotifier extends ChangeNotifier {
       } else {
         _error = 'Failed to load interns: ${e.toString()}';
       }
+      print('❌ ERROR: $_error');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchInternsByMentor(String mentorId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // For now, we fetch all and filter client-side if the API doesn't support mentorId filter directly
+      // Or if the API supports it, we should update the service.
+      // Based on ApiConfig, there isn't a direct /admin/interns?mentor_id= endpoint shown for mentors.
+      // However, usually mentors only see their own.
+      final allInterns = await _service.fetchInterns();
+      _mentorInterns = allInterns.where((intern) => intern.mentorId == mentorId).toList();
+      print('✅ Successfully fetched ${_mentorInterns.length} interns for mentor $mentorId');
+    } catch (e) {
+      _error = 'Failed to load mentor interns: ${e.toString()}';
       print('❌ ERROR: $_error');
     } finally {
       _isLoading = false;
@@ -87,17 +111,10 @@ class AdminInternsListNotifier extends ChangeNotifier {
 
   Future<bool> updateIntern(String internId, Map<String, dynamic> updateData) async {
     try {
-      final updatedIntern = await _service.updateIntern(internId, updateData);
-      final index = _interns.indexWhere((i) => i.id == internId);
-      if (index != -1) {
-        _interns[index] = updatedIntern;
-        final filteredIndex = _filteredInterns.indexWhere((i) => i.id == internId);
-        if (filteredIndex != -1) {
-          _filteredInterns[filteredIndex] = updatedIntern;
-        }
-      }
-      print('✅ Intern updated successfully');
-      notifyListeners();
+      await _service.updateIntern(internId, updateData);
+      // Re-fetch to get populated department/mentor data
+      await fetchInterns();
+      print('✅ Intern updated successfully and list refreshed');
       return true;
     } catch (e) {
       _error = 'Failed to update intern: ${e.toString()}';
@@ -110,28 +127,10 @@ class AdminInternsListNotifier extends ChangeNotifier {
   Future<bool> approveIntern(String internId) async {
     try {
       await _service.approveIntern(internId);
-      final index = _interns.indexWhere((i) => i.id == internId);
-      if (index != -1) {
-        final updated = InternModel(
-          id: _interns[index].id,
-          fullName: _interns[index].fullName,
-          email: _interns[index].email,
-          registrationNr: _interns[index].registrationNr,
-          department: _interns[index].department,
-          departmentId: _interns[index].departmentId,
-          mentor: _interns[index].mentor,
-          mentorId: _interns[index].mentorId,
-          account_status: 'approved',
-          userRole: _interns[index].userRole,
-        );
-        _interns[index] = updated;
-        final filteredIndex = _filteredInterns.indexWhere((i) => i.id == internId);
-        if (filteredIndex != -1) {
-          _filteredInterns[filteredIndex] = updated;
-        }
-      }
-      print('✅ Intern approved successfully');
-      notifyListeners();
+      // Re-fetch both lists to sync state
+      await fetchInterns();
+      await fetchPendingInterns();
+      print('✅ Intern approved successfully and lists refreshed');
       return true;
     } catch (e) {
       _error = 'Failed to approve intern: ${e.toString()}';
@@ -144,28 +143,10 @@ class AdminInternsListNotifier extends ChangeNotifier {
   Future<bool> rejectIntern(String internId) async {
     try {
       await _service.rejectIntern(internId);
-      final index = _interns.indexWhere((i) => i.id == internId);
-      if (index != -1) {
-        final updated = InternModel(
-          id: _interns[index].id,
-          fullName: _interns[index].fullName,
-          email: _interns[index].email,
-          registrationNr: _interns[index].registrationNr,
-          department: _interns[index].department,
-          departmentId: _interns[index].departmentId,
-          mentor: _interns[index].mentor,
-          mentorId: _interns[index].mentorId,
-          account_status: 'rejected',
-          userRole: _interns[index].userRole,
-        );
-        _interns[index] = updated;
-        final filteredIndex = _filteredInterns.indexWhere((i) => i.id == internId);
-        if (filteredIndex != -1) {
-          _filteredInterns[filteredIndex] = updated;
-        }
-      }
-      print('✅ Intern rejected successfully');
-      notifyListeners();
+      // Re-fetch both lists to sync state
+      await fetchInterns();
+      await fetchPendingInterns();
+      print('✅ Intern rejected successfully and lists refreshed');
       return true;
     } catch (e) {
       _error = 'Failed to reject intern: ${e.toString()}';

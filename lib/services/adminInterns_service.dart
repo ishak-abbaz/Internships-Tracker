@@ -65,7 +65,7 @@ class AdminInternsService {
 
     try {
       final dynamic response = await _apiService.get(
-        ApiConfig.adminInterns,
+        '${ApiConfig.adminInterns}?include=department,mentor&limit=1000',
         token: token,
       );
 
@@ -154,6 +154,12 @@ class AdminInternsService {
         token: token,
       );
       print('✅ Intern updated successfully');
+      
+      // Handle the new response format: { success: true, msg: '...', data: { ... } }
+      if (response is Map<String, dynamic> && response.containsKey('data')) {
+        return InternModel.fromJson(response['data'] as Map<String, dynamic>);
+      }
+
       return InternModel.fromJson(response);
     } catch (e) {
       print('❌ ERROR updating intern: $e');
@@ -215,7 +221,7 @@ class AdminInternsService {
 
     try {
       final dynamic response = await _apiService.get(
-        ApiConfig.adminPendingInterns,
+        '${ApiConfig.adminPendingInterns}?include=department,mentor&limit=1000',
         token: token,
       );
       

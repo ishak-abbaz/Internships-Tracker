@@ -13,33 +13,33 @@ const {
 
 const { protect, restrictTo } = require('../Middleware/auth');
 
+// ==================== EVALUATION ROUTES ====================
+
 // Protect all evaluation routes
 router.use(protect);
 
-// ==================== EVALUATION ROUTES ====================
+// Get all evaluations with pagination - Admin and Mentor can see all
+router.get('/', restrictTo('Admin', 'Mentor'), getAllEvaluations);
 
-// Get all evaluations (Admin only)
-router.get('/', restrictTo('Admin'), getAllEvaluations);
+// Create evaluation - Mentors and Admins can evaluate
+router.post('/', restrictTo('Admin', 'Mentor'), createEvaluation);
 
-// Create evaluation (Mentor only)
-router.post('/', restrictTo('Mentor'), createEvaluation);
-
-// Get evaluation statistics (Accessible to all authenticated users)
-router.get('/stats/:internId', getEvaluationStats);
-
-// Get evaluation by ID
+// Get evaluation by ID - Authenticated users
 router.get('/id/:evaluationId', getEvaluationById);
 
-// Get evaluations for specific intern (Accessible to all authenticated users)
-router.get('/intern/:internId', getInternEvaluations);
+// Get evaluations for specific intern - Admin, Mentor, or the Intern themselves
+router.get('/intern/:internId', restrictTo('Admin', 'Mentor', 'Student'), getInternEvaluations);
 
-// Get evaluations by mentor
-router.get('/mentor/:mentorId', getMentorEvaluations);
+// Get evaluations by mentor - Admin and Mentor
+router.get('/mentor/:mentorId', restrictTo('Admin', 'Mentor'), getMentorEvaluations);
 
-// Update evaluation record (Mentor only, typically the one who created it)
-router.patch('/:evaluationId', restrictTo('Mentor'), updateEvaluation);
+// Get evaluation statistics for an intern - Admin, Mentor, or the Intern themselves
+router.get('/stats/:internId', restrictTo('Admin', 'Mentor', 'Student'), getEvaluationStats);
 
-// Delete evaluation record (Mentor or Admin)
-router.delete('/:evaluationId', restrictTo('Mentor', 'Admin'), deleteEvaluation);
+// Update evaluation record - Mentor who created it or Admin
+router.patch('/:evaluationId', restrictTo('Admin', 'Mentor'), updateEvaluation);
+
+// Delete evaluation record - Admin only usually
+router.delete('/:evaluationId', restrictTo('Admin'), deleteEvaluation);
 
 module.exports = router;

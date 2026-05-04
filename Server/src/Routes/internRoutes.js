@@ -10,7 +10,10 @@ const {
   getMyWorkId,
   uploadWorkIdPhoto,
   downloadWorkIdPhoto,
-  getMyEvaluations
+  getMyDepartment,
+  getMyProfile,
+  getMyEvaluations,
+  markModuleAsComplete
 } = require('../Controllers/internController');
 
 const { protect, restrictTo } = require('../Middleware/auth');
@@ -34,6 +37,9 @@ router.get('/assignment', getMyInternshipAssignment);
 router.get('/schedules', getMySchedules);
 router.get('/training-modules', getMyTrainingModules);
 router.get('/training-modules/:moduleId/download', downloadTrainingModuleById);
+router.post('/training-modules/:moduleId/complete', markModuleAsComplete);
+router.get('/department', getMyDepartment);
+router.get('/profile', getMyProfile);
 router.get('/work-id', getMyWorkId);
 router.post('/work-id/photo', imageUpload.single('file'), uploadWorkIdPhoto);
 router.get('/evaluations', getMyEvaluations);

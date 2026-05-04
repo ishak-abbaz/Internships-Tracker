@@ -20,6 +20,9 @@ exports.createInternshipAssignment = async ({
   intern_id,
   mentor_id,
   department_id,
+  subject,
+  start_date,
+  end_date,
   assigned_by_admin_id
 }) => {
   // Validate all IDs
@@ -27,6 +30,10 @@ exports.createInternshipAssignment = async ({
   validateObjectId(mentor_id, 'Mentor ID');
   validateObjectId(department_id, 'Department ID');
   validateObjectId(assigned_by_admin_id, 'Admin ID');
+
+  if (!subject || !start_date || !end_date) {
+    throw buildError('Subject, start date, and end date are required', 400);
+  }
 
   // Check if intern exists and is a Student
   const intern = await User.findById(intern_id);
@@ -69,11 +76,20 @@ exports.createInternshipAssignment = async ({
     throw buildError('Intern already has an active assignment', 400);
   }
 
+  // Update Intern document with the assignment details
+  await User.findByIdAndUpdate(intern_id, {
+    mentor_id: mentor_id,
+    department_id: department_id
+  });
+
   // Create assignment
   const assignment = await InternAssignment.create({
     intern_id,
     mentor_id,
     department_id,
+    subject,
+    start_date,
+    end_date,
     assigned_by_admin_id
   });
 
@@ -164,7 +180,7 @@ exports.updateInternshipAssignment = async (id, updateData) => {
     throw buildError('Internship assignment not found', 404);
   }
 
-  // Validate new IDs if provided
+  // Validate and update fields
   if (updateData.mentor_id) {
     validateObjectId(updateData.mentor_id, 'Mentor ID');
     const mentor = await User.findById(updateData.mentor_id);
@@ -172,6 +188,9 @@ exports.updateInternshipAssignment = async (id, updateData) => {
       throw buildError('Invalid mentor', 400);
     }
     assignment.mentor_id = updateData.mentor_id;
+
+    // Also update intern's mentor if this is the active assignment
+    await User.findByIdAndUpdate(assignment.intern_id, { mentor_id: updateData.mentor_id });
   }
 
   if (updateData.department_id) {
@@ -181,7 +200,14 @@ exports.updateInternshipAssignment = async (id, updateData) => {
       throw buildError('Invalid department', 400);
     }
     assignment.department_id = updateData.department_id;
+
+    // Also update intern's department if this is the active assignment
+    await User.findByIdAndUpdate(assignment.intern_id, { department_id: updateData.department_id });
   }
+
+  if (updateData.subject) assignment.subject = updateData.subject;
+  if (updateData.start_date) assignment.start_date = updateData.start_date;
+  if (updateData.end_date) assignment.end_date = updateData.end_date;
 
   await assignment.save();
 

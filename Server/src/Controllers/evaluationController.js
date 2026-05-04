@@ -1,5 +1,4 @@
 const evaluationService = require('../Services/evaluationService');
-const { sendSuccess, sendError } = require('../utils/response');
 
 /**
  * Create evaluation record
@@ -17,16 +16,14 @@ exports.createEvaluation = async (req, res) => {
       feedback
     });
 
-    return sendSuccess(res, {
-      status: 201,
+    res.status(201).json({
       msg: 'Evaluation created successfully',
       data: evaluation
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error creating evaluation',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -41,16 +38,14 @@ exports.getEvaluationById = async (req, res) => {
 
     const evaluation = await evaluationService.getEvaluationById(evaluationId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Evaluation retrieved successfully',
       data: evaluation
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving evaluation',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -70,16 +65,14 @@ exports.getEvaluationByInternName = async (req, res) => {
       parseInt(page)
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Evaluations found for intern name',
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error searching evaluations',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -99,16 +92,14 @@ exports.getInternEvaluations = async (req, res) => {
       parseInt(page)
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Intern evaluations retrieved successfully',
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving evaluations',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -128,16 +119,14 @@ exports.getMentorEvaluations = async (req, res) => {
       parseInt(page)
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Mentor evaluations retrieved successfully',
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving evaluations',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -157,16 +146,14 @@ exports.updateEvaluation = async (req, res) => {
       feedback
     });
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Evaluation updated successfully',
       data: updatedEvaluation
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error updating evaluation',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -181,16 +168,14 @@ exports.deleteEvaluation = async (req, res) => {
 
     const result = await evaluationService.deleteEvaluation(evaluationId);
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: result.msg,
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error deleting evaluation',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -204,16 +189,14 @@ exports.getEvaluationStats = async (req, res) => {
     const { internId } = req.params;
 
     const stats = await evaluationService.getEvaluationStats(internId);
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'Evaluation statistics retrieved successfully',
       data: stats
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving statistics',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };
@@ -231,16 +214,14 @@ exports.getAllEvaluations = async (req, res) => {
       parseInt(page)
     );
 
-    return sendSuccess(res, {
-      status: 200,
+    res.status(200).json({
       msg: 'All evaluations retrieved successfully',
       data: result
     });
   } catch (error) {
-    return sendError(res, {
-      status: error.status || 500,
+    res.status(error.status || 500).json({
       msg: error.message || 'Error retrieving evaluations',
-      data: { error: error.message }
+      error: error.message
     });
   }
 };

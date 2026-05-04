@@ -7,11 +7,9 @@ class EvaluationModel {
   final String? weekLabel;
   final int overallMark;
   final String? feedback;
-  final DateTime? evaluatedAt;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final DateTime evaluatedAt;
 
-  const EvaluationModel({
+  EvaluationModel({
     required this.id,
     required this.internId,
     this.internName,
@@ -20,77 +18,47 @@ class EvaluationModel {
     this.weekLabel,
     required this.overallMark,
     this.feedback,
-    this.evaluatedAt,
-    this.createdAt,
-    this.updatedAt,
+    required this.evaluatedAt,
   });
 
+  DateTime get createdAt => evaluatedAt;
+
   factory EvaluationModel.fromJson(Map<String, dynamic> json) {
-    String internId = '';
-    String? internName;
-    String mentorId = '';
-    String? mentorName;
-
-    if (json['intern_id'] is Map) {
-      internId = (json['intern_id']['_id'] ?? '').toString();
-      internName = json['intern_id']['full_name']?.toString();
-    } else {
-      internId = (json['intern_id'] ?? '').toString();
+    String? mName;
+    final mentorData = json['mentor_id'];
+    if (mentorData is Map) {
+      mName = mentorData['full_name'] ?? mentorData['name'];
     }
 
-    if (json['mentor_id'] is Map) {
-      mentorId = (json['mentor_id']['_id'] ?? '').toString();
-      mentorName = json['mentor_id']['full_name']?.toString();
-    } else {
-      mentorId = (json['mentor_id'] ?? '').toString();
+    String? iName;
+    final internData = json['intern_id'];
+    if (internData is Map) {
+      iName = internData['full_name'] ?? internData['name'];
     }
 
     return EvaluationModel(
-      id: (json['id'] ?? json['_id'] ?? '').toString(),
-      internId: internId,
-      internName: internName,
-      mentorId: mentorId,
-      mentorName: mentorName,
-      weekLabel: json['week_label']?.toString(),
-      overallMark: (json['overall_mark'] as num?)?.toInt() ?? 0,
-      feedback: json['feedback']?.toString(),
-      evaluatedAt: json['evaluated_at'] != null
-          ? DateTime.tryParse(json['evaluated_at'].toString())
-          : null,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString())
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'].toString())
-          : null,
+      id: json['_id'] ?? '',
+      internId: json['intern_id'] is Map ? json['intern_id']['_id'] : (json['intern_id'] ?? ''),
+      internName: iName,
+      mentorId: json['mentor_id'] is Map ? json['mentor_id']['_id'] : (json['mentor_id'] ?? ''),
+      mentorName: mName,
+      weekLabel: json['week_label'],
+      overallMark: (json['overall_mark'] ?? 0).toInt(),
+      feedback: json['feedback'],
+      evaluatedAt: json['evaluated_at'] != null 
+          ? DateTime.parse(json['evaluated_at']) 
+          : (json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now()),
     );
   }
 
-  Map<String, dynamic> toCreatePayload() {
+  Map<String, dynamic> toJson() {
     return {
-      'internId': internId,
-      'mentorId': mentorId,
-      if (weekLabel != null) 'weekLabel': weekLabel,
-      'overallMark': overallMark,
-      if (feedback != null) 'feedback': feedback,
+      'intern_id': internId,
+      'mentor_id': mentorId,
+      'week_label': weekLabel,
+      'overall_mark': overallMark,
+      'feedback': feedback,
+      'evaluated_at': evaluatedAt.toIso8601String(),
     };
-  }
-
-  EvaluationModel copyWith({
-    String? weekLabel,
-    int? overallMark,
-    String? feedback,
-  }) {
-    return EvaluationModel(
-      id: id,
-      internId: internId,
-      mentorId: mentorId,
-      weekLabel: weekLabel ?? this.weekLabel,
-      overallMark: overallMark ?? this.overallMark,
-      feedback: feedback ?? this.feedback,
-      evaluatedAt: evaluatedAt,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-    );
   }
 }

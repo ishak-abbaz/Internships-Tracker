@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const User = require('../Models/userModel');
-const { sendError } = require('../utils/response');
 
 const secretKey = process.env.JWT_SECRET;
 
@@ -14,7 +13,7 @@ exports.protect = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return sendError(res, { status: 401, msg: 'Access denied. No token provided.' });
+      return res.status(401).json({ msg: 'Access denied. No token provided.' });
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -24,17 +23,13 @@ exports.protect = async (req, res, next) => {
 
     // Find user
     const user = await User.findById(decoded.id).select('-password');
-    if (!user) return sendError(res, { status: 401, msg: 'User not found' });
+    if (!user) return res.status(401).json({ msg: 'User not found' });
 
     req.user = user;
     next();
 
   } catch (err) {
-    return sendError(res, {
-      status: 401,
-      msg: 'Invalid or expired token',
-      data: { error: err.message }
-    });
+    res.status(401).json({ msg: 'Invalid or expired token', error: err.message });
   }
 };
 
@@ -42,7 +37,7 @@ exports.protect = async (req, res, next) => {
 exports.restrictTo = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.user_role)) {
-      return sendError(res, { status: 403, msg: 'Access denied. Insufficient role.' });
+      return res.status(403).json({ msg: 'Access denied. Insufficient role.' });
     }
     next();
   };

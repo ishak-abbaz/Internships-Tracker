@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
-import '../models/intern_assignment_model.dart';
-import '../providers/internAssignment_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../models/internship_assignment_model.dart';
+import '../models/intern_model.dart';
+import '../models/mentor_model.dart';
+import '../models/department_model.dart';
+import '../providers/internship_assignment_provider.dart';
+import '../providers/adminInternsList_provider.dart';
+import '../providers/adminMentors_provider.dart';
+import '../providers/adminDepartments_provider.dart';
 import '../theme.dart';
 
 class InternAssignmentScreen extends StatefulWidget {
@@ -11,156 +19,411 @@ class InternAssignmentScreen extends StatefulWidget {
 }
 
 class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
-  final InternAssignmentNotifier _notifier = InternAssignmentNotifier();
-
   @override
   void initState() {
     super.initState();
-    _notifier.fetchAssignments();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InternshipAssignmentNotifier>().fetchAssignments();
+      context.read<AdminInternsListNotifier>().fetchInterns();
+      context.read<AdminMentorsNotifier>().fetchMentors();
+      context.read<AdminDepartmentsNotifier>().fetchDepartments();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final notifier = context.watch<InternshipAssignmentNotifier>();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: const Text('Intern Assignments'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.greenLight),
+            onPressed: () {
+              notifier.fetchAssignments();
+              context.read<AdminInternsListNotifier>().fetchInterns();
+              context.read<AdminMentorsNotifier>().fetchMentors();
+              context.read<AdminDepartmentsNotifier>().fetchDepartments();
+            },
+          ),
+        ],
       ),
-      body: AnimatedBuilder(
-        animation: _notifier,
-        builder: (context, child) {
-          if (_notifier.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+      body: Builder(
+        builder: (context) {
+          if (notifier.isLoading && notifier.assignments.isEmpty) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.green));
           }
 
-          if (_notifier.error != null) {
+          if (notifier.error != null && notifier.assignments.isEmpty) {
             return Center(
-              child: Text(
-                _notifier.error ?? 'Failed to load assignments',
-                style: const TextStyle(color: AppColors.red),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    notifier.error ?? 'Failed to load assignments',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => notifier.fetchAssignments(),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             );
           }
 
-          if (_notifier.assignments.isEmpty) {
-            return const Center(
-              child: Text('No assignments found', style: TextStyle(color: AppColors.grey)),
+          if (notifier.assignments.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.assignment_ind_outlined, size: 64, color: AppColors.grey.withOpacity(0.3)),
+                  const SizedBox(height: 16),
+                  const Text('No assignments found', style: TextStyle(color: AppColors.grey)),
+                ],
+              ),
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _notifier.assignments.length,
-            itemBuilder: (context, index) {
-              final item = _notifier.assignments[index];
-              return _AssignmentCard(
-                assignment: item,
-                onDelete: () async {
-                  final confirmed = await _confirmDelete(context);
-                  if (!confirmed) return;
-                  final success = await _notifier.deleteAssignment(item.id);
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(success ? 'Assignment deleted' : _notifier.error ?? 'Delete failed'),
-                      backgroundColor: success ? AppColors.green : AppColors.red,
-                    ),
-                  );
-                },
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              await notifier.fetchAssignments();
+              await context.read<AdminInternsListNotifier>().fetchInterns();
+              await context.read<AdminMentorsNotifier>().fetchMentors();
+              await context.read<AdminDepartmentsNotifier>().fetchDepartments();
             },
+            color: AppColors.green,
+            backgroundColor: AppColors.surface,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: notifier.assignments.length,
+              itemBuilder: (context, index) {
+                final item = notifier.assignments[index];
+                return _AssignmentCard(
+                  assignment: item,
+                  onEdit: () => _showAssignmentDialog(context, assignment: item),
+                  onDelete: () async {
+                    final confirmed = await _confirmDelete(context);
+                    if (!confirmed) return;
+                    final success = await notifier.deleteAssignment(item.id);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(success ? 'Assignment deleted' : notifier.error ?? 'Delete failed'),
+                        backgroundColor: success ? AppColors.green : AppColors.red,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.greenLight,
-        onPressed: () => _showCreateAssignmentDialog(context),
-        child: const Icon(Icons.person_add_alt_1, color: Colors.black),
+        backgroundColor: AppColors.green,
+        onPressed: () => _showAssignmentDialog(context),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  Future<void> _showCreateAssignmentDialog(BuildContext context) async {
+  Future<void> _showAssignmentDialog(BuildContext context, {InternshipAssignmentModel? assignment}) async {
+    final isEditing = assignment != null;
     final formKey = GlobalKey<FormState>();
-    final internIdController = TextEditingController();
-    final mentorNameController = TextEditingController();
-    final departmentCodeController = TextEditingController();
+    final subjectController = TextEditingController(text: assignment?.subject);
+    
+    String? selectedInternId = assignment?.internId;
+    String? selectedMentorId = assignment?.mentorId;
+    String? selectedDeptId = assignment?.departmentId;
+    DateTime? startDate = assignment?.startDate;
+    DateTime? endDate = assignment?.endDate;
+
+    final notifier = context.read<InternshipAssignmentNotifier>();
+    final interns = context.read<AdminInternsListNotifier>().interns;
+    final mentors = context.read<AdminMentorsNotifier>().mentors;
+    final departments = context.read<AdminDepartmentsNotifier>().departments;
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Assign Intern',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              const SizedBox(height: 16),
-              _inputField(controller: internIdController, label: 'Intern ID', icon: Icons.badge_rounded),
-              const SizedBox(height: 12),
-              _inputField(controller: mentorNameController, label: 'Mentor Full Name', icon: Icons.school_rounded),
-              const SizedBox(height: 12),
-              _inputField(controller: departmentCodeController, label: 'Department Code', icon: Icons.domain_rounded),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
-                  final success = await _notifier.createAssignment(
-                    internId: internIdController.text.trim(),
-                    mentorName: mentorNameController.text.trim(),
-                    departmentCode: departmentCodeController.text.trim(),
-                  );
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(success ? 'Assignment created' : _notifier.error ?? 'Create failed'),
-                      backgroundColor: success ? AppColors.green : AppColors.red,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEditing ? 'Update Assignment' : 'New Assignment',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: AppColors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  if (!isEditing) ...[
+                    _buildInputLabel('Select Intern'),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedInternId,
+                      dropdownColor: AppColors.surface,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: proLinkInputDecoration(
+                        label: 'Intern',
+                        hint: 'Select an intern',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      items: interns.map((intern) {
+                        return DropdownMenuItem(
+                          value: intern.id,
+                          child: Text(intern.fullName, overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (v) => setModalState(() => selectedInternId = v),
+                      validator: (v) => v == null ? 'Please select an intern' : null,
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.green,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                child: const Text('Create', style: TextStyle(color: Colors.white)),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildInputLabel('Mentor & Department'),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedMentorId,
+                    dropdownColor: AppColors.surface,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                      label: 'Mentor',
+                      hint: 'Select a mentor',
+                      icon: Icons.school_outlined,
+                    ),
+                    items: mentors.map((mentor) {
+                      return DropdownMenuItem(
+                        value: mentor.id,
+                        child: Text(mentor.fullName, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (v) => setModalState(() => selectedMentorId = v),
+                    validator: (v) => v == null ? 'Please select a mentor' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedDeptId,
+                    dropdownColor: AppColors.surface,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                      label: 'Department',
+                      hint: 'Select a department',
+                      icon: Icons.business_outlined,
+                    ),
+                    items: departments.map((dept) {
+                      return DropdownMenuItem(
+                        value: dept.id,
+                        child: Text(dept.name, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (v) => setModalState(() => selectedDeptId = v),
+                    validator: (v) => v == null ? 'Please select a department' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInputLabel('Internship Details'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: subjectController,
+                    decoration: proLinkInputDecoration(
+                      label: 'Subject',
+                      hint: 'e.g. Flutter Development',
+                      icon: Icons.subject_rounded,
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    validator: (v) => v!.isEmpty ? 'Subject is required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: startDate ?? DateTime.now(),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                              builder: (context, child) => Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: AppColors.green,
+                                    onPrimary: Colors.white,
+                                    surface: AppColors.surface,
+                                    onSurface: Colors.white,
+                                  ),
+                                ),
+                                child: child!,
+                              ),
+                            );
+                            if (picked != null) setModalState(() => startDate = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Start Date', style: TextStyle(color: AppColors.grey, fontSize: 11)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  startDate == null ? 'Select' : DateFormat('MMM dd, yyyy').format(startDate!),
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: endDate ?? startDate?.add(const Duration(days: 30)) ?? DateTime.now().add(const Duration(days: 30)),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                              builder: (context, child) => Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: AppColors.green,
+                                    onPrimary: Colors.white,
+                                    surface: AppColors.surface,
+                                    onSurface: Colors.white,
+                                  ),
+                                ),
+                                child: child!,
+                              ),
+                            );
+                            if (picked != null) setModalState(() => endDate = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('End Date', style: TextStyle(color: AppColors.grey, fontSize: 11)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  endDate == null ? 'Select' : DateFormat('MMM dd, yyyy').format(endDate!),
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  GradientButton(
+                    label: isEditing ? 'Update Assignment' : 'Create Assignment',
+                    isLoading: notifier.isLoading,
+                    onTap: () async {
+                      if (!formKey.currentState!.validate()) return;
+                      if (startDate == null || endDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please select start and end dates')),
+                        );
+                        return;
+                      }
+
+                      bool success;
+                      if (isEditing) {
+                        success = await notifier.updateAssignment(
+                          assignment.id,
+                          {
+                            if (selectedMentorId != null) 'mentor_id': selectedMentorId,
+                            if (selectedDeptId != null) 'department_id': selectedDeptId,
+                            'subject': subjectController.text.trim(),
+                            if (startDate != null) 'start_date': startDate!.toIso8601String(),
+                            if (endDate != null) 'end_date': endDate!.toIso8601String(),
+                          },
+                        );
+                      } else {
+                        success = await notifier.createAssignment(
+                          internId: selectedInternId!,
+                          mentorId: selectedMentorId!,
+                          departmentId: selectedDeptId!,
+                          subject: subjectController.text.trim(),
+                          startDate: startDate!,
+                          endDate: endDate!,
+                        );
+                      }
+
+                      if (!context.mounted) return;
+                      if (success) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(isEditing ? 'Assignment updated successfully' : 'Assignment created successfully'),
+                            backgroundColor: AppColors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(notifier.error ?? 'Action failed'), backgroundColor: AppColors.red),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _inputField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-  }) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      validator: (value) => value == null || value.trim().isEmpty ? 'Required' : null,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: AppColors.grey),
-        prefixIcon: Icon(icon, color: AppColors.greenLight),
-        filled: true,
-        fillColor: AppColors.bg,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+  Widget _buildInputLabel(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: AppColors.greenLight,
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
       ),
     );
   }
@@ -170,11 +433,21 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete assignment?', style: TextStyle(color: Colors.white)),
-        content: const Text('This cannot be undone.', style: TextStyle(color: AppColors.grey)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
+        title: const Text('Remove Assignment', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Are you sure you want to delete this assignment? This will remove the link between the intern and the mentor.',
+          style: TextStyle(color: AppColors.grey, fontSize: 14),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
@@ -183,40 +456,93 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
 }
 
 class _AssignmentCard extends StatelessWidget {
-  final InternAssignmentModel assignment;
+  final InternshipAssignmentModel assignment;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _AssignmentCard({required this.assignment, required this.onDelete});
+  const _AssignmentCard({required this.assignment, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final df = DateFormat('MMM dd, yyyy');
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Assignment ID: ${assignment.id}',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text('Intern: ${assignment.internId}', style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-          Text('Mentor: ${assignment.mentorId}', style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-          Text('Department: ${assignment.departmentId}', style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red),
-              onPressed: onDelete,
+      margin: const EdgeInsets.only(bottom: 16),
+      child: glassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        assignment.subject,
+                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.date_range, size: 14, color: AppColors.greenLight),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${assignment.startDate != null ? df.format(assignment.startDate!) : "N/A"} - ${assignment.endDate != null ? df.format(assignment.endDate!) : "N/A"}',
+                            style: const TextStyle(color: AppColors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined, color: AppColors.greenLight, size: 22),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    IconButton(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red, size: 22),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-        ],
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: AppColors.divider),
+            ),
+            _infoRow(Icons.person_outline, 'Intern', assignment.internName ?? assignment.internId),
+            const SizedBox(height: 8),
+            _infoRow(Icons.school_outlined, 'Mentor', assignment.mentorName ?? assignment.mentorId),
+            const SizedBox(height: 8),
+            _infoRow(Icons.business_outlined, 'Dept', assignment.departmentName ?? assignment.departmentId ?? 'N/A'),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.grey),
+        const SizedBox(width: 8),
+        Text('$label: ', style: const TextStyle(color: AppColors.grey, fontSize: 13)),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

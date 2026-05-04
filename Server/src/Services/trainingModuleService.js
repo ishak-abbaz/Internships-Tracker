@@ -217,8 +217,8 @@ exports.updateTrainingModule = async (moduleId, mentorId, updateData) => {
       throw buildError('Training module not found', 404);
     }
 
-    if (module.created_by_mentor_id.toString() !== mentorId) {
-      throw buildError('Only the creator of this module can update it', 403);
+    if (module.created_by_mentor_id.toString() !== mentorId && (await User.findById(mentorId))?.role !== 'Admin') {
+      throw buildError('Only the creator of this module or an Admin can update it', 403);
     }
 
     // Validate and update fields
@@ -266,8 +266,8 @@ exports.deleteTrainingModule = async (moduleId, mentorId) => {
       throw buildError('Training module not found', 404);
     }
 
-    if (module.created_by_mentor_id.toString() !== mentorId) {
-      throw buildError('Only the creator of this module can delete it', 403);
+    if (module.created_by_mentor_id.toString() !== mentorId && (await User.findById(mentorId))?.role !== 'Admin') {
+      throw buildError('Only the creator of this module or an Admin can delete it', 403);
     }
 
     // Delete the module

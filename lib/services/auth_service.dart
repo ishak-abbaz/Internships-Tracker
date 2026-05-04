@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
@@ -7,6 +8,7 @@ import 'api_service.dart';
 
 class AuthService {
   static const String _tokenKey = 'access_token';
+  static const String _userKey = 'user_data';
 
   final ApiService _apiService;
 
@@ -61,5 +63,24 @@ class AuthService {
   Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+  }
+
+  Future<void> saveUser(Map<String, dynamic> userJson) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userKey, jsonEncode(userJson));
+  }
+
+  Future<Map<String, dynamic>?> getUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString(_userKey);
+    if (userStr != null) {
+      return jsonDecode(userStr) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  Future<void> clearUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userKey);
   }
 }

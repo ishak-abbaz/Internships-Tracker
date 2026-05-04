@@ -21,7 +21,7 @@ router.use(protect);
  * GET /api/mentors/training-modules
  * Query params: activeOnly (true/false, default: false)
  */
-router.get('/', restrictTo('Admin'), getAllTrainingModules);
+router.get('/', restrictTo('Admin', 'Mentor'), getAllTrainingModules);
 
 /**
  * Get training module by ID

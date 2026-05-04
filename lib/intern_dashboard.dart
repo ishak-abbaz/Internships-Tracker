@@ -1,5 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'theme.dart';
+import 'providers/auth_provider.dart';
+import 'providers/trainingModule_provider.dart';
+import 'models/training_module_model.dart';
+import 'providers/evaluation_provider.dart';
+import 'models/evaluation_model.dart';
+import 'models/user_model.dart';
+import 'providers/internship_assignment_provider.dart';
+import 'providers/admin_office_provider.dart';
+import 'config/api_config.dart';
+import 'services/auth_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Intern Dashboard (Main Controller)
@@ -93,6 +108,7 @@ class InternHomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -113,9 +129,9 @@ class InternHomeContent extends StatelessWidget {
                       "Welcome back,",
                       style: TextStyle(color: AppColors.grey, fontSize: 14),
                     ),
-                    const Text(
-                      "Lina Bouzid 👋",
-                      style: TextStyle(
+                    Text(
+                      "${user?.fullName ?? 'Intern'} 👋",
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -126,9 +142,13 @@ class InternHomeContent extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: onProfileTap,
-                child: const CircleAvatar(
+                child: CircleAvatar(
                   radius: 25,
-                  backgroundImage: NetworkImage("https://i.pravatar.cc/300"),
+                  backgroundColor: AppColors.greenDeep,
+                  child: Text(
+                    user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : 'I',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -215,6 +235,16 @@ class InternHomeContent extends StatelessWidget {
   }
 
   Widget _buildSummaryGrid(BuildContext context) {
+    final evalProvider = context.watch<EvaluationNotifier>();
+    final assignmentProvider = context.watch<InternshipAssignmentNotifier>();
+    
+    final lastMark = evalProvider.evaluations.isNotEmpty 
+        ? evalProvider.evaluations.first.overallMark.toStringAsFixed(1)
+        : "N/A";
+
+    final deptCode = assignmentProvider.myAssignment?.departmentName ?? "N/A";
+    final mentorName = assignmentProvider.myAssignment?.mentorName ?? "Assigning...";
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -223,9 +253,16 @@ class InternHomeContent extends StatelessWidget {
       mainAxisSpacing: 12,
       childAspectRatio: 1.6,
       children: [
-        _summaryCard("Department", "CS / AI", Icons.business, AppColors.greenLight),
-        _summaryCard("My Mentor", "Dr. Rahmani", Icons.school, AppColors.gold),
-        _summaryCard("Next Shift", "08:30 AM", Icons.timer, Colors.blueAccent),
+        _summaryCard("Department", deptCode, Icons.business, AppColors.greenLight),
+        _summaryCard("My Mentor", mentorName, Icons.school, AppColors.gold),
+        Consumer<AdminOfficeNotifier>(
+          builder: (context, office, _) {
+            final nextShift = office.schedules.isNotEmpty 
+                ? office.schedules.first.title 
+                : "None";
+            return _summaryCard("Office Schedule", nextShift, Icons.timer, Colors.blueAccent);
+          },
+        ),
 
         // CLICKABLE MARK CARD
         GestureDetector(
@@ -235,7 +272,7 @@ class InternHomeContent extends StatelessWidget {
           ),
           child: _summaryCard(
             "Last Mark",
-            "17.5 / 20",
+            "$lastMark / 100",
             Icons.grade,
             Colors.orangeAccent,
           ),
@@ -286,6 +323,9 @@ class ProfessionalIDPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
+    final assignment = context.watch<InternshipAssignmentNotifier>().myAssignment;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -332,12 +372,20 @@ class ProfessionalIDPage extends StatelessWidget {
                     Stack(
                       alignment: Alignment.bottomRight,
                       children: [
-                        const CircleAvatar(
-                          radius: 70,
-                          backgroundImage: NetworkImage(
-                            "https://i.pravatar.cc/300",
-                          ),
-                        ),
+                        assignment?.id_photo_url != null
+                            ? CircleAvatar(
+                                radius: 70,
+                                backgroundImage: NetworkImage(assignment!.id_photo_url!),
+                                backgroundColor: AppColors.greenDeep,
+                              )
+                            : CircleAvatar(
+                                radius: 70,
+                                backgroundColor: AppColors.greenDeep,
+                                child: Text(
+                                  user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : 'I',
+                                  style: const TextStyle(fontSize: 48, color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
@@ -353,17 +401,17 @@ class ProfessionalIDPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      "LINA BOUZID",
-                      style: TextStyle(
+                    Text(
+                      user?.fullName.toUpperCase() ?? 'INTERN NAME',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text(
-                      "AI Research Intern",
-                      style: TextStyle(
+                    Text(
+                      assignment?.subject ?? "Research Intern",
+                      style: const TextStyle(
                         color: AppColors.greenLight,
                         fontSize: 14,
                       ),
@@ -396,16 +444,76 @@ class ProfessionalIDPage extends StatelessWidget {
                           bottom: Radius.circular(28),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _IDInfo(label: "BLOOD", value: "O+"),
-                          _IDInfo(label: "EXPIRES", value: "06/2026"),
-                          _IDInfo(label: "GROUP", value: "G-01"),
+                          const _IDInfo(label: "BLOOD", value: "O+"),
+                          _IDInfo(
+                            label: "EXPIRES",
+                            value: assignment != null
+                                ? "${assignment.endDate.month.toString().padLeft(2, '0')}/${assignment.endDate.year}"
+                                : "06/2026",
+                          ),
+                          const _IDInfo(label: "GROUP", value: "G-01"),
                         ],
                       ),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+                    if (result != null && result.files.single.bytes != null) {
+                      final bytes = result.files.single.bytes!;
+                      final fileName = result.files.single.name;
+
+                      // Show loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Uploading photo...")),
+                      );
+
+                      final token = await AuthService().getToken();
+                      final uri = Uri.parse("${ApiConfig.baseUrl}${ApiConfig.internWorkId}/photo");
+                      
+                      final request = http.MultipartRequest('POST', uri)
+                        ..headers['Authorization'] = 'Bearer $token'
+                        ..files.add(http.MultipartFile.fromBytes(
+                          'file',
+                          bytes,
+                          filename: fileName,
+                          contentType: MediaType('image', fileName.split('.').last),
+                        ));
+
+                      final response = await request.send();
+
+                      if (response.statusCode == 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Photo uploaded successfully!")),
+                        );
+                        // Refresh assignment to get new photo URL
+                        context.read<InternshipAssignmentNotifier>().fetchMyAssignment();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Upload failed: ${response.statusCode}")),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error: $e")),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.camera_alt_outlined),
+                label: const Text("UPDATE ID PHOTO"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.greenDeep,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
               ),
               const SizedBox(height: 100),
@@ -479,6 +587,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             TextButton(
               onPressed: () {
+                context.read<AuthProvider>().logout();
                 // Navigate to Login and clear navigation history
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
               },
@@ -495,6 +604,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
+    final assignment = context.watch<InternshipAssignmentNotifier>().myAssignment;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -514,14 +626,18 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 55,
-              backgroundImage: NetworkImage("https://i.pravatar.cc/300"),
+              backgroundColor: AppColors.greenDeep,
+              child: Text(
+                user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : 'I',
+                style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              "Lina Bouzid",
-              style: TextStyle(
+            Text(
+              user?.fullName ?? 'Intern Name',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -531,7 +647,7 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildField("Registration ID", "PR-2024-001", Icons.badge, false),
             _buildField(
               "Department",
-              "Artificial Intelligence",
+              assignment?.departmentName ?? "Not Assigned",
               Icons.business,
               false,
             ),
@@ -543,7 +659,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             _buildField(
               "Email",
-              _emailController.text,
+              user?.email ?? _emailController.text,
               Icons.email,
               _isEditing,
             ),
@@ -614,11 +730,26 @@ class _ProfilePageState extends State<ProfilePage> {
 //  4. Schedule Page (Calendar & Shifts)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class SchedulePage extends StatelessWidget {
+class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
   @override
+  State<SchedulePage> createState() => _SchedulePageState();
+}
+
+class _SchedulePageState extends State<SchedulePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdminOfficeNotifier>().fetchSchedules();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final office = context.watch<AdminOfficeNotifier>();
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -630,91 +761,71 @@ class SchedulePage extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          // --- HORIZONTAL DATE PICKER ---
-          Container(
-            height: 100,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+      body: office.isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.greenLight))
+          : Column(
               children: [
-                _dateItem("14", "Mon", false),
-                _dateItem("15", "Tue", true), // Active Day
-                _dateItem("16", "Wed", false),
-                _dateItem("17", "Thu", false),
-                _dateItem("18", "Fri", false),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          // --- SHIFT/CLASS LIST ---
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                const Text(
-                  "Upcoming Today",
-                  style: TextStyle(
-                    color: AppColors.grey,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                // --- HORIZONTAL DATE PICKER ---
+                Container(
+                  height: 100,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    children: [
+                      _dateItem("14", "Mon", false),
+                      _dateItem("15", "Tue", true), // Active Day
+                      _dateItem("16", "Wed", false),
+                      _dateItem("17", "Thu", false),
+                      _dateItem("18", "Fri", false),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 15),
 
-                _scheduleCard(
-                  time: "08:30 - 10:30",
-                  title: "Machine Learning Lab",
-                  location: "Lab 04 - Block B",
-                  instructor: "Dr. Rahmani",
-                  color: AppColors.greenLight,
-                  isNow: true,
-                ),
-                _scheduleCard(
-                  time: "11:00 - 12:30",
-                  title: "Ethics in AI",
-                  location: "Amphi A",
-                  instructor: "Prof. Belhadj",
-                  color: Colors.blueAccent,
-                  isNow: false,
-                ),
-                _scheduleCard(
-                  time: "14:00 - 16:00",
-                  title: "Project Research",
-                  location: "Library Hub",
-                  instructor: "Self Study",
-                  color: AppColors.gold,
-                  isNow: false,
-                ),
+                const SizedBox(height: 10),
 
-                const SizedBox(height: 100), // Space for bottom menu
-              ],
-            ),
-          ),
-          // Inside the ListView of SchedulePage
-          const SizedBox(height: 30),
-
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SemesterTimetablePage(),
+                // --- SHIFT/CLASS LIST ---
+                Expanded(
+                  child: office.schedules.isEmpty
+                      ? const Center(child: Text("No schedules uploaded", style: TextStyle(color: AppColors.grey)))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: office.schedules.length,
+                          itemBuilder: (context, index) {
+                            final schedule = office.schedules[index];
+                            return _scheduleCard(
+                              time: schedule.academicYear ?? "2024-2025",
+                              title: schedule.title,
+                              location: schedule.group ?? "All Groups",
+                              instructor: schedule.teacherName ?? "Faculty",
+                              color: index % 2 == 0 ? AppColors.greenLight : Colors.blueAccent,
+                              isNow: index == 0,
+                              url: schedule.fileUrl,
+                            );
+                          },
+                        ),
                 ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.gold.withOpacity(0.5)),
-              ),
-              child: const Row(
+                // Inside the ListView of SchedulePage
+                const SizedBox(height: 30),
+
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SemesterTimetablePage(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.gold.withOpacity(0.5)),
+                    ),
+                    child: const Row(
                 children: [
                   Icon(Icons.calendar_view_week_rounded, color: AppColors.gold),
                   SizedBox(width: 15),
@@ -793,227 +904,223 @@ class SchedulePage extends StatelessWidget {
     required String instructor,
     required Color color,
     required bool isNow,
+    String? url,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isNow ? color : AppColors.border,
-          width: isNow ? 1.5 : 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Left accent bar
-          Container(
-            width: 4,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(10),
-            ),
+    return GestureDetector(
+      onTap: url != null ? () => launchUrl(Uri.parse(url)) : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isNow ? color : AppColors.border,
+            width: isNow ? 1.5 : 1,
           ),
-          const SizedBox(width: 15),
+        ),
+        child: Row(
+          children: [
+            // Left accent bar
+            Container(
+              width: 4,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 15),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      time,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        time,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    if (isNow)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text(
-                          "NOW",
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
+                      if (isNow)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            "NOW",
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      color: AppColors.grey,
-                      size: 14,
+                  const SizedBox(height: 5),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      location,
-                      style: const TextStyle(
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
                         color: AppColors.grey,
-                        fontSize: 12,
+                        size: 14,
                       ),
-                    ),
-                    const SizedBox(width: 15),
-                    const Icon(
-                      Icons.person_outline,
-                      color: AppColors.grey,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      instructor,
-                      style: const TextStyle(
+                      const SizedBox(width: 4),
+                      Text(
+                        location,
+                        style: const TextStyle(
+                          color: AppColors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      const Icon(
+                        Icons.person_outline,
                         color: AppColors.grey,
-                        fontSize: 12,
+                        size: 14,
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 4),
+                      Text(
+                        instructor,
+                        style: const TextStyle(
+                          color: AppColors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class TrainingModulesPage extends StatelessWidget {
+class TrainingModulesPage extends StatefulWidget {
   const TrainingModulesPage({super.key});
 
-  final List<Map<String, dynamic>> modules = const [
-    {
-      "title": "Introduction to AI Ethics",
-      "duration": "45 min",
-      "progress": 1.0,
-      "icon": Icons.psychology,
-    },
-    {
-      "title": "Git & GitHub Workflow",
-      "duration": "1h 20min",
-      "progress": 0.6,
-      "icon": Icons.code,
-    },
-    {
-      "title": "Flutter State Management",
-      "duration": "2h 15min",
-      "progress": 0.1,
-      "icon": Icons.flutter_dash,
-    },
-    {
-      "title": "Data Security Basics",
-      "duration": "30 min",
-      "progress": 0.0,
-      "icon": Icons.security,
-    },
-  ];
+  @override
+  State<TrainingModulesPage> createState() => _TrainingModulesPageState();
+}
+
+class _TrainingModulesPageState extends State<TrainingModulesPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TrainingModuleNotifier>().fetchForIntern();
+      context.read<EvaluationNotifier>().fetchInternEvaluations();
+      context.read<InternshipAssignmentNotifier>().fetchMyAssignment();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final notifier = context.watch<TrainingModuleNotifier>();
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: const Text("TRAINING MODULES"),
         backgroundColor: Colors.transparent,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: modules.length,
-        itemBuilder: (context, index) {
-          final module = modules[index];
-          return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ModuleDetailPage(title: module['title']),
-              ),
-            ),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 15),
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.surface,
-                    child: Icon(module['icon'], color: AppColors.greenLight),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          module['title'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+      body: notifier.isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.greenLight))
+          : notifier.error != null
+              ? Center(child: Text(notifier.error!, style: const TextStyle(color: AppColors.red)))
+              : notifier.modules.isEmpty
+                  ? const Center(child: Text("No modules assigned yet", style: TextStyle(color: AppColors.grey)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: notifier.modules.length,
+                      itemBuilder: (context, index) {
+                        final module = notifier.modules[index];
+                        return GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ModuleDetailPage(module: module),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          module['duration'],
-                          style: const TextStyle(
-                            color: AppColors.grey,
-                            fontSize: 12,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 15),
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                const CircleAvatar(
+                                  backgroundColor: AppColors.surface,
+                                  child: Icon(Icons.school_outlined, color: AppColors.greenLight),
+                                ),
+                                const SizedBox(width: 15),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        module.title,
+                                        style: TextStyle(
+                                          color: module.isCompleted ? AppColors.grey : Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: module.isCompleted ? TextDecoration.lineThrough : null,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        module.description,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: AppColors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right, color: AppColors.grey),
+                                if (module.isCompleted)
+                                  const Icon(Icons.check_circle, color: AppColors.greenLight, size: 20),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        LinearProgressIndicator(
-                          value: module['progress'],
-                          backgroundColor: AppColors.surface,
-                          color: module['progress'] == 1.0
-                              ? AppColors.green
-                              : AppColors.gold,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  ),
-                  const Icon(Icons.chevron_right, color: AppColors.grey),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 }
 
 class ModuleDetailPage extends StatelessWidget {
-  final String title;
-  const ModuleDetailPage({super.key, required this.title});
+  final TrainingModuleModel module;
+  const ModuleDetailPage({super.key, required this.module});
 
   @override
   Widget build(BuildContext context) {
@@ -1026,7 +1133,7 @@ class ModuleDetailPage extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 color: AppColors.surface,
-                child: const Icon(Icons.play_circle_fill, size: 60, color: AppColors.greenLight),
+                child: const Icon(Icons.library_books, size: 60, color: AppColors.greenLight),
               ),
             ),
           ),
@@ -1036,54 +1143,68 @@ class ModuleDetailPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(module.title,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.timer_outlined, color: AppColors.grey, size: 16),
-                      SizedBox(width: 5),
-                      Text("Lesson 1 of 5", style: TextStyle(color: AppColors.grey)),
+                      const Icon(Icons.business, color: AppColors.grey, size: 16),
+                      const SizedBox(width: 5),
+                      Text("Department: ${module.departmentCode}", style: const TextStyle(color: AppColors.grey)),
                     ],
                   ),
                   const SizedBox(height: 25),
-                  const Text(
-                    "Overview of this module:\n\nIn this section, we will cover the core principles of your internship role...",
-                    style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
+                  Text(
+                    module.description,
+                    style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
                   ),
                   const SizedBox(height: 40),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.green,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    ),
-                    child: const Text("MARK AS COMPLETE", style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-
-                  // --- FIXED: These are now INSIDE the children list ---
-                  const SizedBox(height: 30),
+                  
                   const Text(
-                    "RESOURCES & DOWNLOADS",
-                    style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1),
+                    "RESOURCES",
+                    style: TextStyle(
+                        color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1),
                   ),
                   const SizedBox(height: 15),
 
                   _buildFileTile(
                     context,
-                    fileName: "Internship_Handbook_2024.pdf",
-                    fileSize: "2.4 MB",
-                    icon: Icons.picture_as_pdf_rounded,
-                    color: Colors.redAccent,
+                    fileName: "Training Resource",
+                    url: module.url,
+                    icon: Icons.link_rounded,
+                    color: AppColors.greenLight,
                   ),
-                  _buildFileTile(
-                    context,
-                    fileName: "Technical_Setup_Guide.docx",
-                    fileSize: "1.1 MB",
-                    icon: Icons.description_rounded,
-                    color: Colors.blueAccent,
-                  ),
-                ], // This bracket now correctly closes all children
+                  
+                  const SizedBox(height: 50),
+                  
+                  if (!module.isCompleted)
+                    Consumer<TrainingModuleNotifier>(
+                      builder: (context, notifier, child) {
+                        return Center(
+                          child: GradientButton(
+                            label: notifier.isLoading ? "MARKING..." : "MARK AS COMPLETE",
+                            isLoading: notifier.isLoading,
+                            onTap: () async {
+                              final success = await notifier.markAsComplete(module.id);
+                              if (success && context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    const Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.check_circle_outline, color: AppColors.greenLight, size: 48),
+                          SizedBox(height: 10),
+                          Text("Completed", style: TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -1095,7 +1216,7 @@ class ModuleDetailPage extends StatelessWidget {
   Widget _buildFileTile(
     BuildContext context, {
     required String fileName,
-    required String fileSize,
+    required String url,
     required IconData icon,
     required Color color,
   }) {
@@ -1131,37 +1252,27 @@ class ModuleDetailPage extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  fileSize,
+                  "External Resource",
                   style: const TextStyle(color: AppColors.grey, fontSize: 11),
                 ),
               ],
             ),
           ),
-          // Action Buttons
           IconButton(
             icon: const Icon(
-              Icons.visibility_outlined,
-              color: AppColors.grey,
-              size: 20,
-            ),
-            onPressed: () {
-              // Logic to open internal PDF Viewer
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Opening $fileName...")));
-            },
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.file_download_outlined,
+              Icons.open_in_new_rounded,
               color: AppColors.greenLight,
               size: 20,
             ),
-            onPressed: () {
-              // Logic to download to phone storage
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Download Started...")),
-              );
+            onPressed: () async {
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Could not launch URL")),
+                );
+              }
             },
           ),
         ],
@@ -1397,11 +1508,26 @@ class TrainingFilesPage extends StatelessWidget {
   }
 }
 
-class EvaluationScreen extends StatelessWidget {
+class EvaluationScreen extends StatefulWidget {
   const EvaluationScreen({super.key});
 
   @override
+  State<EvaluationScreen> createState() => _EvaluationScreenState();
+}
+
+class _EvaluationScreenState extends State<EvaluationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<EvaluationNotifier>().fetchInternEvaluations();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final provider = context.watch<EvaluationNotifier>();
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -1410,38 +1536,47 @@ class EvaluationScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column( // Using Column inside SingleChildScrollView for better structure
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Total Score Card
-            _buildScoreHeader(),
+      body: provider.isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.greenLight))
+          : provider.error != null
+              ? Center(child: Text(provider.error!, style: const TextStyle(color: Colors.red)))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Total Score Card
+                      _buildScoreHeader(provider.averageMark),
 
-            const SizedBox(height: 30),
-            const Text("GRADING RUBRIC",
-                style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
+                      const SizedBox(height: 30),
+                      const Text("RECENT EVALUATIONS",
+                          style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 15),
 
-            // 2. Rubric List
-            _rubricTile("Technical Skills", "4.5/5", 0.9, "Excellent code quality."),
-            _rubricTile("Punctuality", "5.0/5", 1.0, "Always on time."),
-            _rubricTile("Teamwork", "3.5/5", 0.7, "Needs more communication."),
-            _rubricTile("Documentation", "4.0/5", 0.8, "Clear and concise logs."),
+                      if (provider.evaluations.isEmpty)
+                        const Center(
+                            child: Padding(
+                          padding: EdgeInsets.only(top: 20),
+                          child: Text("No evaluations yet", style: TextStyle(color: AppColors.grey)),
+                        ))
+                      else
+                        ...provider.evaluations.map((eval) => _rubricTile(
+                              eval.weekLabel ?? "General Evaluation",
+                              "${eval.overallMark}/100",
+                              eval.overallMark / 100,
+                              eval.feedback ?? "No feedback provided",
+                              eval.mentorName ?? "Mentor",
+                            )),
 
-            const SizedBox(height: 30),
-            // 3. Mentor Section
-            _buildMentorComments(),
-
-            const SizedBox(height: 100), // Bottom padding for navigation menu
-          ],
-        ),
-      ),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
     );
   }
 
   // --- HELPER 1: SCORE HEADER ---
-  Widget _buildScoreHeader() {
+  Widget _buildScoreHeader(double? averageMark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(25),
@@ -1452,26 +1587,27 @@ class EvaluationScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text("Final Grade", style: TextStyle(color: AppColors.grey, fontSize: 14)),
+          const Text("Average Grade", style: TextStyle(color: AppColors.grey, fontSize: 14)),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text("17.5", style: TextStyle(color: AppColors.greenLight, fontSize: 48, fontWeight: FontWeight.bold)),
-              const Text("/20", style: TextStyle(color: AppColors.grey, fontSize: 20)),
+              Text(
+                averageMark?.toStringAsFixed(1) ?? "N/A",
+                style: const TextStyle(color: AppColors.greenLight, fontSize: 48, fontWeight: FontWeight.bold),
+              ),
+              const Text("/100", style: TextStyle(color: AppColors.grey, fontSize: 20)),
             ],
           ),
-          const SizedBox(height: 10),
-          const Text("Top 5% of Internship Group", style: TextStyle(color: Colors.white70, fontSize: 12)),
         ],
       ),
     );
   }
 
   // --- HELPER 2: RUBRIC TILE ---
-  Widget _rubricTile(String title, String score, double progress, String comment) {
+  Widget _rubricTile(String title, String score, double progress, String comment, String mentor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
@@ -1486,10 +1622,16 @@ class EvaluationScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text(title,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis),
+              ),
               Text(score, style: TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
             ],
           ),
+          const SizedBox(height: 8),
+          Text("By $mentor", style: const TextStyle(color: AppColors.gold, fontSize: 11)),
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
@@ -1501,34 +1643,9 @@ class EvaluationScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Text(comment, style: const TextStyle(color: AppColors.grey, fontSize: 12, fontStyle: FontStyle.italic)),
+          Text(comment, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
         ],
       ),
-    );
-  }
-
-  // --- HELPER 3: MENTOR COMMENTS ---
-  Widget _buildMentorComments() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("MENTOR'S FEEDBACK",
-            style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 15),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: const Text(
-            "\"Lina has shown exceptional growth in her understanding of Flutter architecture. Her ability to solve complex UI bugs independently is impressive.\"",
-            style: TextStyle(color: Colors.white70, height: 1.5, fontSize: 14, fontStyle: FontStyle.italic),
-          ),
-        ),
-      ],
     );
   }
 }

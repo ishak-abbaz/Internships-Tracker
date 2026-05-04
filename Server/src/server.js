@@ -1,7 +1,6 @@
 const express = require('express');
 
 const connectDB = require('./Config/database');
-const { sendSuccess } = require('./utils/response');
 
 
 
@@ -55,11 +54,7 @@ app.use(cookieParser()); // this Read cookies sent by Postman/browser on future 
 // Routes
 
 app.get('/', (req, res) => { // homepage
-  return sendSuccess(res, {
-    status: 200,
-    msg: 'API is running',
-    data: null
-  });
+  res.json({ message: 'API is running' });
 });
 
 
@@ -97,7 +92,6 @@ app.use('/api/v1/admin/departments', adminDepartementRoutes);
 // Internships Routes :
 const internshipRoutes = require('./Routes/internshipRoutes');
 app.use('/api/v1/admin/internships', internshipRoutes);
-app.use('/api/v1/internships', internshipRoutes);
 
 // Admin office routes (policy + schedules uploads)
 const adminOfficeRoutes = require('./Routes/AdminOfficeRoutes');

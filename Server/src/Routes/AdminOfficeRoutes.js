@@ -16,22 +16,23 @@ const {
 
 const { protect, restrictTo } = require('../Middleware/auth');
 const upload = require('../Middleware/upload');
+const normalizeFields = require('../Middleware/normalizeFields');
 
-// Protect all routes — Admin only
-router.use(protect, restrictTo('Admin'));
+// Protect all routes
+router.use(protect);
 
 // Policy Handbook
-router.post(  '/policy/create',        upload.single('file'), createPolicyHandbook);
-router.get(   '/policy/getall',getAllPolicyHandbooks);
-router.get(   '/policy/:id',getPolicyHandbookById);
-router.patch( '/policy/update/:id',    upload.single('file'), updatePolicyHandbook);
-router.delete('/policy/delete/:id',deletePolicyHandbook);
+router.post(  '/policy/create',        restrictTo('Admin'), upload.single('file'), normalizeFields, createPolicyHandbook);
+router.get(   '/policy/getall',        restrictTo('Admin', 'Mentor', 'Student'), getAllPolicyHandbooks);
+router.get(   '/policy/:id',           restrictTo('Admin', 'Mentor', 'Student'), getPolicyHandbookById);
+router.patch( '/policy/update/:id',    restrictTo('Admin'), upload.single('file'), normalizeFields, updatePolicyHandbook);
+router.delete('/policy/delete/:id',    restrictTo('Admin'), deletePolicyHandbook);
 
 // Office Schedule
-router.post(  '/schedule/create',      upload.single('file'), createOfficeSchedule);
-router.get(   '/schedule/getall',  getAllOfficeSchedules);
-router.get(   '/schedule/:id',     getOfficeScheduleById);
-router.patch( '/schedule/update/:id',  upload.single('file'), updateOfficeSchedule);
-router.delete('/schedule/delete/:id',deleteOfficeSchedule);
+router.post(  '/schedule/create',      restrictTo('Admin'), upload.single('file'), normalizeFields, createOfficeSchedule);
+router.get(   '/schedule/getall',      restrictTo('Admin', 'Mentor', 'Student'), getAllOfficeSchedules);
+router.get(   '/schedule/:id',         restrictTo('Admin', 'Mentor', 'Student'), getOfficeScheduleById);
+router.patch( '/schedule/update/:id',  restrictTo('Admin'), upload.single('file'), normalizeFields, updateOfficeSchedule);
+router.delete('/schedule/delete/:id',  restrictTo('Admin'), deleteOfficeSchedule);
 
 module.exports = router;
