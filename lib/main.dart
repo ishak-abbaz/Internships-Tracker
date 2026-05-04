@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:provider/provider.dart';
 
 import 'theme.dart';
 import 'admin_dashboard.dart';
 import 'mentor_dashboard.dart';
-import 'intern_dashboard.dart';
+import 'intern_dashboard_live.dart';
+import 'providers/intern_provider.dart';
 import 'services/auth_service.dart';
 import 'services/api_exception.dart';
 
@@ -30,18 +32,21 @@ class ProLinkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pro-Link',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      home: const LoginPage(),
-      routes: {
-        '/login':      (context) => const LoginPage(),
-        '/register':   (context) => const RegisterPage(),
-        '/admin':      (context) =>  AdminDashboard(),
-        '/mentor':     (context) => const MentorDashboard(),
-        '/intern':     (context) => const InternDashboard(),
-      },
+    return ChangeNotifierProvider(
+      create: (_) => InternProvider(),
+      child: MaterialApp(
+        title: 'Pro-Link',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        home: const LoginPage(),
+        routes: {
+          '/login':      (context) => const LoginPage(),
+          '/register':   (context) => const RegisterPage(),
+          '/admin':      (context) =>  AdminDashboard(),
+          '/mentor':     (context) => const MentorDashboard(),
+          '/intern':     (context) => const InternDashboard(),
+        },
+      ),
     );
   }
 }
@@ -327,7 +332,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             style: TextStyle(color: AppColors.grey.withOpacity(0.85),
                 fontSize: 12, letterSpacing: 1.1, fontFamily: 'Poppins')),
         const SizedBox(height: 2),
-        Text('Constantine 2 University  ·  IFA',
+        Text('Constantine 2 University  ·  ING 3 SEC',
             style: TextStyle(color: AppColors.gold.withOpacity(0.7),
                 fontSize: 11, letterSpacing: 0.8, fontFamily: 'Poppins')),
       ]),
@@ -440,7 +445,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   Expanded(child: Divider(color: AppColors.border)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('Pro-Link © 2025',
+                    child: Text('Pro-Link © 2026',
                         style: TextStyle(color: AppColors.greyDark, fontSize: 11, fontFamily: 'Poppins')),
                   ),
                   Expanded(child: Divider(color: AppColors.border)),
@@ -661,7 +666,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
             style: TextStyle(color: AppColors.grey.withOpacity(0.85),
                 fontSize: 12, letterSpacing: 1.1, fontFamily: 'Poppins')),
         const SizedBox(height: 2),
-        Text('Constantine 2 University  ·  IFA',
+        Text('Constantine 2 University  ·  ING 3 SEC',
             style: TextStyle(color: AppColors.gold.withOpacity(0.7),
                 fontSize: 11, letterSpacing: 0.8, fontFamily: 'Poppins')),
       ]),
@@ -796,7 +801,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                   Expanded(child: Divider(color: AppColors.border)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('Pro-Link © 2025',
+                    child: Text('Pro-Link © 2026',
                         style: TextStyle(color: AppColors.greyDark, fontSize: 11, fontFamily: 'Poppins')),
                   ),
                   Expanded(child: Divider(color: AppColors.border)),

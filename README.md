@@ -1,7 +1,7 @@
 # Internships Tracker Backend API Documentation
 flutter run -d chrome --web-port=49388
 
-Last updated: 2026-04-18
+Last updated: 2026-04-30
 
 Base URL (production):
 
@@ -607,13 +607,9 @@ All require Auth: Yes (Admin)
 - POST /api/v1/admin/office/schedule/create
 	- multipart/form-data fields:
 		- title (required)
-		- department_id (optional)
-		- intern_id (optional)
-		- mentor_id (optional)
-		- weekday (optional)
-		- schedule_date (optional)
-		- start_time (required)
-		- end_time (required)
+		- Description
+		- department_code
+		- version 
 		- file (required PDF)
 	- Success: 201 with schedule object
 	- Errors: 400, 500
@@ -699,6 +695,16 @@ All require Auth: Yes (Admin)
 #### DELETE /api/v1/admin/internships/:id
 
 - Response 200: deleted assignment
+- Errors: 400, 404, 500
+
+#### GET /api/v1/admin/internships/intern/:intern_id
+
+- Response 200: array of internship assignments for the intern
+- Errors: 400, 404, 500
+
+#### GET /api/v1/admin/internships/mentor/:mentor_id
+
+- Response 200: array of internship assignments for the mentor
 - Errors: 400, 404, 500
 
 ### 2.7 Mentor Attendance Endpoints
@@ -1136,6 +1142,12 @@ All endpoints require Auth: Yes (Student)
 
 - Errors: 400, 401, 404, 500
 
+#### GET /api/v1/intern/work-id/photo/download
+
+- Behavior: Redirects to work ID photo URL if authorized
+- Success: HTTP redirect (302) to Cloudinary image URL
+- Errors: 401, 404, 500
+
 #### GET /api/v1/intern/evaluations
 
 - Response 200:
@@ -1166,6 +1178,54 @@ All endpoints require Auth: Yes (Student)
 ```
 
 - Errors: 401, 500
+
+#### GET /api/v1/intern/profile
+
+- Response 200:
+
+```json
+{
+	"msg": "Fetched successfully",
+	"profile": {
+		"_id": "681f1ef2f03c6be17a6bd123",
+		"full_name": "Intern User",
+		"email": "intern@example.com",
+		"user_role": "Student",
+		"account_status": "approved",
+		"is_email_verified": false,
+		"created_at": "2026-04-18T10:00:00.000Z",
+		"updated_at": "2026-04-18T10:00:00.000Z",
+		"university_id": "U2026001",
+		"department_id": "681f1ef2f03c6be17a6bd999",
+		"mentor_id": "681f1ef2f03c6be17a6bd888",
+		"is_validated_by_admin": true,
+		"work_id": 100001
+	}
+}
+```
+
+- Errors: 401, 500
+
+#### GET /api/v1/intern/department
+
+- Response 200:
+
+```json
+{
+	"msg": "Fetched successfully",
+	"department": {
+		"_id": "681f1ef2f03c6be17a6bd999",
+		"name": "Development",
+		"code": "DEV",
+		"description": "Software engineering department",
+		"is_active": true,
+		"created_at": "2026-04-18T10:00:00.000Z",
+		"updated_at": "2026-04-18T10:00:00.000Z"
+	}
+}
+```
+
+- Errors: 401, 404, 500
 
 ### 2.10 Mentor Training Module Endpoints
 
@@ -1599,7 +1659,112 @@ Default sorts in code:
 
 -------------------------------------------------------------------------------
 
-## 8. Important Implementation Notes
+## 8. Complete Endpoints Summary by Route
+
+### Authentication Routes (`/api/v1/auth`)
+
+- POST /api/v1/auth/login
+- POST /api/v1/auth/register
+
+### Admin Routes (`/api/v1/admin`)
+
+**User Management:**
+- POST /api/v1/admin/users
+
+**Intern Management:**
+- GET /api/v1/admin/interns
+- GET /api/v1/admin/interns/pending
+- GET /api/v1/admin/interns/:internId
+- PATCH /api/v1/admin/interns/:internId
+- POST /api/v1/admin/interns/:internId/approve
+- POST /api/v1/admin/interns/:internId/reject
+- DELETE /api/v1/admin/interns/:internId
+
+**Mentor Management:**
+- GET /api/v1/admin/mentors
+- GET /api/v1/admin/mentors/:mentorId
+- PATCH /api/v1/admin/mentors/:mentorId
+- DELETE /api/v1/admin/mentors/:mentorId
+
+**Registration Management:**
+- GET /api/v1/admin/registrations/pending
+- GET /api/v1/admin/registrations/:id
+
+**Department Management:**
+- POST /api/v1/admin/departments/createdep
+- GET /api/v1/admin/departments/getAlldep
+- GET /api/v1/admin/departments/:id
+- PATCH /api/v1/admin/departments/updatedep/:id
+- DELETE /api/v1/admin/departments/delete/:id
+
+**Admin Office (Policy & Schedule):**
+- POST /api/v1/admin/office/policy/create
+- GET /api/v1/admin/office/policy/getall
+- GET /api/v1/admin/office/policy/:id
+- PATCH /api/v1/admin/office/policy/update/:id
+- DELETE /api/v1/admin/office/policy/delete/:id
+- POST /api/v1/admin/office/schedule/create
+- GET /api/v1/admin/office/schedule/getall
+- GET /api/v1/admin/office/schedule/:id
+- PATCH /api/v1/admin/office/schedule/update/:id
+- DELETE /api/v1/admin/office/schedule/delete/:id
+
+**Internship Assignment:**
+- POST /api/v1/admin/internships/:intern_id
+- GET /api/v1/admin/internships
+- GET /api/v1/admin/internships/:id
+- GET /api/v1/admin/internships/intern/:intern_id
+- GET /api/v1/admin/internships/mentor/:mentor_id
+- PATCH /api/v1/admin/internships/update/:id
+- DELETE /api/v1/admin/internships/:id
+
+### Mentor Routes (`/api/v1/mentors`)
+
+**Attendance Management:**
+- POST /api/v1/mentors/attendance
+- GET /api/v1/mentors/attendance/id/:attendanceId
+- GET /api/v1/mentors/attendance/date/:attendanceDate
+- GET /api/v1/mentors/attendance/intern/:internId
+- GET /api/v1/mentors/attendance/stats/:internId
+- PATCH /api/v1/mentors/attendance/:attendanceId
+- DELETE /api/v1/mentors/attendance/:attendanceId
+
+**Training Modules:**
+- GET /api/v1/mentors/training-modules
+- POST /api/v1/mentors/training-modules
+- GET /api/v1/mentors/training-modules/:moduleId
+- GET /api/v1/mentors/training-modules/department/:departmentCode
+- GET /api/v1/mentors/training-modules/mentor/:mentorId
+- PATCH /api/v1/mentors/training-modules/:moduleId
+- DELETE /api/v1/mentors/training-modules/:moduleId
+
+### Intern Routes (`/api/v1/intern`)
+
+- GET /api/v1/intern/assignment
+- GET /api/v1/intern/schedules
+- GET /api/v1/intern/training-modules
+- GET /api/v1/intern/training-modules/:moduleId/download
+- GET /api/v1/intern/department
+- GET /api/v1/intern/profile
+- GET /api/v1/intern/work-id
+- POST /api/v1/intern/work-id/photo
+- GET /api/v1/intern/work-id/photo/download
+- GET /api/v1/intern/evaluations
+
+### Evaluation Routes (`/api/v1/evaluations`)
+
+- GET /api/v1/evaluations
+- POST /api/v1/evaluations
+- GET /api/v1/evaluations/id/:evaluationId
+- GET /api/v1/evaluations/intern/:internId
+- GET /api/v1/evaluations/mentor/:mentorId
+- GET /api/v1/evaluations/stats/:internId
+- PATCH /api/v1/evaluations/:evaluationId
+- DELETE /api/v1/evaluations/:evaluationId
+
+-------------------------------------------------------------------------------
+
+## 9. Important Implementation Notes
 
 1. There are no dedicated dashboard endpoints (admin/mentor/intern). Dashboards are composed from multiple endpoints.
 2. No refresh-token and no logout endpoint are currently implemented.

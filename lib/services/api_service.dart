@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../config/api_config.dart';
 import 'api_exception.dart';
@@ -20,7 +21,32 @@ class ApiService {
     String endpoint, {
     Map<String, dynamic>? body,
     String? token,
+    Map<String, String>? multipartFields,
+    List<int>? multipartFileBytes,
+    String? multipartFileField,
+    String? multipartFileName,
+    MediaType? multipartFileContentType,
   }) async {
+    if (multipartFileBytes != null) {
+      final request = http.MultipartRequest('POST', _uri(endpoint));
+      request.headers.addAll(_headers(token: token, includeContentType: false));
+      if (multipartFields != null) {
+        request.fields.addAll(multipartFields);
+      }
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          multipartFileField ?? 'file',
+          multipartFileBytes,
+          filename: multipartFileName ?? 'upload.bin',
+          contentType: multipartFileContentType,
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _decodeOrThrow(response);
+    }
+
     final response = await http.post(
       _uri(endpoint),
       headers: _headers(token: token),
@@ -33,7 +59,35 @@ class ApiService {
     String endpoint, {
     Map<String, dynamic>? body,
     String? token,
+    Map<String, String>? multipartFields,
+    List<int>? multipartFileBytes,
+    String? multipartFileField,
+    String? multipartFileName,
+    MediaType? multipartFileContentType,
   }) async {
+    if (multipartFields != null || multipartFileBytes != null) {
+      final request = http.MultipartRequest('PATCH', _uri(endpoint));
+      request.headers.addAll(_headers(token: token, includeContentType: false));
+      if (multipartFields != null) {
+        request.fields.addAll(multipartFields);
+      }
+
+      if (multipartFileBytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            multipartFileField ?? 'file',
+            multipartFileBytes,
+            filename: multipartFileName ?? 'upload.bin',
+            contentType: multipartFileContentType,
+          ),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _decodeOrThrow(response);
+    }
+
     final response = await http.patch(
       _uri(endpoint),
       headers: _headers(token: token),
@@ -50,10 +104,14 @@ class ApiService {
     return _decodeOrThrow(response);
   }
 
-  Map<String, String> _headers({String? token}) {
+  Map<String, String> _headers({String? token, bool includeContentType = true}) {
     final headers = <String, String>{
-      'Content-Type': 'application/json',
+      'Accept': 'application/json',
     };
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
@@ -66,9 +124,24 @@ class ApiService {
     Map<String, dynamic> data = <String, dynamic>{};
     if (response.body.isNotEmpty) {
       try {
-        data = jsonDecode(response.body) as Map<String, dynamic>;
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          data = decoded;
+        } else if (decoded is List) {
+          data = <String, dynamic>{'data': decoded};
+        } else if (decoded is String) {
+          data = <String, dynamic>{'msg': decoded};
+        } else {
+          data = <String, dynamic>{'data': decoded};
+        }
       } catch (_) {
-        throw ApiException('Invalid response format from server.', statusCode: response.statusCode);
+        final preview = response.body.length > 180
+            ? '${response.body.substring(0, 180)}...'
+            : response.body;
+        throw ApiException(
+          'Server returned a non-JSON response (${response.statusCode}): $preview',
+          statusCode: response.statusCode,
+        );
       }
     }
 

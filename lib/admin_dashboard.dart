@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
 import 'theme.dart';
-import 'admin_dashboard.dart';
 import 'mentor_dashboard.dart';
-import 'intern_dashboard.dart';
+import 'intern_dashboard_live.dart';
 import 'models/department_model.dart';
+import 'models/office_schedule_model.dart';
+import 'models/policy_document_model.dart';
+import 'providers/admin_office_provider.dart';
 import 'services/admin_department_service.dart';
 import 'services/api_exception.dart';
 
@@ -113,7 +117,7 @@ class AdminDashboard extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("Admin Central", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Admin Dashboard", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -195,14 +199,6 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 30),
-
-            // 4. RESOURCE CENTER (From Photo 1)
-            const Text("Resource Center",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            _buildResourceTile("Office Schedule", "Uploaded (v2.1)", Icons.check_circle, AppColors.greenLight),
-            _buildResourceTile("Policy Handbook", "Missing", Icons.error_outline, AppColors.red),
           ],
         ),
       ),
@@ -315,70 +311,9 @@ class AdminDashboard extends StatelessWidget {
         ],
       ),
     );
-  }}
+  }
+}
 
-  Widget _drawerTile(BuildContext context, IconData icon, String title, VoidCallback onTap, {Color color = Colors.white}) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title, style: TextStyle(color: color)),
-      onTap: onTap,
-    );
-  }
-
-  Widget _invitationCard(BuildContext context, String name, String dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border)
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: AppColors.surface, child: Text(name[0])),
-          const SizedBox(width: 15),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(dept, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-                  ]
-              )
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Navigate to the Review Request Page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReviewRequestPage(name: name, department: dept),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.green),
-            child: const Text("Accept"),
-          )
-        ],
-      ),
-    );
-  }
-  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: color, size: 28),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          Text(title, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        ],
-      ),
-    );
-  }
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 
@@ -896,52 +831,158 @@ class ScheduleManagementPage extends StatefulWidget {
 }
 
 class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
-  // ── DATA MODEL ──
-  List<Map<String, String>> schedules = [
-    {
-      "dept": "AI Department",
-      "class": "Master 1",
-      "group": "Group 02",
-      "teacher": "Dr. Amine Rahmani",
-      "subject": "Deep Learning",
-    },
-    {
-      "dept": "Web Development",
-      "class": "L3",
-      "group": "Group 01",
-      "teacher": "Prof. Sarah Zenati",
-      "subject": "Advanced CSS",
-    },
-  ];
-
-  List<Map<String, String>> filteredSchedules = [];
   final TextEditingController _searchController = TextEditingController();
+  late final AdminOfficeProvider _officeProvider;
+  String _searchTerm = '';
 
   @override
   void initState() {
     super.initState();
-    filteredSchedules = schedules;
+    _officeProvider = AdminOfficeProvider();
+    _officeProvider.loadSchedules();
   }
 
-  // ── SEARCH LOGIC ──
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _officeProvider.dispose();
+    super.dispose();
+  }
+
   void _filterSchedules(String query) {
-    setState(() {
-      filteredSchedules = schedules.where((s) {
-        final match = s['dept']!.toLowerCase().contains(query.toLowerCase()) ||
-            s['teacher']!.toLowerCase().contains(query.toLowerCase()) ||
-            s['class']!.toLowerCase().contains(query.toLowerCase());
-        return match;
-      }).toList();
-    });
+    setState(() => _searchTerm = query.trim().toLowerCase());
   }
 
-  // ── UPDATED ADD DIALOG ──
-  void _showAddScheduleDialog() {
-    String? selectedDept;
-    String? selectedClass;
-    String? selectedGroup;
+  List<OfficeScheduleModel> _filteredSchedules(List<OfficeScheduleModel> items) {
+    if (_searchTerm.isEmpty) {
+      return items;
+    }
 
-    showModalBottomSheet(
+    return items.where((schedule) {
+      final haystack = [
+        schedule.title,
+        schedule.description ?? '',
+        schedule.departmentCode ?? '',
+        schedule.departmentId ?? '',
+      ].join(' ').toLowerCase();
+
+      return haystack.contains(_searchTerm);
+    }).toList();
+  }
+
+  String _scheduleDescription(OfficeScheduleModel schedule) {
+    final direct = (schedule.description ?? '').trim();
+    if (direct.isNotEmpty) {
+      return direct;
+    }
+
+    final notes = (schedule.notes ?? '').trim();
+    if (notes.isNotEmpty) {
+      return notes;
+    }
+
+    final timeParts = <String>[];
+    if ((schedule.startTime ?? '').trim().isNotEmpty) {
+      timeParts.add(schedule.startTime!.trim());
+    }
+    if ((schedule.endTime ?? '').trim().isNotEmpty) {
+      timeParts.add(schedule.endTime!.trim());
+    }
+    if (timeParts.isNotEmpty) {
+      return 'Time: ${timeParts.join(' - ')}';
+    }
+
+    return 'No description';
+  }
+
+  Future<void> _openScheduleDetails(OfficeScheduleModel schedule) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => const Center(
+        child: CircularProgressIndicator(color: AppColors.greenLight, strokeWidth: 2),
+      ),
+    );
+
+    final details = await _officeProvider.getScheduleById(schedule.id);
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (details == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_officeProvider.error ?? 'Unable to fetch schedule details.'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+      return;
+    }
+
+    final summary = [
+      if ((details.departmentCode ?? '').trim().isNotEmpty) 'Dept: ${details.departmentCode}',
+      if (details.version != null) 'v${details.version}',
+      if ((details.weekday ?? '').trim().isNotEmpty) details.weekday!,
+      if ((details.scheduleDate ?? '').trim().isNotEmpty) details.scheduleDate!,
+    ].join(' • ');
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              (details.title).trim().isEmpty ? 'Schedule' : details.title,
+              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _scheduleDescription(details),
+              style: const TextStyle(color: AppColors.grey, fontSize: 14),
+            ),
+            if (summary.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                summary,
+                style: const TextStyle(color: AppColors.greenLight, fontSize: 12),
+              ),
+            ],
+            if ((details.fileUrl ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                details.fileUrl!,
+                style: const TextStyle(color: Colors.lightBlueAccent, fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddScheduleDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final departmentCodeController = TextEditingController();
+    final versionController = TextEditingController();
+
+    PlatformFile? selectedFile;
+    bool isSubmitting = false;
+    String? modalError;
+
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.bg,
@@ -955,47 +996,141 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("Create Section Schedule",
+                const Text("Create Schedule",
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
 
-                // Department Pick
-                _customDropdown("Department", ["AI Department", "Web Dev"], selectedDept, (v) => setModalState(() => selectedDept = v)),
-
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    // Class (M1, M2, L3)
-                    Expanded(child: _customDropdown("Class/Year", ["M1", "M2", "L3"], selectedClass, (v) => setModalState(() => selectedClass = v))),
-                    const SizedBox(width: 10),
-                    // Group (G1, G2...)
-                    Expanded(child: _customDropdown("Group", ["G 01", "G 02", "G 03"], selectedGroup, (v) => setModalState(() => selectedGroup = v))),
-                  ],
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Title (Optional)",
+                    hint: "e.g. Office Schedule v1",
+                    icon: Icons.title,
+                  ),
                 ),
 
                 const SizedBox(height: 15),
-                // Teacher Name
                 TextField(
+                  controller: descriptionController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Teacher Name", hint: "Dr. Full Name", icon: Icons.person_pin),
+                  decoration: proLinkInputDecoration(
+                    label: "Description",
+                    hint: "Optional schedule description",
+                    icon: Icons.notes,
+                  ),
                 ),
 
                 const SizedBox(height: 15),
-                // Subject/Module
                 TextField(
+                  controller: departmentCodeController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: proLinkInputDecoration(label: "Module/Subject", hint: "e.g. Mathematics", icon: Icons.book),
+                  decoration: proLinkInputDecoration(
+                    label: "Department Code",
+                    hint: "e.g. DEV",
+                    icon: Icons.business,
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+                TextField(
+                  controller: versionController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Version",
+                    hint: "1",
+                    icon: Icons.history,
+                  ),
                 ),
 
                 const SizedBox(height: 20),
-                // Upload PDF Button
-                _uploadBox(),
+                _uploadBox(
+                  label: 'Upload Time-Table PDF',
+                  selectedFileName: selectedFile?.name,
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: const ['pdf'],
+                      withData: true,
+                    );
+
+                    if (result != null && result.files.isNotEmpty) {
+                      setModalState(() {
+                        selectedFile = result.files.first;
+                        modalError = null;
+                      });
+                    }
+                  },
+                ),
+
+                if (modalError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(modalError!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
+                ],
 
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (versionController.text.trim().isNotEmpty &&
+                                  int.tryParse(versionController.text.trim()) == null) {
+                            setModalState(() => modalError = 'Version must be numeric.');
+                            return;
+                          }
+
+                          if (selectedFile == null || selectedFile?.bytes == null) {
+                            setModalState(() => modalError = 'Please select a PDF file first.');
+                            return;
+                          }
+
+                          setModalState(() {
+                            isSubmitting = true;
+                            modalError = null;
+                          });
+
+                          final success = await _officeProvider.uploadSchedule(
+                            title: titleController.text.trim(),
+                            fileBytes: selectedFile!.bytes!,
+                            fileName: selectedFile!.name,
+                            description: descriptionController.text.trim().isEmpty
+                                ? null
+                                : descriptionController.text.trim(),
+                            departmentCode: departmentCodeController.text.trim().isEmpty
+                                ? null
+                                : departmentCodeController.text.trim(),
+                            version: int.tryParse(versionController.text.trim()),
+                          );
+
+                          if (!mounted) {
+                            return;
+                          }
+
+                          if (success) {
+                            Navigator.of(this.context).pop();
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Schedule uploaded successfully.'),
+                                backgroundColor: AppColors.green,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setModalState(() {
+                            modalError = _officeProvider.error ?? 'Unable to upload schedule.';
+                            isSubmitting = false;
+                          });
+                        },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 50)),
-                  child: const Text("SAVE SCHEDULE"),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text("SAVE SCHEDULE"),
                 ),
                 const SizedBox(height: 30),
               ],
@@ -1003,117 +1138,430 @@ class _ScheduleManagementPageState extends State<ScheduleManagementPage> {
           ),
         ),
       ),
+    ).whenComplete(() {
+      titleController.dispose();
+      descriptionController.dispose();
+      departmentCodeController.dispose();
+      versionController.dispose();
+    });
+  }
+
+  void _showEditScheduleDialog(OfficeScheduleModel schedule) {
+    final titleController = TextEditingController(text: schedule.title);
+    final descriptionController = TextEditingController(text: schedule.description ?? '');
+    final departmentCodeController = TextEditingController(text: schedule.departmentCode ?? '');
+    final versionController = TextEditingController(
+      text: schedule.version == null ? '' : schedule.version.toString(),
     );
+
+    PlatformFile? selectedFile;
+    bool isSubmitting = false;
+    String? modalError;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Update Schedule',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Title (Optional)',
+                    hint: 'e.g. Office Schedule v2',
+                    icon: Icons.title,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: descriptionController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Description',
+                    hint: 'Optional schedule description',
+                    icon: Icons.notes,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: departmentCodeController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Department Code',
+                    hint: 'e.g. DEV',
+                    icon: Icons.business,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: versionController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Version',
+                    hint: '1',
+                    icon: Icons.history,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _uploadBox(
+                  label: 'Replace PDF (Optional)',
+                  selectedFileName: selectedFile?.name,
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: const ['pdf'],
+                      withData: true,
+                    );
+
+                    if (result != null && result.files.isNotEmpty) {
+                      setModalState(() {
+                        selectedFile = result.files.first;
+                        modalError = null;
+                      });
+                    }
+                  },
+                ),
+                if (modalError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(modalError!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
+                ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (versionController.text.trim().isNotEmpty &&
+                              int.tryParse(versionController.text.trim()) == null) {
+                            setModalState(() => modalError = 'Version must be numeric.');
+                            return;
+                          }
+
+                          setModalState(() {
+                            isSubmitting = true;
+                            modalError = null;
+                          });
+
+                          final success = await _officeProvider.updateSchedule(
+                            id: schedule.id,
+                            title: titleController.text.trim().isEmpty ? null : titleController.text.trim(),
+                            description: descriptionController.text.trim().isEmpty
+                                ? null
+                                : descriptionController.text.trim(),
+                            departmentCode: departmentCodeController.text.trim().isEmpty
+                                ? null
+                                : departmentCodeController.text.trim(),
+                            version: int.tryParse(versionController.text.trim()),
+                            fileBytes: selectedFile?.bytes,
+                            fileName: selectedFile?.name,
+                          );
+
+                          if (!mounted) {
+                            return;
+                          }
+
+                          if (success) {
+                            Navigator.of(this.context).pop();
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Schedule updated successfully.'),
+                                backgroundColor: AppColors.green,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setModalState(() {
+                            modalError = _officeProvider.error ?? 'Unable to update schedule.';
+                            isSubmitting = false;
+                          });
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('UPDATE SCHEDULE'),
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      titleController.dispose();
+      descriptionController.dispose();
+      departmentCodeController.dispose();
+      versionController.dispose();
+    });
+  }
+
+  Future<void> _confirmDeleteSchedule(OfficeScheduleModel schedule) async {
+    final shouldDelete = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Text('Delete Schedule?', style: TextStyle(color: Colors.white)),
+            content: Text(
+              'This will permanently delete "${schedule.title.isEmpty ? 'Schedule' : schedule.title}".',
+              style: const TextStyle(color: AppColors.grey),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    final success = await _officeProvider.deleteSchedule(schedule.id);
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Schedule deleted successfully.'),
+          backgroundColor: AppColors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_officeProvider.error ?? 'Unable to delete schedule.'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text("Schedules"), backgroundColor: Colors.transparent),
-      body: Column(
-        children: [
-          // ── SEARCH BAR ──
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _filterSchedules,
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Search Schedule", hint: "Teacher, Dept, or Class...", icon: Icons.search),
-            ),
-          ),
+    return ChangeNotifierProvider<AdminOfficeProvider>.value(
+      value: _officeProvider,
+      child: Consumer<AdminOfficeProvider>(
+        builder: (context, officeProvider, _) {
+          final filtered = _filteredSchedules(officeProvider.schedules);
 
-          // ── LIST ──
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredSchedules.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final s = filteredSchedules[index];
-                return _scheduleCard(s);
-              },
+          return Scaffold(
+            backgroundColor: AppColors.bg,
+            appBar: AppBar(title: const Text("Schedules"), backgroundColor: Colors.transparent),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterSchedules,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                      label: "Search Schedule",
+                      hint: "Title, description, or department code...",
+                      icon: Icons.search,
+                    ),
+                  ),
+                ),
+                if (officeProvider.error != null && !officeProvider.isSchedulesLoading)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      officeProvider.error!,
+                      style: const TextStyle(color: AppColors.red, fontSize: 12),
+                    ),
+                  ),
+                Expanded(
+                  child: officeProvider.isSchedulesLoading && officeProvider.schedules.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.greenLight,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : filtered.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No schedules available yet.',
+                                style: TextStyle(color: AppColors.grey),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: officeProvider.loadSchedules,
+                              child: ListView.builder(
+                                itemCount: filtered.length,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemBuilder: (context, index) => _scheduleCard(filtered[index]),
+                              ),
+                            ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.green,
-        onPressed: _showAddScheduleDialog,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  // ── UI HELPERS ──
-  Widget _scheduleCard(Map<String, String> s) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(s['dept']!, style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-                child: Text("${s['class']} - ${s['group']}", style: const TextStyle(color: Colors.white, fontSize: 10)),
-              )
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(s['subject']!, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              const Icon(Icons.person_outline, color: AppColors.grey, size: 14),
-              const SizedBox(width: 5),
-              Text("Teacher: ${s['teacher']}", style: const TextStyle(color: AppColors.grey, fontSize: 13)),
-            ],
-          ),
-        ],
+            floatingActionButton: FloatingActionButton(
+              backgroundColor: AppColors.green,
+              onPressed: _showAddScheduleDialog,
+              child: const Icon(Icons.add),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _customDropdown(String label, List<String> items, String? value, Function(String?) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
-        const SizedBox(height: 5),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              dropdownColor: AppColors.surface,
-              value: value,
-              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
-              onChanged: onChanged,
+  Widget _scheduleCard(OfficeScheduleModel s) {
+    final subtitle = [
+      if (s.departmentCode != null && s.departmentCode!.isNotEmpty) 'Dept: ${s.departmentCode!}',
+      if (s.version != null) 'v${s.version}',
+    ].join(' • ');
+
+    return InkWell(
+      onTap: () => _openScheduleDetails(s),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    s.title,
+                    style: const TextStyle(color: AppColors.greenLight, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    s.isActive ? 'Active' : 'Inactive',
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 10),
+            Text(
+              _scheduleDescription(s),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.grey, size: 14),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    subtitle.isEmpty ? 'Tap to view details' : subtitle,
+                    style: const TextStyle(color: AppColors.grey, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            if (s.fileUrl != null && s.fileUrl!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                s.fileUrl!,
+                style: const TextStyle(color: Colors.lightBlueAccent, fontSize: 11),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _showEditScheduleDialog(s),
+                  icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.greenLight),
+                  label: const Text(
+                    'Edit',
+                    style: TextStyle(color: AppColors.greenLight),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _confirmDeleteSchedule(s),
+                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                  label: const Text(
+                    'Delete',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _uploadBox() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
-      child: const Column(
-        children: [
-          Icon(Icons.upload_file, color: AppColors.greenLight),
-          SizedBox(height: 10),
-          Text("Upload Time-Table PDF", style: TextStyle(color: AppColors.grey, fontSize: 12)),
-        ],
+  Widget _uploadBox({
+    required String label,
+    required VoidCallback onTap,
+    String? selectedFileName,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.upload_file, color: AppColors.greenLight),
+            const SizedBox(height: 10),
+            Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
+            if (selectedFileName != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                selectedFileName,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1239,85 +1687,217 @@ class _ManageDepartmentsPageState extends State<ManageDepartmentsPage> {
   }
 
   Widget _buildDepartmentCard(DepartmentModel dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openDepartmentDetails(dept),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.business, color: AppColors.greenLight, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(dept.name,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                    const SizedBox(height: 4),
-                    Text(dept.code,
-                        style: const TextStyle(color: AppColors.grey, fontSize: 12, letterSpacing: 1.2)),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: dept.isActive ? AppColors.greenLight.withOpacity(0.18) : AppColors.orange.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: dept.isActive ? AppColors.greenLight.withOpacity(0.4) : AppColors.orange.withOpacity(0.4),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.business, color: AppColors.greenLight, size: 20),
                   ),
-                ),
-                child: Text(
-                  dept.isActive ? 'Active' : 'Inactive',
-                  style: TextStyle(
-                    color: dept.isActive ? AppColors.greenLight : AppColors.orange,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(dept.name,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                        const SizedBox(height: 4),
+                        Text(dept.code,
+                            style: const TextStyle(color: AppColors.grey, fontSize: 12, letterSpacing: 1.2)),
+                      ],
+                    ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: dept.isActive
+                          ? AppColors.greenLight.withOpacity(0.18)
+                          : AppColors.orange.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: dept.isActive
+                            ? AppColors.greenLight.withOpacity(0.4)
+                            : AppColors.orange.withOpacity(0.4),
+                      ),
+                    ),
+                    child: Text(
+                      dept.isActive ? 'Active' : 'Inactive',
+                      style: TextStyle(
+                        color: dept.isActive ? AppColors.greenLight : AppColors.orange,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if ((dept.description ?? '').isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  dept.description!,
+                  style: const TextStyle(color: AppColors.grey, fontSize: 12),
                 ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    dept.createdAt == null || dept.createdAt!.isEmpty ? 'Created: -' : 'Created: ${dept.createdAt}',
+                    style: const TextStyle(color: AppColors.greyDark, fontSize: 10),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.edit_note, color: AppColors.greenLight),
+                    onPressed: () => _showEditDepartmentSheet(dept),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: AppColors.red),
+                    onPressed: () => _confirmDelete(dept),
+                  ),
+                ],
               ),
             ],
           ),
-          if ((dept.description ?? '').isNotEmpty) ...[
-            const SizedBox(height: 10),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openDepartmentDetails(DepartmentModel dept) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => const Center(
+        child: CircularProgressIndicator(color: AppColors.greenLight, strokeWidth: 2),
+      ),
+    );
+
+    DepartmentModel? details;
+    String? errorMessage;
+
+    try {
+      details = await _departmentService.getDepartmentById(dept.id);
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+    } catch (_) {
+      errorMessage = 'Unable to fetch department details.';
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (details == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage ?? 'Unable to fetch department details.'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+      return;
+    }
+
+    final deptDetails = details;
+    final description = (deptDetails.description ?? '').trim();
+    final statusLabel = deptDetails.isActive ? 'Active' : 'Inactive';
+    final statusColor = deptDetails.isActive ? AppColors.greenLight : AppColors.orange;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              dept.description!,
-              style: const TextStyle(color: AppColors.grey, fontSize: 12),
+              deptDetails.name,
+              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  deptDetails.code,
+                  style: const TextStyle(color: AppColors.grey, fontSize: 12, letterSpacing: 1.2),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _detailRow(Icons.tag, 'Code', deptDetails.code),
+            _detailRow(Icons.info_outline, 'Status', statusLabel),
+            if (description.isNotEmpty) _detailRow(Icons.notes, 'Description', description),
+            if ((deptDetails.createdAt ?? '').isNotEmpty)
+              _detailRow(Icons.calendar_today, 'Created', deptDetails.createdAt!),
+            if ((deptDetails.updatedAt ?? '').isNotEmpty)
+              _detailRow(Icons.update, 'Updated', deptDetails.updatedAt!),
+            if ((deptDetails.createdByAdminId ?? '').isNotEmpty)
+              _detailRow(Icons.verified_user, 'Created By', deptDetails.createdByAdminId!),
           ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                dept.createdAt == null || dept.createdAt!.isEmpty ? 'Created: -' : 'Created: ${dept.createdAt}',
-                style: const TextStyle(color: AppColors.greyDark, fontSize: 10),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.grey, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(color: AppColors.grey, fontSize: 12),
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(color: AppColors.grey, fontWeight: FontWeight.w600),
+                  ),
+                  TextSpan(text: value),
+                ],
               ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.edit_note, color: AppColors.greenLight),
-                onPressed: () => _showEditDepartmentSheet(dept),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.red),
-                onPressed: () => _confirmDelete(dept),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1617,7 +2197,7 @@ class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
                       height: 18,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
-                  : Text(_isEdit ? 'Save Changes' : 'Create'),
+                  : Text(_isEdit ? 'Save Changes' : 'Create Department'),
             ),
             const SizedBox(height: 20),
           ],
@@ -1635,123 +2215,584 @@ class PolicyManagementPage extends StatefulWidget {
 }
 
 class _PolicyManagementPageState extends State<PolicyManagementPage> {
-  // ── DATA MODEL ──
-  List<Map<String, dynamic>> handbooks = [
-    {
-      "title": "Internship Rules 2026",
-      "isActive": true,
-      "versions": [
-        {"version": "v2.1", "date": "10/01/2026", "file": "rules_final.pdf"},
-        {"version": "v2.0", "date": "01/09/2025", "file": "rules_old.pdf"},
-      ]
-    },
-    {
-      "title": "Mentor Guidelines",
-      "isActive": false,
-      "versions": [
-        {"version": "v1.0", "date": "12/12/2025", "file": "mentor_guide.pdf"},
-      ]
-    },
-  ];
+  final TextEditingController _searchController = TextEditingController();
+  late final AdminOfficeProvider _officeProvider;
+  String _searchTerm = '';
 
-  // ── ADD/UPLOAD DIALOG ──
+  @override
+  void initState() {
+    super.initState();
+    _officeProvider = AdminOfficeProvider();
+    _officeProvider.loadPolicies();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _officeProvider.dispose();
+    super.dispose();
+  }
+
+  void _filterPolicies(String query) {
+    setState(() => _searchTerm = query.trim().toLowerCase());
+  }
+
+  List<PolicyDocumentModel> _filteredPolicies(List<PolicyDocumentModel> items) {
+    if (_searchTerm.isEmpty) {
+      return items;
+    }
+
+    return items.where((policy) => policy.title.toLowerCase().contains(_searchTerm)).toList();
+  }
+
   void _showUploadDialog() {
-    showModalBottomSheet(
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final versionController = TextEditingController();
+    final departmentCodeController = TextEditingController();
+    final targetRoleController = TextEditingController();
+
+    PlatformFile? selectedFile;
+    bool isSubmitting = false;
+    String? modalError;
+
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.bg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Upload New Handbook",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Document Title", hint: "e.g. Code of Conduct", icon: Icons.description),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: proLinkInputDecoration(label: "Version Number", hint: "v1.1", icon: Icons.history),
-            ),
-            const SizedBox(height: 20),
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Upload New Handbook",
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Document Title",
+                    hint: "e.g. Code of Conduct",
+                    icon: Icons.description,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: descriptionController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Description (Optional)",
+                    hint: "Brief description",
+                    icon: Icons.notes,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: versionController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: proLinkInputDecoration(
+                          label: "Version (Optional)",
+                          hint: "1",
+                          icon: Icons.history,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: targetRoleController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: proLinkInputDecoration(
+                          label: "Target Role (Optional)",
+                          hint: "All",
+                          icon: Icons.group,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: departmentCodeController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: "Department Code (Optional)",
+                    hint: "DEV",
+                    icon: Icons.business,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _uploadBox(
+                  label: 'Select PDF Document',
+                  selectedFileName: selectedFile?.name,
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: const ['pdf'],
+                      withData: true,
+                    );
 
-            // Upload Area
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.upload_file, color: AppColors.greenLight, size: 30),
-                  SizedBox(height: 10),
-                  Text("Select PDF Document", style: TextStyle(color: AppColors.grey)),
+                    if (result != null && result.files.isNotEmpty) {
+                      setModalState(() {
+                        selectedFile = result.files.first;
+                        modalError = null;
+                      });
+                    }
+                  },
+                ),
+                if (modalError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(modalError!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
                 ],
-              ),
-            ),
+                const SizedBox(height: 25),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (titleController.text.trim().isEmpty) {
+                            setModalState(() => modalError = 'Document title is required.');
+                            return;
+                          }
 
-            const SizedBox(height: 25),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(double.infinity, 55)),
-              child: const Text("PUBLISH DOCUMENT", style: TextStyle(fontWeight: FontWeight.bold)),
+                          if (selectedFile == null || selectedFile?.bytes == null) {
+                            setModalState(() => modalError = 'Please select a PDF file first.');
+                            return;
+                          }
+
+                          setModalState(() {
+                            isSubmitting = true;
+                            modalError = null;
+                          });
+
+                          final success = await _officeProvider.uploadPolicy(
+                            title: titleController.text.trim(),
+                            fileBytes: selectedFile!.bytes!,
+                            fileName: selectedFile!.name,
+                            description: descriptionController.text.trim().isEmpty
+                                ? null
+                                : descriptionController.text.trim(),
+                            departmentCode: departmentCodeController.text.trim().isEmpty
+                                ? null
+                                : departmentCodeController.text.trim(),
+                            targetRole: targetRoleController.text.trim().isEmpty
+                                ? null
+                                : targetRoleController.text.trim(),
+                            version: int.tryParse(versionController.text.trim()),
+                          );
+
+                          if (!mounted) {
+                            return;
+                          }
+
+                          if (success) {
+                            Navigator.of(this.context).pop();
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Policy handbook uploaded successfully.'),
+                                backgroundColor: AppColors.green,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setModalState(() {
+                            modalError = _officeProvider.error ?? 'Unable to upload policy handbook.';
+                            isSubmitting = false;
+                          });
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    minimumSize: const Size(double.infinity, 55),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          "PUBLISH DOCUMENT",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                ),
+                const SizedBox(height: 30),
+              ],
             ),
-            const SizedBox(height: 30),
-          ],
+          ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      titleController.dispose();
+      descriptionController.dispose();
+      versionController.dispose();
+      departmentCodeController.dispose();
+      targetRoleController.dispose();
+    });
+  }
+
+  void _showEditPolicyDialog(PolicyDocumentModel policy) {
+    final titleController = TextEditingController(text: policy.title);
+    final descriptionController = TextEditingController(text: policy.description ?? '');
+    final versionController = TextEditingController(text: policy.version == null ? '' : policy.version.toString());
+    final departmentCodeController = TextEditingController(text: policy.departmentCode ?? '');
+    final targetRoleController = TextEditingController(text: policy.targetRole ?? '');
+
+    PlatformFile? selectedFile;
+    bool isSubmitting = false;
+    String? modalError;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Update Handbook',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Document Title',
+                    hint: 'e.g. Code of Conduct',
+                    icon: Icons.description,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: descriptionController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Description (Optional)',
+                    hint: 'Brief description',
+                    icon: Icons.notes,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: versionController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: proLinkInputDecoration(
+                          label: 'Version (Optional)',
+                          hint: '1',
+                          icon: Icons.history,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: targetRoleController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: proLinkInputDecoration(
+                          label: 'Target Role (Optional)',
+                          hint: 'All',
+                          icon: Icons.group,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: departmentCodeController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: proLinkInputDecoration(
+                    label: 'Department Code (Optional)',
+                    hint: 'DEV',
+                    icon: Icons.business,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _uploadBox(
+                  label: 'Replace PDF (Optional)',
+                  selectedFileName: selectedFile?.name,
+                  onTap: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: const ['pdf'],
+                      withData: true,
+                    );
+
+                    if (result != null && result.files.isNotEmpty) {
+                      setModalState(() {
+                        selectedFile = result.files.first;
+                        modalError = null;
+                      });
+                    }
+                  },
+                ),
+                if (modalError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(modalError!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
+                ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (versionController.text.trim().isNotEmpty &&
+                              int.tryParse(versionController.text.trim()) == null) {
+                            setModalState(() => modalError = 'Version must be numeric.');
+                            return;
+                          }
+
+                          setModalState(() {
+                            isSubmitting = true;
+                            modalError = null;
+                          });
+
+                          final success = await _officeProvider.updatePolicy(
+                            id: policy.id,
+                            title: titleController.text.trim().isEmpty ? null : titleController.text.trim(),
+                            description: descriptionController.text.trim().isEmpty
+                                ? null
+                                : descriptionController.text.trim(),
+                            departmentCode: departmentCodeController.text.trim().isEmpty
+                                ? null
+                                : departmentCodeController.text.trim(),
+                            targetRole: targetRoleController.text.trim().isEmpty
+                                ? null
+                                : targetRoleController.text.trim(),
+                            version: int.tryParse(versionController.text.trim()),
+                            fileBytes: selectedFile?.bytes,
+                            fileName: selectedFile?.name,
+                          );
+
+                          if (!mounted) {
+                            return;
+                          }
+
+                          if (success) {
+                            Navigator.of(this.context).pop();
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Policy handbook updated successfully.'),
+                                backgroundColor: AppColors.green,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setModalState(() {
+                            modalError = _officeProvider.error ?? 'Unable to update policy handbook.';
+                            isSubmitting = false;
+                          });
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    minimumSize: const Size(double.infinity, 55),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'UPDATE DOCUMENT',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      titleController.dispose();
+      descriptionController.dispose();
+      versionController.dispose();
+      departmentCodeController.dispose();
+      targetRoleController.dispose();
+    });
+  }
+
+  Future<void> _confirmDeletePolicy(PolicyDocumentModel policy) async {
+    final shouldDelete = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Text('Delete Policy?', style: TextStyle(color: Colors.white)),
+            content: Text(
+              'This will permanently delete "${policy.title}".',
+              style: const TextStyle(color: AppColors.grey),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    final success = await _officeProvider.deletePolicy(policy.id);
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Policy handbook deleted successfully.'),
+          backgroundColor: AppColors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_officeProvider.error ?? 'Unable to delete policy handbook.'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text("Policy Handbooks"), backgroundColor: Colors.transparent),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: handbooks.length,
-        itemBuilder: (context, index) {
-          final doc = handbooks[index];
-          return _buildPolicyCard(doc, index);
+    return ChangeNotifierProvider<AdminOfficeProvider>.value(
+      value: _officeProvider,
+      child: Consumer<AdminOfficeProvider>(
+        builder: (context, officeProvider, _) {
+          final filtered = _filteredPolicies(officeProvider.policies);
+          return Scaffold(
+            backgroundColor: AppColors.bg,
+            appBar: AppBar(title: const Text("Policy Handbooks"), backgroundColor: Colors.transparent),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterPolicies,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: proLinkInputDecoration(
+                      label: 'Search Policies',
+                      hint: 'Search by title...',
+                      icon: Icons.search,
+                    ),
+                  ),
+                ),
+                if (officeProvider.error != null && !officeProvider.isPoliciesLoading)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      officeProvider.error!,
+                      style: const TextStyle(color: AppColors.red, fontSize: 12),
+                    ),
+                  ),
+                Expanded(
+                  child: officeProvider.isPoliciesLoading && officeProvider.policies.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.greenLight,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : officeProvider.policies.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No policy handbooks uploaded yet.',
+                                style: TextStyle(color: AppColors.grey),
+                              ),
+                            )
+                          : filtered.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No policy handbooks found.',
+                                    style: TextStyle(color: AppColors.grey),
+                                  ),
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: officeProvider.loadPolicies,
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: filtered.length,
+                                    itemBuilder: (context, index) => _buildPolicyCard(filtered[index]),
+                                  ),
+                                ),
+                ),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              backgroundColor: AppColors.green,
+              onPressed: _showUploadDialog,
+              child: const Icon(Icons.add_to_photos),
+            ),
+          );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.green,
-        onPressed: _showUploadDialog,
-        child: const Icon(Icons.add_to_photos),
       ),
     );
   }
 
-  // ── UI WIDGET: POLICY CARD ──
-  Widget _buildPolicyCard(Map<String, dynamic> doc, int index) {
+  Widget _buildPolicyCard(PolicyDocumentModel doc) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: doc['isActive'] ? AppColors.greenLight.withOpacity(0.3) : AppColors.border),
+        border: Border.all(color: doc.isActive ? AppColors.greenLight.withOpacity(0.3) : AppColors.border),
       ),
       child: ExpansionTile(
-        leading: Icon(Icons.menu_book, color: doc['isActive'] ? AppColors.greenLight : AppColors.grey),
-        title: Text(doc['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        trailing: Switch(
-          value: doc['isActive'],
-          activeColor: AppColors.greenLight,
-          onChanged: (val) {
-            setState(() => doc['isActive'] = val);
-          },
+        leading: Icon(Icons.menu_book, color: doc.isActive ? AppColors.greenLight : AppColors.grey),
+        title: Text(doc.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        subtitle: Text(
+          doc.description ?? 'No description',
+          style: const TextStyle(color: AppColors.grey, fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(
+          doc.isActive ? 'Active' : 'Inactive',
+          style: TextStyle(
+            color: doc.isActive ? AppColors.greenLight : AppColors.grey,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         children: [
           const Divider(color: AppColors.border, height: 1),
@@ -1762,19 +2803,110 @@ class _PolicyManagementPageState extends State<PolicyManagementPage> {
               child: Text("Version History", style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
           ),
-          // List versions
-          ...(doc['versions'] as List).map((v) => ListTile(
+          ListTile(
             dense: true,
             leading: const Icon(Icons.file_present, color: AppColors.grey, size: 18),
-            title: Text("Version ${v['version']}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-            subtitle: Text("Uploaded: ${v['date']}", style: const TextStyle(color: AppColors.grey, fontSize: 11)),
-            trailing: TextButton(
-              onPressed: () {},
-              child: const Text("View", style: TextStyle(color: Colors.blue)),
+            title: Text(
+              'Version v${doc.version ?? 1}',
+              style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
-          )),
+            subtitle: Text(
+              'Uploaded: ${doc.updatedAt ?? doc.createdAt ?? '-'}',
+              style: const TextStyle(color: AppColors.grey, fontSize: 11),
+            ),
+            trailing: doc.fileUrl == null
+                ? const SizedBox.shrink()
+                : TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(doc.fileUrl!),
+                          backgroundColor: AppColors.surface,
+                        ),
+                      );
+                    },
+                    child: const Text('View', style: TextStyle(color: Colors.blue)),
+                  ),
+          ),
+          if (doc.departmentCode != null || doc.targetRole != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  if (doc.departmentCode != null)
+                    Text(
+                      'Dept: ${doc.departmentCode}',
+                      style: const TextStyle(color: AppColors.grey, fontSize: 11),
+                    ),
+                  if (doc.departmentCode != null && doc.targetRole != null)
+                    const Text('  •  ', style: TextStyle(color: AppColors.grey)),
+                  if (doc.targetRole != null)
+                    Text(
+                      'Role: ${doc.targetRole}',
+                      style: const TextStyle(color: AppColors.grey, fontSize: 11),
+                    ),
+                ],
+              ),
+            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => _showEditPolicyDialog(doc),
+                icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.greenLight),
+                label: const Text(
+                  'Edit',
+                  style: TextStyle(color: AppColors.greenLight),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => _confirmDeletePolicy(doc),
+                icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                label: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
         ],
+      ),
+    );
+  }
+
+  Widget _uploadBox({
+    required String label,
+    required VoidCallback onTap,
+    String? selectedFileName,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.upload_file, color: AppColors.greenLight, size: 30),
+            const SizedBox(height: 10),
+            Text(label, style: const TextStyle(color: AppColors.grey)),
+            if (selectedFileName != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                selectedFileName,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
