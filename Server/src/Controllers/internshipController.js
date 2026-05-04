@@ -13,6 +13,8 @@ exports.createInternship = async (req, res) => {
   try {
     const { intern_id } = req.params;
     const {
+      mentor_id,
+      department_id,
       mentor_name,
       department_code,
       subject,
@@ -20,30 +22,42 @@ exports.createInternship = async (req, res) => {
       end_date
     } = req.body;
 
-    // Validate required fields
-    if (!intern_id || !mentor_name || !department_code || !subject || !start_date || !end_date) {
+    // Validate required fields - must have either IDs or names/codes
+    const hasMentor = mentor_id || mentor_name;
+    const hasDept = department_id || department_code;
+
+    if (!intern_id || !hasMentor || !hasDept || !subject || !start_date || !end_date) {
       return res.status(400).json({
-        msg: '❌ Error: Please provide all required fields: intern_id (in URL), mentor_name, and department_code',
+        msg: '❌ Error: Please provide all required fields: intern_id (in URL), mentor (ID or name), and department (ID or code)',
         error: 'Missing required fields'
       });
     }
 
-    // Lookup mentor by name
-    const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
-    if (!mentor) {
-      return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
+    let final_mentor_id = mentor_id;
+    let final_department_id = department_id;
+
+    // Lookup mentor if ID not provided
+    if (!final_mentor_id) {
+      const mentor = await User.findOne({ full_name: mentor_name, user_role: 'Mentor' });
+      if (!mentor) {
+        return res.status(404).json({ msg: `Mentor with name '${mentor_name}' not found` });
+      }
+      final_mentor_id = mentor._id;
     }
 
-    // Lookup department by code
-    const department = await Department.findOne({ code: department_code });
-    if (!department) {
-      return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
+    // Lookup department if ID not provided
+    if (!final_department_id) {
+      const department = await Department.findOne({ code: department_code });
+      if (!department) {
+        return res.status(404).json({ msg: `Department with code '${department_code}' not found` });
+      }
+      final_department_id = department._id;
     }
 
     const assignment = await createInternshipAssignment({
       intern_id,
-      mentor_id: mentor._id,
-      department_id: department._id,
+      mentor_id: final_mentor_id,
+      department_id: final_department_id,
       subject,
       start_date,
       end_date,
