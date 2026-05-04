@@ -331,25 +331,21 @@ exports.getEvaluationStats = async (internId) => {
 };
 
 /**
- * Get all evaluations with pagination
+ * Get all evaluations with optional filtering and pagination
  */
-exports.getAllEvaluations = async (limit = 50, page = 1) => {
+exports.getAllEvaluations = async (limit = 50, page = 1, filters = {}) => {
   try {
     const skip = (page - 1) * limit;
 
     const [evaluations, total] = await Promise.all([
-      Evaluation.find()
+      Evaluation.find(filters)
         .populate('intern_id', 'full_name email')
         .populate('mentor_id', 'full_name email')
         .sort({ evaluated_at: -1 })
         .limit(limit)
         .skip(skip),
-      Evaluation.countDocuments()
+      Evaluation.countDocuments(filters)
     ]);
-
-    if (evaluations.length === 0) {
-      throw buildError('No evaluations found', 404);
-    }
 
     return {
       data: evaluations,

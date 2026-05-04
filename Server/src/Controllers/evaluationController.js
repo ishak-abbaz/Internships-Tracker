@@ -202,20 +202,25 @@ exports.getEvaluationStats = async (req, res) => {
 };
 
 /**
- * Get all evaluations with pagination
+ * Get all evaluations with pagination and optional filtering
  * GET /api/evaluations
  */
 exports.getAllEvaluations = async (req, res) => {
   try {
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50, page = 1, internId, mentorId } = req.query;
+
+    const filters = {};
+    if (internId) filters.intern_id = internId;
+    if (mentorId) filters.mentor_id = mentorId;
 
     const result = await evaluationService.getAllEvaluations(
       parseInt(limit),
-      parseInt(page)
+      parseInt(page),
+      filters
     );
 
     res.status(200).json({
-      msg: 'All evaluations retrieved successfully',
+      msg: 'Evaluations retrieved successfully',
       data: result
     });
   } catch (error) {

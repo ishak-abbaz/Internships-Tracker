@@ -114,11 +114,11 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
                     if (!confirmed) return;
                     final success = await notifier.deleteAssignment(item.id);
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(success ? 'Assignment deleted' : notifier.error ?? 'Delete failed'),
-                        backgroundColor: success ? AppColors.green : AppColors.red,
-                      ),
+                    showProAlert(
+                      context,
+                      title: success ? 'Success' : 'Error',
+                      message: success ? 'Assignment deleted successfully' : notifier.error ?? 'Delete failed',
+                      isError: !success,
                     );
                   },
                 );
@@ -362,9 +362,7 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
                     onTap: () async {
                       if (!formKey.currentState!.validate()) return;
                       if (startDate == null || endDate == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select start and end dates')),
-                        );
+                        showProAlert(context, title: 'Missing Info', message: 'Please select start and end dates', isError: true);
                         return;
                       }
 
@@ -394,16 +392,13 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
                       if (!context.mounted) return;
                       if (success) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(isEditing ? 'Assignment updated successfully' : 'Assignment created successfully'),
-                            backgroundColor: AppColors.green,
-                          ),
+                        showProAlert(
+                          context,
+                          title: 'Success',
+                          message: isEditing ? 'Assignment updated successfully' : 'Assignment created successfully',
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(notifier.error ?? 'Action failed'), backgroundColor: AppColors.red),
-                        );
+                        showProAlert(context, title: 'Error', message: notifier.error ?? 'Action failed', isError: true);
                       }
                     },
                   ),

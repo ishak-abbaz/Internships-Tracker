@@ -148,16 +148,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const InternAssignmentScreen()));
                       }),
 
-                      _drawerTile(context, Icons.fact_check, "Attendance", () {
-                        Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceManagementScreen()));
-                      }),
-
-                      _drawerTile(context, Icons.grade, "Evaluations", () {
-                        Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EvaluationManagementScreen(isAdmin: true)));
-                      }),
-
                       _drawerTile(context, Icons.school_outlined, "Training Modules", () {
                         Navigator.pop(context);
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const TrainingModuleManagementScreen()));

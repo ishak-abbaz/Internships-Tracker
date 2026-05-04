@@ -43,14 +43,10 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
   }
 
   void _fetchEvaluations() {
-    final evaluationNotifier = context.read<EvaluationNotifier>();
-    if (_selectedInternId != null) {
-      evaluationNotifier.fetchForIntern(_selectedInternId!);
-    } else if (_selectedMentorId != null) {
-      evaluationNotifier.fetchForMentor(_selectedMentorId!);
-    } else {
-      evaluationNotifier.fetchAll();
-    }
+    context.read<EvaluationNotifier>().fetchFiltered(
+      internId: _selectedInternId,
+      mentorId: _selectedMentorId,
+    );
   }
 
   @override
@@ -85,17 +81,8 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                   onChanged: (id) {
                     setState(() {
                       _selectedInternId = id;
-                      _selectedMentorId = widget.isAdmin ? null : widget.mentorId;
                     });
-                    if (id != null) {
-                      evaluationNotifier.fetchForIntern(id);
-                    } else {
-                      if (widget.isAdmin) {
-                        evaluationNotifier.fetchAll();
-                      } else if (widget.mentorId != null) {
-                        evaluationNotifier.fetchForMentor(widget.mentorId!);
-                      }
-                    }
+                    _fetchEvaluations();
                   },
                 ),
                 const SizedBox(height: 12),
@@ -109,13 +96,8 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                     onChanged: (id) {
                       setState(() {
                         _selectedMentorId = id;
-                        _selectedInternId = null;
                       });
-                      if (id != null) {
-                        evaluationNotifier.fetchForMentor(id);
-                      } else {
-                        evaluationNotifier.fetchAll();
-                      }
+                      _fetchEvaluations();
                     },
                   ),
               ],
@@ -289,11 +271,11 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                         _fetchEvaluations();
                       }
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success ? 'Evaluation saved' : context.read<EvaluationNotifier>().error ?? 'Save failed'),
-                          backgroundColor: success ? AppColors.green : AppColors.red,
-                        ),
+                      showProAlert(
+                        context,
+                        title: success ? 'Success' : 'Error',
+                        message: success ? 'Evaluation saved successfully' : context.read<EvaluationNotifier>().error ?? 'Save failed',
+                        isError: !success,
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -379,11 +361,11 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                         _fetchEvaluations();
                       }
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success ? 'Evaluation updated' : context.read<EvaluationNotifier>().error ?? 'Update failed'),
-                          backgroundColor: success ? AppColors.green : AppColors.red,
-                        ),
+                      showProAlert(
+                        context,
+                        title: success ? 'Success' : 'Error',
+                        message: success ? 'Evaluation updated successfully' : context.read<EvaluationNotifier>().error ?? 'Update failed',
+                        isError: !success,
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -422,11 +404,11 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
     if (confirmed == true && context.mounted) {
       final success = await context.read<EvaluationNotifier>().deleteEvaluation(evaluation.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Evaluation deleted' : context.read<EvaluationNotifier>().error ?? 'Delete failed'),
-            backgroundColor: success ? AppColors.green : AppColors.red,
-          ),
+        showProAlert(
+          context,
+          title: success ? 'Success' : 'Error',
+          message: success ? 'Evaluation deleted' : context.read<EvaluationNotifier>().error ?? 'Delete failed',
+          isError: !success,
         );
       }
     }

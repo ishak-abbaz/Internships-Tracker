@@ -1,6 +1,27 @@
 Admin Screen:
-	- when open admin screen pending intern validations when approving or declining intern it doesn't update(it still exists when clicked as intern is pending so i can click multiple times), also same problem when entering pending interns page
-	- assignments needs to change from calculating number of interns to number of assignments and putting active internships and non active (or the right word needs to be used in here)
-	- button under assignments needs to contain go to assignments or something similar
-Mentor Screen:
-	- clicking intern in my interns should display only info of intern not contact(department also)
+	- Evaluations Screen:
+		- updating any evaluation is not being updated
+		- selecting mentor and intern at the same time can't be done(i can select only a mentor or only an intern)
+	- Assignments Screen:
+		- adding an assignment returning: Error please provide all required fields while everything is set here is error shown in logs:
+❌ Error: ❌ Error: Please provide all required fields: intern_id (in URL), mentor_name, and department_code (Status: 400)
+	- Intern assignments Screen:
+		- Adding assignment returns this response(ERROR)
+📤 POSTING TO: https://internships-tracker.onrender.com/api/v1/admin/internships/69f8980c8afe7d4ec6ec9193
+Headers: {Content-Type: application/json, Authorization: Bearer
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGEyMWQzMjk4ODViNTBlNTJkZDUzZiIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3NzkxOTg0OCwiZXhwIjoxNzc4MDA2MjQ4fQ.OIdfpab0Gw9mZ5OtHQqEPS4ZEIcOugju
+2hTWVSSbYuo}
+Body:
+{"mentor_id":"69f0c3207004a3fea0698c1e","department_id":"69eb9439e4461fe74e0911d7","subject":"backend","start_date":"2026-05-12T00:00:00.000","end_date":"2026-06-12T00:00:00.000"}
+═══════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════
+🔍 API RESPONSE DEBUG INFO
+═══════════════════════════════════════════════════════════
+Status Code: 400
+Response Headers: {content-length: 115, content-type: application/json; charset=utf-8}
+Response Body: {"msg":"❌ Error: Please provide all required fields: intern_id (in URL), mentor_name, and department_code","error":"Missing required fields"}
+═══════════════════════════════════════════════════════════
+❌ Error: ❌ Error: Please provide all required fields: intern_id (in URL), mentor_name, and department_code (Status: 400)
+
+All functional regressions identified in the previous logs have been resolved.
+<caret>

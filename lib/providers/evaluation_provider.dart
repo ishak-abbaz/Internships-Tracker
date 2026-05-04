@@ -39,13 +39,20 @@ class EvaluationNotifier extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchAll() async {
+  Future<void> fetchFiltered({String? internId, String? mentorId}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       final token = await _authService.getToken();
-      final response = await _apiService.get(ApiConfig.evaluations, token: token);
+      
+      final queryParams = <String, String>{};
+      if (internId != null) queryParams['internId'] = internId;
+      if (mentorId != null) queryParams['mentorId'] = mentorId;
+      
+      final uri = Uri.parse(ApiConfig.evaluations).replace(queryParameters: queryParams);
+      
+      final response = await _apiService.get(uri.toString(), token: token);
       final List<dynamic> list = response['data']['data'] ?? [];
       _evaluations = list.map((e) => EvaluationModel.fromJson(e)).toList();
     } catch (e) {
@@ -54,40 +61,18 @@ class EvaluationNotifier extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> fetchAll() async {
+    await fetchFiltered();
   }
 
   Future<void> fetchForMentor(String mentorId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      final token = await _authService.getToken();
-      final response = await _apiService.get('${ApiConfig.evaluations}/mentor/$mentorId', token: token);
-      final List<dynamic> list = response['data']['data'] ?? [];
-      _evaluations = list.map((e) => EvaluationModel.fromJson(e)).toList();
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    await fetchFiltered(mentorId: mentorId);
   }
 
   Future<void> fetchForIntern(String internId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      final token = await _authService.getToken();
-      final response = await _apiService.get('${ApiConfig.evaluations}/intern/$internId', token: token);
-      final List<dynamic> list = response['data']['data'] ?? [];
-      _evaluations = list.map((e) => EvaluationModel.fromJson(e)).toList();
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    await fetchFiltered(internId: internId);
   }
 
   Future<bool> createEvaluation(EvaluationModel evaluation) async {
@@ -118,8 +103,8 @@ class EvaluationNotifier extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       await _apiService.patch('${ApiConfig.evaluations}/$evaluationId', body: {
-        if (weekLabel != null) 'week_label': weekLabel,
-        if (overallMark != null) 'overall_mark': overallMark,
+        if (weekLabel != null) 'weekLabel': weekLabel,
+        if (overallMark != null) 'overallMark': overallMark,
         if (feedback != null) 'feedback': feedback,
       }, token: token);
       await fetchAll();

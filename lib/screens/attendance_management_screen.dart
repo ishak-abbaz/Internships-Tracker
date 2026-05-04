@@ -210,13 +210,21 @@ class _AttendanceManagementScreenState extends State<AttendanceManagementScreen>
 
     if (confirmed == true && context.mounted) {
       final success = await context.read<AttendanceNotifier>().deleteAttendance(record.id);
-      if (success) _fetchAttendance();
+      if (context.mounted) {
+        if (success) _fetchAttendance();
+        showProAlert(
+          context,
+          title: success ? 'Success' : 'Error',
+          message: success ? 'Attendance record deleted' : context.read<AttendanceNotifier>().error ?? 'Delete failed',
+          isError: !success,
+        );
+      }
     }
   }
 
   Future<void> _showMarkDialog(BuildContext context, {AttendanceModel? existing}) async {
     if (_selectedInternId == null && existing == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select an intern first")));
+      showProAlert(context, title: 'Action Required', message: "Please select an intern first", isError: true);
       return;
     }
 
@@ -337,10 +345,12 @@ class _AttendanceManagementScreenState extends State<AttendanceManagementScreen>
                       _fetchAttendance();
                       Navigator.pop(context);
                     }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(success ? 'Attendance processed' : notifier.error ?? 'Error occurred'),
-                      backgroundColor: success ? AppColors.green : AppColors.red,
-                    ));
+                    showProAlert(
+                      context,
+                      title: success ? 'Success' : 'Error',
+                      message: success ? 'Attendance processed successfully' : notifier.error ?? 'Error occurred',
+                      isError: !success,
+                    );
                   },
                 ),
               ],
