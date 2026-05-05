@@ -207,7 +207,10 @@ class _MentorDashboardState extends State<MentorDashboard> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => EvaluationManagementScreen(mentorId: user?.id)));
+                              builder: (context) => EvaluationManagementScreen(
+                                    mentorId: user?.id,
+                                    isAdmin: false,
+                                  )));
                     }),
                     _drawerTile(Icons.school_outlined, "Training Modules", () {
                       Navigator.pop(context);

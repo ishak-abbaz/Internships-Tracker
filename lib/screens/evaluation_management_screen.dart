@@ -33,12 +33,13 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
       final evaluationNotifier = context.read<EvaluationNotifier>();
       if (widget.isAdmin) {
         evaluationNotifier.fetchAll();
+        context.read<AdminInternsListNotifier>().fetchInterns();
+        context.read<AdminMentorsNotifier>().fetchMentors();
       } else if (widget.mentorId != null) {
         _selectedMentorId = widget.mentorId;
         evaluationNotifier.fetchForMentor(widget.mentorId!);
+        context.read<AdminInternsListNotifier>().fetchInternsByMentor(widget.mentorId!);
       }
-      context.read<AdminInternsListNotifier>().fetchInterns();
-      context.read<AdminMentorsNotifier>().fetchMentors();
     });
   }
 
@@ -57,7 +58,7 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
 
     final interns = widget.isAdmin 
         ? internsNotifier.interns 
-        : internsNotifier.interns.where((i) => i.mentorId == widget.mentorId).toList();
+        : internsNotifier.mentorInterns;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -211,7 +212,9 @@ class _EvaluationManagementScreenState extends State<EvaluationManagementScreen>
                   const SizedBox(height: 16),
                   _buildDropdown<InternModel>(
                     label: 'Intern',
-                    items: context.read<AdminInternsListNotifier>().interns,
+                    items: widget.isAdmin 
+                        ? context.read<AdminInternsListNotifier>().interns 
+                        : context.read<AdminInternsListNotifier>().mentorInterns,
                     value: dialogInternId,
                     itemLabel: (i) => i.fullName,
                     itemValue: (i) => i.id,
