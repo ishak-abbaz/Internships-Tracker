@@ -61,4 +61,14 @@ class EvaluationModel {
       'evaluated_at': evaluatedAt.toIso8601String(),
     };
   }
+
+  Map<String, dynamic> toCreatePayload() {
+    return {
+      'internId': internId,
+      'mentorId': mentorId,
+      if (weekLabel != null) 'weekLabel': weekLabel,
+      'overallMark': overallMark,
+      if (feedback != null) 'feedback': feedback,
+    };
+  }
 }

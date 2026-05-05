@@ -8,7 +8,8 @@ import '../theme.dart';
 
 class TrainingModuleManagementScreen extends StatefulWidget {
   final String? mentorId;
-  const TrainingModuleManagementScreen({super.key, this.mentorId});
+  final bool isAdmin;
+  const TrainingModuleManagementScreen({super.key, this.mentorId, this.isAdmin = false});
 
   @override
   State<TrainingModuleManagementScreen> createState() => _TrainingModuleManagementScreenState();
@@ -29,10 +30,14 @@ class _TrainingModuleManagementScreenState extends State<TrainingModuleManagemen
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
 
-    if (user.userRole == 'Admin') {
+    if (widget.isAdmin || user.userRole == 'Admin') {
       notifier.fetchAllAdmin();
     } else if (user.userRole == 'Mentor') {
-      notifier.fetchAllAdmin(); // Mentors should also see all modules if they are to manage them
+      if (widget.mentorId != null) {
+        notifier.fetchForMentor(widget.mentorId!);
+      } else {
+        notifier.fetchAllAdmin(); // Mentors should also see all modules if they are to manage them
+      }
     }
   }
 
@@ -40,7 +45,7 @@ class _TrainingModuleManagementScreenState extends State<TrainingModuleManagemen
   Widget build(BuildContext context) {
     final notifier = context.watch<TrainingModuleNotifier>();
     final user = context.watch<AuthProvider>().currentUser;
-    final bool canManage = user?.userRole == 'Admin' || user?.userRole == 'Mentor';
+    final bool canManage = widget.isAdmin || user?.userRole == 'Admin' || user?.userRole == 'Mentor';
 
     return Scaffold(
       backgroundColor: AppColors.bg,

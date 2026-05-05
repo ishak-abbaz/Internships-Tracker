@@ -80,7 +80,11 @@ class EvaluationNotifier extends ChangeNotifier {
     notifyListeners();
     try {
       final token = await _authService.getToken();
-      await _apiService.post(ApiConfig.evaluations, body: evaluation.toJson(), token: token);
+      await _apiService.post(
+        ApiConfig.evaluations,
+        body: evaluation.toCreatePayload(),
+        token: token,
+      );
       await fetchAll();
       return true;
     } catch (e) {

@@ -361,8 +361,13 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
                     isLoading: notifier.isLoading,
                     onTap: () async {
                       if (!formKey.currentState!.validate()) return;
-                      if (startDate == null || endDate == null) {
-                        showProAlert(context, title: 'Missing Info', message: 'Please select start and end dates', isError: true);
+                    if (startDate == null || endDate == null) {
+                        showProAlert(
+                          context,
+                          title: 'Missing Dates',
+                          message: 'Please select start and end dates',
+                          isError: true,
+                        );
                         return;
                       }
 
@@ -398,7 +403,12 @@ class _InternAssignmentScreenState extends State<InternAssignmentScreen> {
                           message: isEditing ? 'Assignment updated successfully' : 'Assignment created successfully',
                         );
                       } else {
-                        showProAlert(context, title: 'Error', message: notifier.error ?? 'Action failed', isError: true);
+                        showProAlert(
+                          context,
+                          title: 'Error',
+                          message: notifier.error ?? 'Action failed',
+                          isError: true,
+                        );
                       }
                     },
                   ),
